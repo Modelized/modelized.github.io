@@ -1,22 +1,35 @@
 <nav class="site-nav" role="navigation" aria-label="Primary">
   <div class="nav-frame">
-    <a class="brand" href="#hero" aria-label="Modelized home">
-      <picture>
-        <source media="(prefers-color-scheme: light)" srcset="assets/img/logo-black.png">
-        <img class="brand-logo" src="assets/img/logo.png" alt="Modelized logo" loading="eager" decoding="async">
-      </picture>
-    </a>
+    <div class="nav-row">
+      <a class="brand" href="#hero" aria-label="Modelized home">
+        <picture>
+          <source media="(prefers-color-scheme: light)" srcset="assets/img/logo-black.png">
+          <img class="brand-logo" src="assets/img/logo.png" alt="Modelized logo" loading="eager" decoding="async">
+        </picture>
+      </a>
 
-    <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav-links">
-      <span></span>
-      <span></span>
-    </button>
+      <ul class="nav-links nav-links-desktop">
+        <li><a href="#hero" data-nav-link>Home</a></li>
+        <li><a href="#about" data-nav-link>About</a></li>
+        <li><a href="#disciplines" data-nav-link>Disciplines</a></li>
+        <li><a href="#projects" data-nav-link>Projects</a></li>
+      </ul>
 
-    <ul id="site-nav-links" class="nav-links">
-      <li><a href="#hero" data-nav-link>Home</a></li>
-      <li><a href="#about" data-nav-link>About</a></li>
-      <li><a href="#disciplines" data-nav-link>Disciplines</a></li>
-      <li><a href="#projects" data-nav-link>Projects</a></li>
-    </ul>
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-sheet">
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+
+    <div class="nav-sheet" id="mobile-sheet" aria-hidden="true">
+      <div class="nav-sheet-inner">
+        <ul class="nav-mobile-links">
+          <li style="--menu-delay: .02s;"><a href="#hero" data-nav-link>Home</a></li>
+          <li style="--menu-delay: .06s;"><a href="#about" data-nav-link>About</a></li>
+          <li style="--menu-delay: .10s;"><a href="#disciplines" data-nav-link>Disciplines</a></li>
+          <li style="--menu-delay: .14s;"><a href="#projects" data-nav-link>Projects</a></li>
+        </ul>
+      </div>
+    </div>
   </div>
 </nav>
