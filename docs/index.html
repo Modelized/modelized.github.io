@@ -7,17 +7,17 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
   <link rel="icon" sizes="512x512" href="android-chrome-512x512.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="mask-icon" href="pinned-tab.svg" color="#090d16">
+  <link rel="mask-icon" href="pinned-tab.svg" color="#111317">
 
-  <meta name="theme-color" content="#090d16" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#f4f7ff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1114" media="(prefers-color-scheme: dark)">
 
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Modelized">
@@ -28,24 +28,22 @@
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body class="page-home" data-base=".">
-  <div class="bg-grid" aria-hidden="true"></div>
-
   <div id="nav-slot"></div>
 
   <main id="top" class="page-wrap">
     <section id="hero" class="section hero" data-section="hero">
-      <div class="section-glow hero-glow" data-parallax="0.18" aria-hidden="true"></div>
       <div class="container hero-layout">
-        <p class="eyebrow reveal" data-reveal>Modelized</p>
+        <div class="hero-top reveal" data-reveal>
+          <p class="eyebrow">Modelized</p>
+          <p class="hero-meta">Code. Canvas. Chords.</p>
+        </div>
+
         <h1 class="hero-title reveal" data-reveal>Shape the Unseen.</h1>
-        <p class="hero-subtitle reveal" data-reveal>Code. Canvas. Chords.</p>
-        <a class="button primary magnetic reveal" data-reveal href="#projects">Explore Current Project</a>
-      </div>
-      <div class="hero-track" aria-hidden="true">
-        <span>Modelized</span>
-        <span>Future Crafted In Logic</span>
-        <span>Modelized</span>
-        <span>Future Crafted In Logic</span>
+
+        <div class="hero-bottom reveal" data-reveal>
+          <p class="hero-subtitle">An independent creative technology practice led by Jason Lee.</p>
+          <a class="button primary" href="#projects">View Current Project</a>
+        </div>
       </div>
     </section>
 
@@ -69,15 +67,15 @@
         </div>
 
         <div class="discipline-grid">
-          <article class="discipline-card tilt-card reveal" data-reveal>
+          <article class="discipline-card reveal" data-reveal>
             <h3>Code</h3>
             <p>Architecting intelligent systems and fluid digital experiences through precise logic.</p>
           </article>
-          <article class="discipline-card tilt-card reveal" data-reveal>
+          <article class="discipline-card reveal" data-reveal>
             <h3>Canvas</h3>
             <p>Sculpting immersive, futuristic visual identities that challenge the ordinary.</p>
           </article>
-          <article class="discipline-card tilt-card reveal" data-reveal>
+          <article class="discipline-card reveal" data-reveal>
             <h3>Chords</h3>
             <p>Composing atmospheric soundscapes where emotion meets technical precision.</p>
           </article>
@@ -90,13 +88,13 @@
         <div class="section-head reveal" data-reveal>
           <p class="eyebrow">Current Projects</p>
           <h2>Live Modules</h2>
-          <p class="section-note">The project area is modular. Add a new object block in <code>assets/js/shell.js</code> to publish another project card.</p>
+          <p class="section-note">Add a new project by copying one object block in <code>assets/js/shell.js</code>.</p>
         </div>
         <div id="project-track" class="project-track"></div>
       </div>
 
       <template id="project-card-template">
-        <article class="project-card tilt-card reveal" data-reveal>
+        <article class="project-card reveal" data-reveal>
           <div class="project-content">
             <div class="project-meta">
               <img class="project-icon" src="" alt="" loading="lazy" decoding="async">
