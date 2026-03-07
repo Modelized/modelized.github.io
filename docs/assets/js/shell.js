@@ -119,7 +119,7 @@
       sheet.setAttribute("aria-hidden", open ? "false" : "true");
     }
 
-    body.classList.toggle("no-scroll", open && isPortraitMobile());
+    body.classList.remove("no-scroll");
     body.classList.toggle("nav-open", open);
   }
 
