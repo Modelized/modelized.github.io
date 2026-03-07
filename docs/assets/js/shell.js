@@ -22,6 +22,7 @@
     if (!base || base === ".") {
       return `assets/partials/${file}`;
     }
+
     const normalized = base.endsWith("/") ? base.slice(0, -1) : base;
     return `${normalized}/assets/partials/${file}`;
   }
@@ -117,8 +118,7 @@
       return;
     }
 
-    const destination =
-      target.getBoundingClientRect().top + window.scrollY - getNavOffset();
+    const destination = target.getBoundingClientRect().top + window.scrollY - getNavOffset();
 
     window.scrollTo({
       top: destination,
@@ -224,8 +224,7 @@
       }
     };
 
-    const initialLink =
-      links.find((link) => link.getAttribute("href") === location.hash) || links[0];
+    const initialLink = links.find((link) => link.getAttribute("href") === location.hash) || links[0];
     setActive(initialLink);
 
     if (!("IntersectionObserver" in window)) {
@@ -243,12 +242,49 @@
         }
       },
       {
-        rootMargin: "-35% 0px -46% 0px",
+        rootMargin: "-32% 0px -48% 0px",
         threshold: [0.2, 0.45, 0.7]
       }
     );
 
     map.forEach((_link, section) => observer.observe(section));
+  }
+
+  function initSectionDepth() {
+    const sections = Array.from(document.querySelectorAll(".section"));
+    if (!sections.length || !("IntersectionObserver" in window)) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          entry.target.classList.toggle("is-active", entry.isIntersecting);
+        });
+      },
+      {
+        rootMargin: "-20% 0px -20% 0px",
+        threshold: 0.18
+      }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+  }
+
+  function applyRevealStagger() {
+    const sections = Array.from(document.querySelectorAll(".section"));
+
+    sections.forEach((section) => {
+      const revealItems = Array.from(section.querySelectorAll("[data-reveal]"));
+
+      revealItems.forEach((element, index) => {
+        const rawDelay = Number(element.getAttribute("data-reveal-delay"));
+        const delay = Number.isFinite(rawDelay) ? rawDelay : Math.min(index * 95, 520);
+
+        element.style.setProperty("--reveal-delay", `${delay}ms`);
+        element.style.setProperty("--reveal-distance", index === 0 ? "16px" : "24px");
+      });
+    });
   }
 
   function initReveal() {
@@ -257,6 +293,7 @@
       return;
     }
 
+    applyRevealStagger();
     revealElements.forEach((element) => element.classList.add("reveal"));
 
     if (prefersReducedMotion || !("IntersectionObserver" in window)) {
@@ -275,12 +312,98 @@
         });
       },
       {
-        rootMargin: "0px 0px -8% 0px",
-        threshold: 0.18
+        rootMargin: "0px 0px -10% 0px",
+        threshold: 0.12
       }
     );
 
     revealElements.forEach((element) => observer.observe(element));
+  }
+
+  function initHeroIntro() {
+    if (prefersReducedMotion) {
+      body.classList.add("hero-ready");
+      return;
+    }
+
+    const applyReady = () => {
+      requestAnimationFrame(() => {
+        body.classList.add("hero-ready");
+      });
+    };
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(applyReady).catch(applyReady);
+      return;
+    }
+
+    applyReady();
+  }
+
+  function initParallax() {
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const layers = Array.from(document.querySelectorAll("[data-parallax]"));
+    if (!layers.length) {
+      return;
+    }
+
+    let raf = 0;
+
+    const render = () => {
+      raf = 0;
+      const viewportCenter = window.innerHeight * 0.5;
+
+      layers.forEach((layer) => {
+        const speed = Number(layer.getAttribute("data-parallax")) || 0.02;
+        const rect = layer.getBoundingClientRect();
+        const distance = rect.top + rect.height * 0.5 - viewportCenter;
+        const shift = Math.max(-34, Math.min(34, -distance * speed));
+
+        layer.style.setProperty("--parallax-y", `${shift.toFixed(2)}px`);
+      });
+    };
+
+    const requestFrame = () => {
+      if (!raf) {
+        raf = requestAnimationFrame(render);
+      }
+    };
+
+    requestFrame();
+    window.addEventListener("scroll", requestFrame, { passive: true });
+    window.addEventListener("resize", requestFrame);
+  }
+
+  function initHoverTracking() {
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const supportsFinePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (!supportsFinePointer) {
+      return;
+    }
+
+    const cards = Array.from(document.querySelectorAll(".discipline-card, .project-card"));
+
+    cards.forEach((card) => {
+      card.addEventListener("pointermove", (event) => {
+        const rect = card.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) * 100;
+        const y = ((event.clientY - rect.top) / rect.height) * 100;
+
+        card.style.setProperty("--mx", `${x.toFixed(2)}%`);
+        card.style.setProperty("--my", `${y.toFixed(2)}%`);
+      });
+
+      card.addEventListener("pointerleave", () => {
+        card.style.removeProperty("--mx");
+        card.style.removeProperty("--my");
+      });
+    });
   }
 
   async function boot() {
@@ -294,7 +417,11 @@
     initNav();
     initAnchorScroll();
     initSectionSpy();
+    initSectionDepth();
     initReveal();
+    initHeroIntro();
+    initParallax();
+    initHoverTracking();
 
     if (location.hash) {
       requestAnimationFrame(() => scrollToTarget(location.hash, false));
