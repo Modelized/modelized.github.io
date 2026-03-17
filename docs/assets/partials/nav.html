@@ -1,14 +1,11 @@
-<nav class="site-nav" role="navigation" aria-label="Primary">
-  <div class="nav-frame">
-    <div class="nav-row">
-      <a class="brand" href="#hero" aria-label="Modelized home">
-        <picture>
-          <source media="(prefers-color-scheme: light)" srcset="assets/img/logo-black.png">
-          <img class="brand-logo" src="assets/img/logo.png" alt="Modelized logo" loading="eager" decoding="async">
-        </picture>
+<nav class="nav" role="navigation" aria-label="Primary">
+  <div class="nav-inner">
+    <div class="container row">
+      <a class="brand has-logo" href="#hero" aria-label="Modelized home">
+        <img class="brand-logo" src="assets/img/logo.png" alt="Modelized logo" loading="eager" decoding="async">
       </a>
 
-      <ul class="nav-links nav-links-desktop">
+      <ul class="menu desktop">
         <li><a href="#hero" data-nav-link>Home</a></li>
         <li><a href="#about" data-nav-link>About</a></li>
         <li><a href="#disciplines" data-nav-link>Disciplines</a></li>
@@ -16,16 +13,18 @@
       </ul>
 
       <div class="nav-right">
-        <button class="nav-search" type="button" aria-label="Search"></button>
-        <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-sheet">
+        <button class="nav-search" type="button" aria-label="Search">
+          <span class="nav-search-glyph"></span>
+        </button>
+        <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-sheet">
           <span class="nav-toggle-bar"></span>
         </button>
       </div>
     </div>
 
-    <div class="nav-sheet" id="mobile-sheet" aria-hidden="true">
-      <div class="nav-sheet-inner">
-        <ul class="nav-mobile-links">
+    <div class="container sheet" id="mobile-sheet" aria-hidden="true">
+      <div class="sheet-content">
+        <ul class="mobile-menu">
           <li style="--menu-delay: .02s;"><a href="#hero" data-nav-link>Home</a></li>
           <li style="--menu-delay: .06s;"><a href="#about" data-nav-link>About</a></li>
           <li style="--menu-delay: .10s;"><a href="#disciplines" data-nav-link>Disciplines</a></li>

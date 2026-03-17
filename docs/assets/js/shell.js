@@ -1,8 +1,8 @@
-(function () {
+(function(){
   "use strict";
 
   const body = document.body;
-  const base = (body?.getAttribute("data-base") || ".").trim();
+  const base = (body?.getAttribute('data-base') || '.').trim();
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const projects = [
@@ -87,270 +87,250 @@
     }
   }
 
-  function getNavOffset() {
-    const nav = document.querySelector(".site-nav");
-    if (!nav) {
-      return 22;
-    }
-    const row = nav.querySelector(".nav-row");
-    if (row) {
+  function getNavOffset(){
+    const nav = document.querySelector('.nav');
+    if (!nav) return 22;
+
+    const row = nav.querySelector('.row');
+    if (row){
       return row.getBoundingClientRect().height + 22;
     }
     return nav.getBoundingClientRect().height + 22;
   }
 
-  function isPortraitMobile() {
-    return window.matchMedia("(max-width: 980px) and (orientation: portrait)").matches;
+  function isPortraitMobile(){
+    return window.matchMedia('(max-width:900px) and (orientation:portrait)').matches;
   }
 
- function setNavOpenState(nav, open) {
-   const toggle = nav?.querySelector(".nav-toggle");
-   const sheet = nav?.querySelector("#mobile-sheet");
+  function setNavOpenState(nav, open){
+    const toggle = nav?.querySelector('.nav-toggle');
+    const sheet  = nav?.querySelector('#mobile-sheet');
 
-   if (!nav || !toggle) {
-     return;
-   }
+    if (!nav || !toggle) return;
 
-   nav.classList.toggle("nav-open", open);
-   nav.classList.toggle("nav--open", open);
-   toggle.setAttribute("aria-expanded", open ? "true" : "false");
-   toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    nav.classList.toggle('nav--open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
 
-   if (sheet) {
-     sheet.setAttribute("aria-hidden", open ? "false" : "true");
-   }
+    if (sheet){
+      sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
 
-   body.classList.toggle("no-scroll", open);
-   body.classList.toggle("nav-open", open);
-   body.classList.toggle("nav--open", open);
- }
+    body.classList.toggle('no-scroll', open);
+  }
 
- function closeMobileNav() {
-   const nav = document.querySelector(".site-nav");
-   if (!nav) {
-     return;
-   }
-   setNavOpenState(nav, false);
- }
+  function closeMobileNav(){
+    const nav = document.querySelector('.nav');
+    if (!nav) return;
+    setNavOpenState(nav, false);
+  }
 
- function initNavBackdrop() {
-   if (document.body.dataset.backdropInit === "1") {
-     return;
-   }
-   document.body.dataset.backdropInit = "1";
+  function initNavBackdrop(){
+    if (document.body.dataset.backdropInit === '1') return;
+    document.body.dataset.backdropInit = '1';
 
-   let backdrop = document.querySelector(".nav-backdrop");
-   let last = null;
-   let ticking = false;
+    let backdrop = document.querySelector('.nav-backdrop');
+    let last = null;
+    let ticking = false;
 
-   const compute = () => {
-     ticking = false;
+    const compute = () => {
+      ticking = false;
 
-     const y = window.scrollY || window.pageYOffset || 0;
-     const scrolled = y > 4;
+      const y = window.scrollY || window.pageYOffset || 0;
+      const scrolled = y > 4;
 
-     if (scrolled !== last) {
-       if (!backdrop) {
-         backdrop = document.querySelector(".nav-backdrop");
-       }
-       if (backdrop) {
-         backdrop.classList.toggle("is-visible", scrolled);
-       }
+      if (scrolled !== last){
+        if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
+        if (backdrop) backdrop.classList.toggle('is-visible', scrolled);
 
-       document.body.classList.toggle("nav--scrolled", scrolled);
-       document.body.classList.toggle("nav-scrolled", scrolled);
-       last = scrolled;
-     }
-   };
+        document.body.classList.toggle('nav--scrolled', scrolled);
+        last = scrolled;
+      }
+    };
 
-   const onChange = () => {
-     if (ticking) {
-       return;
-     }
-     ticking = true;
-     requestAnimationFrame(compute);
-   };
+    const onChange = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(compute);
+    };
 
-   compute();
-   window.addEventListener("scroll", onChange, { passive: true });
-   window.addEventListener("resize", onChange);
-   window.addEventListener("orientationchange", onChange);
-   window.addEventListener("pageshow", onChange);
- }
+    compute();
+    window.addEventListener('scroll', onChange, { passive:true });
+    window.addEventListener('resize', onChange);
+    window.addEventListener('orientationchange', onChange);
+    window.addEventListener('pageshow', onChange);
+  }
 
- function initMenuThumb() {
-   const menu = document.querySelector(".nav-links-desktop");
-   if (!menu) {
-     return;
-   }
+  function initMenuThumb(){
+    const menu = document.querySelector('ul.menu');
+    if (!menu) return;
 
-   if (menu.dataset.thumbInit === "1") {
-     return;
-   }
-   menu.dataset.thumbInit = "1";
+    if (menu.dataset.thumbInit === '1') return;
+    menu.dataset.thumbInit = '1';
 
-   const allLinks = [...menu.querySelectorAll("a")];
-   if (!allLinks.length) {
-     return;
-   }
+    const allLinks = [...menu.querySelectorAll('a')];
+    const links = allLinks.filter(a => a.matches('[data-nav-link]'));
+    if (!links.length) return;
 
-   const normHash = (value) => {
-     if (!value || value === "#hero") {
-       return "";
-     }
-     return value;
-   };
+    const normHash = (h) => {
+      if (!h || h === '#hero') return '';
+      return h;
+    };
 
-   allLinks.forEach((link) => link.classList.remove("is-current"));
+    allLinks.forEach(a => a.classList.remove('is-current'));
 
-   const currentHash = normHash(location.hash);
-   let current = allLinks.find((link) => normHash(link.getAttribute("href")) === currentHash) || allLinks[0];
+    const currentHash = normHash(location.hash);
+    let current = null;
 
-   if (current) {
-     current.classList.add("is-current");
-   }
+    for (const a of links){
+      const href = normHash(a.getAttribute('href'));
+      if (href === currentHash){
+        current = a;
+        break;
+      }
+    }
 
-   const setThumbTo = (link, show = true) => {
-     if (!link) {
-       menu.style.setProperty("--menu-thumb-o", "0");
-       return;
-     }
+    if (!current) current = links[0];
+    if (current) current.classList.add('is-current');
 
-     const menuRect = menu.getBoundingClientRect();
-     const rect = link.getBoundingClientRect();
-     const styles = getComputedStyle(menu);
+    const setThumbTo = (a, show = true) => {
+      if (!a){
+        menu.style.setProperty('--menu-thumb-o', '0');
+        return;
+      }
 
-     const padStr = styles.getPropertyValue("--menu-thumb-pad").trim();
-     const padNum = parseFloat(padStr);
-     const pad = Number.isFinite(padNum) ? padNum : 6;
+      const mr = menu.getBoundingClientRect();
+      const r  = a.getBoundingClientRect();
+      const ms = getComputedStyle(menu);
 
-     const borderLeftNum = parseFloat(styles.borderLeftWidth);
-     const borderLeft = Number.isFinite(borderLeftNum) ? borderLeftNum : 0;
+      const padStr = ms.getPropertyValue('--menu-thumb-pad').trim();
+      const padNum = parseFloat(padStr);
+      const pad = Number.isFinite(padNum) ? padNum : 10;
 
-     const x = rect.left - menuRect.left - borderLeft - pad;
-     const w = rect.width + pad * 2;
+      const borderLeftNum = parseFloat(ms.borderLeftWidth);
+      const borderLeft = Number.isFinite(borderLeftNum) ? borderLeftNum : 0;
 
-     menu.style.setProperty("--menu-thumb-x", `${x}px`);
-     menu.style.setProperty("--menu-thumb-w", `${w}px`);
-     menu.style.setProperty("--menu-thumb-o", show ? "1" : "0");
-   };
+      const x  = (r.left - mr.left) - borderLeft - pad;
+      const w  = r.width + pad * 2;
 
-   const setTargetClass = (targetEl) => {
-     allLinks.forEach((link) => link.classList.remove("is-target"));
-     if (targetEl) {
-       targetEl.classList.add("is-target");
-     }
-   };
+      menu.style.setProperty('--menu-thumb-x', `${x}px`);
+      menu.style.setProperty('--menu-thumb-w', `${w}px`);
+      menu.style.setProperty('--menu-thumb-o', show ? '1' : '0');
+    };
 
-   const snapToCurrent = () => {
-     const cur = menu.querySelector("a.is-current");
-     if (cur) {
-       setThumbTo(cur, true);
-       setTargetClass(cur);
-     } else {
-       setThumbTo(null, false);
-       setTargetClass(null);
-     }
-   };
+    const setTargetClass = (targetEl) => {
+      for (const a of allLinks) a.classList.remove('is-target');
+      if (targetEl) targetEl.classList.add('is-target');
+    };
 
-   menu.classList.add("thumb-init");
-   snapToCurrent();
-   requestAnimationFrame(() => menu.classList.remove("thumb-init"));
+    const snapToCurrent = () => {
+      const cur = menu.querySelector('a.is-current');
+      if (cur){
+        setThumbTo(cur, true);
+        setTargetClass(cur);
+      }else{
+        setThumbTo(null, false);
+        setTargetClass(null);
+      }
+    };
 
-   const realign = () => {
-     if (menu.dataset.thumbHovering) {
-       return;
-     }
-     snapToCurrent();
-   };
+    menu.classList.add('thumb-init');
+    snapToCurrent();
+    requestAnimationFrame(() => menu.classList.remove('thumb-init'));
 
-   window.addEventListener("resize", realign);
-   window.addEventListener("orientationchange", realign);
-   if (document.fonts?.ready) {
-     document.fonts.ready.then(realign);
-   }
+    const realign = () => {
+      if (menu.dataset.thumbHovering) return;
+      snapToCurrent();
+    };
 
-   if (typeof ResizeObserver !== "undefined") {
-     const ro = new ResizeObserver(realign);
-     ro.observe(menu);
-   }
+    window.addEventListener('resize', realign);
+    window.addEventListener('orientationchange', realign);
+    if (document.fonts?.ready) document.fonts.ready.then(realign);
 
-   let raf = 0;
-   let target = current || allLinks[0];
-   let leaveTimer = 0;
+    if (typeof ResizeObserver !== 'undefined'){
+      const ro = new ResizeObserver(realign);
+      ro.observe(menu);
+    }
 
-   const isHoverPointer = (event) => event && (event.pointerType === "mouse" || event.pointerType === "pen");
+    let raf = 0;
+    let target = menu.querySelector('a.is-current') || links[0];
+    let leaveTimer = 0;
 
-   const nearestLinkByX = (clientX) => {
-     let best = allLinks[0];
-     let bestDistance = Infinity;
+    const isHoverPointer = (e) => {
+      return e && (e.pointerType === 'mouse' || e.pointerType === 'pen');
+    };
 
-     for (const link of allLinks) {
-       const rect = link.getBoundingClientRect();
-       const centerX = (rect.left + rect.right) / 2;
-       const distance = Math.abs(clientX - centerX);
-       if (distance < bestDistance) {
-         bestDistance = distance;
-         best = link;
-       }
-     }
+    const nearestLinkByX = (clientX) => {
+      let best = links[0];
+      let bestD = Infinity;
+      for (const a of links){
+        const r = a.getBoundingClientRect();
+        const cx = (r.left + r.right) / 2;
+        const d = Math.abs(clientX - cx);
+        if (d < bestD){ bestD = d; best = a; }
+      }
+      return best;
+    };
 
-     return best;
-   };
+    const tick = () => {
+      raf = 0;
+      setThumbTo(target, true);
+      setTargetClass(target);
+    };
 
-   const tick = () => {
-     raf = 0;
-     setThumbTo(target, true);
-     setTargetClass(target);
-   };
+    const cancelLeave = () => {
+      if (leaveTimer){
+        clearTimeout(leaveTimer);
+        leaveTimer = 0;
+      }
+    };
 
-   const cancelLeave = () => {
-     if (leaveTimer) {
-       clearTimeout(leaveTimer);
-       leaveTimer = 0;
-     }
-   };
+    const scheduleLeave = () => {
+      cancelLeave();
+      leaveTimer = setTimeout(() => {
+        delete menu.dataset.thumbHovering;
+        snapToCurrent();
+      }, 180);
+    };
 
-   const scheduleLeave = () => {
-     cancelLeave();
-     leaveTimer = setTimeout(() => {
-       delete menu.dataset.thumbHovering;
-       snapToCurrent();
-     }, 180);
-   };
+    menu.addEventListener('pointerenter', (e) => {
+      if (!isHoverPointer(e)) return;
+      cancelLeave();
+      menu.dataset.thumbHovering = '1';
+    });
 
-   menu.addEventListener("pointerenter", (event) => {
-     if (!isHoverPointer(event)) {
-       return;
-     }
-     cancelLeave();
-     menu.dataset.thumbHovering = "1";
-   });
+    menu.addEventListener('pointermove', (e) => {
+      if (!isHoverPointer(e)) return;
+      cancelLeave();
+      menu.dataset.thumbHovering = '1';
 
-   menu.addEventListener("pointermove", (event) => {
-     if (!isHoverPointer(event)) {
-       return;
-     }
-     cancelLeave();
-     menu.dataset.thumbHovering = "1";
-     const next = nearestLinkByX(event.clientX);
-     if (next !== target) {
-       target = next;
-     }
-     if (!raf) {
-       raf = requestAnimationFrame(tick);
-     }
-   });
+      const next = nearestLinkByX(e.clientX);
+      if (next !== target) target = next;
+      if (!raf) raf = requestAnimationFrame(tick);
+    });
 
-   menu.addEventListener("pointerleave", (event) => {
-     if (!isHoverPointer(event)) {
-       delete menu.dataset.thumbHovering;
-       snapToCurrent();
-       return;
-     }
-     scheduleLeave();
-   });
- }
+    menu.addEventListener('pointerleave', (e) => {
+      if (!isHoverPointer(e)){
+        delete menu.dataset.thumbHovering;
+        snapToCurrent();
+        return;
+      }
+      scheduleLeave();
+    });
+
+    if (!('PointerEvent' in window)){
+      menu.addEventListener('mousemove', (e) => {
+        menu.dataset.thumbHovering = '1';
+        const next = nearestLinkByX(e.clientX);
+        if (next !== target) target = next;
+        if (!raf) raf = requestAnimationFrame(tick);
+      });
+      menu.addEventListener('mouseleave', () => {
+        delete menu.dataset.thumbHovering;
+        snapToCurrent();
+      });
+    }
+  }
 
   function scrollToTarget(hash) {
     if (!hash || hash === "#") {
@@ -370,110 +350,73 @@
     });
   }
 
- function initAnchorScroll() {
-   document.addEventListener("click", (event) => {
-     const anchor = event.target.closest('a[href^="#"]');
-     if (!anchor) {
-       return;
+  function initAnchorScroll(){
+    document.addEventListener('click', (event) => {
+      const anchor = event.target.closest('a[href^="#"]');
+      if (!anchor) return;
+
+      const hash = anchor.getAttribute('href');
+      if (!hash || hash === '#') return;
+
+      const target = document.querySelector(hash);
+      if (!target) return;
+
+      event.preventDefault();
+      scrollToTarget(hash);
+
+      const nav = document.querySelector('.nav');
+      if (nav?.classList.contains('nav--open')){
+        closeMobileNav();
+      }
+    });
+  }
+
+  function initNav(){
+    const nav    = document.querySelector('.nav');
+    const toggle = document.querySelector('.nav-toggle');
+    const sheet  = document.getElementById('mobile-sheet');
+    const bodyEl = document.body;
+
+    if (toggle && sheet && nav){
+      toggle.addEventListener('click', () => {
+        const open = nav.classList.toggle('nav--open');
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+        sheet.setAttribute('aria-hidden',   open ? 'false' : 'true');
+        bodyEl.classList.toggle('no-scroll', open);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && nav.classList.contains('nav--open')){
+          nav.classList.remove('nav--open');
+          toggle.setAttribute('aria-expanded', 'false');
+          toggle.setAttribute('aria-label', 'Open menu');
+          sheet.setAttribute('aria-hidden', 'true');
+          bodyEl.classList.remove('no-scroll');
+        }
+      });
+    }
+
+   const brand = document.querySelector('.brand');
+   const logo  = document.querySelector('.brand-logo');
+
+   function update(){
+     if (brand && logo && logo.naturalWidth > 0){
+       brand.classList.add('has-logo');
      }
-
-     const hash = anchor.getAttribute("href");
-     if (!hash || hash === "#") {
-       return;
-     }
-
-     const target = document.querySelector(hash);
-     if (!target) {
-       return;
-     }
-
-     event.preventDefault();
-
-     const nav = document.querySelector(".site-nav");
-     if (nav?.classList.contains("nav-open")) {
-       closeMobileNav();
-     }
-
-     const desktopLinks = Array.from(document.querySelectorAll(".nav-links-desktop a"));
-     desktopLinks.forEach((link) => link.classList.remove("is-current"));
-     desktopLinks
-       .filter((link) => (link.getAttribute("href") || "") === hash)
-       .forEach((link) => link.classList.add("is-current"));
-
-     requestAnimationFrame(() => {
-       scrollToTarget(hash);
-     });
-   });
- }
-
- // REMOVED setNavScrolledState()
-
- function initNav() {
-   const nav = document.querySelector(".site-nav");
-   const toggle = nav?.querySelector(".nav-toggle");
-   const sheet = nav?.querySelector("#mobile-sheet");
-   const brand = nav?.querySelector(".brand");
-   const logo = nav?.querySelector(".brand-logo");
-   const text = nav?.querySelector(".brand-text");
-
-   if (toggle && sheet && nav) {
-     sheet.setAttribute("aria-hidden", "true");
-
-     toggle.addEventListener("click", () => {
-       const open = !nav.classList.contains("nav--open");
-       setNavOpenState(nav, open);
-     });
-
-     document.addEventListener("keydown", (event) => {
-       if (event.key === "Escape" && nav.classList.contains("nav--open")) {
-         setNavOpenState(nav, false);
-       }
-     });
    }
 
-   if (brand && logo) {
-     const update = () => {
-       if (logo.naturalWidth > 0) {
-         brand.classList.add("has-logo");
-         if (text) {
-           text.style.display = "none";
-         }
-       }
-     };
+    if (logo){
+      if (logo.complete) update();
+      logo.addEventListener('load',  update);
+      logo.addEventListener('error', () => {
+        if (brand) brand.classList.remove('has-logo');
+      });
+    }
 
-     if (logo.complete) {
-       update();
-     }
-     logo.addEventListener("load", update);
-     logo.addEventListener("error", () => {
-       brand.classList.remove("has-logo");
-       if (text) {
-         text.style.display = "inline";
-       }
-     });
-   }
-
-   window.addEventListener("resize", () => {
-     if (!isPortraitMobile()) {
-       closeMobileNav();
-     }
-   });
-
-   window.addEventListener("orientationchange", () => {
-     if (!isPortraitMobile()) {
-       closeMobileNav();
-     }
-   });
-
-   document.addEventListener("visibilitychange", () => {
-     if (document.hidden) {
-       closeMobileNav();
-     }
-   });
-
-   initMenuThumb();
-   initNavBackdrop();
- }
+    initMenuThumb();
+    initNavBackdrop();
+  }
 
   function initSectionSpy() {
     const links = Array.from(document.querySelectorAll("[data-nav-link]"));
@@ -515,38 +458,10 @@
       if (!hash) {
         const homeLinks = links.filter((item) => item.getAttribute("href") === "#hero");
         setActive(homeLinks.length ? homeLinks : [links[0]]);
-        // --- PATCH: update desktop nav is-current
-        const desktopLinks = Array.from(document.querySelectorAll(".nav-links-desktop a"));
-        desktopLinks.forEach((link) => link.classList.remove("is-current"));
-
-        const normalizedHash = !hash || hash === "#hero" ? "" : hash;
-        const currentLink = desktopLinks.find((link) => {
-          const href = link.getAttribute("href") || "";
-          return (href === "#hero" ? "" : href) === normalizedHash;
-        }) || desktopLinks[0];
-
-        if (currentLink) {
-          currentLink.classList.add("is-current");
-        }
-        // --- END PATCH
         return;
       }
       const matching = links.filter((item) => item.getAttribute("href") === hash);
       setActive(matching.length ? matching : [firstLinkForHash(hash)]);
-      // --- PATCH: update desktop nav is-current
-      const desktopLinks = Array.from(document.querySelectorAll(".nav-links-desktop a"));
-      desktopLinks.forEach((link) => link.classList.remove("is-current"));
-
-      const normalizedHash = !hash || hash === "#hero" ? "" : hash;
-      const currentLink = desktopLinks.find((link) => {
-        const href = link.getAttribute("href") || "";
-        return (href === "#hero" ? "" : href) === normalizedHash;
-      }) || desktopLinks[0];
-
-      if (currentLink) {
-        currentLink.classList.add("is-current");
-      }
-      // --- END PATCH
     };
 
     const homeSection = document.querySelector("#hero");
@@ -790,8 +705,8 @@
 
   async function boot() {
     await Promise.all([
-      injectPartial("#nav-slot", "nav.html"),
-      injectPartial("#footer-slot", "footer.html")
+      injectPartial('#nav-slot', 'nav.html'),
+      injectPartial('#footer-slot', 'footer.html')
     ]);
 
     renderProjects();
@@ -805,13 +720,13 @@
     initParallax();
     initHoverTracking();
 
-    if (location.hash) {
+    if (location.hash){
       requestAnimationFrame(() => {
         scrollToTarget(location.hash);
       });
-    } else {
+    }else{
       requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, behavior: "auto" });
+        window.scrollTo({ top: 0, behavior: 'auto' });
       });
     }
   }
