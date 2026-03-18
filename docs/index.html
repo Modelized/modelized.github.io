@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260318b">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260318e">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -29,8 +29,11 @@
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body class="page-home" data-base=".">
-  <div class="nav-backdrop" aria-hidden="true"></div>
-  <div id="nav-slot"></div>
+  <header class="site-nav" aria-label="Primary">
+    <div class="nav-backdrop" aria-hidden="true"></div>
+    <div id="nav-slot"></div>
+    <div class="mobile-menu-wordmark" aria-hidden="true">MODELIZED</div>
+  </header>
 
   <main id="top" class="page-wrap">
     <section id="hero" class="section hero" data-section="hero">
@@ -40,7 +43,9 @@
           <p class="hero-meta">Code. Canvas. Chords.</p>
         </div>
 
-        <h1 class="hero-title" aria-label="SHAPE THE UNSEEN." data-hero-text="SHAPE THE UNSEEN." data-parallax="0.08">SHAPE THE UNSEEN.</h1>
+        <h1 class="hero-title" aria-label="SHAPE THE UNSEEN." data-hero-text="SHAPE THE UNSEEN." data-parallax="0.08">
+          <span class="hero-title-text">SHAPE THE UNSEEN.</span>
+        </h1>
 
         <div class="hero-bottom reveal" data-reveal data-reveal-delay="260" data-parallax="0.03">
           <p class="hero-subtitle">An independent creative technology practice led by Jason Lee.</p>
@@ -122,6 +127,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260318b" defer></script>
+  <script src="assets/js/shell.js?v=20260318e" defer></script>
 </body>
 </html>
