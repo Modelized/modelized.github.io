@@ -3,7 +3,7 @@
 
    const body = document.body;
    const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260318d';
+  const assetVersion = '20260318e';
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
    const projects = [
@@ -169,7 +169,7 @@
      const items = Array.from(document.querySelectorAll('.mobile-menu li'));
      if (!items.length) return;
 
-     const delays = [0.04, 0.085, 0.135, 0.19, 0.25, 0.315, 0.385, 0.46];
+    const delays = [0.05, 0.13, 0.225, 0.335, 0.45, 0.57, 0.695, 0.825];
 
      items.forEach((item, index) => {
        const delay = delays[index] ?? (0.46 + (index - delays.length + 1) * 0.075);
