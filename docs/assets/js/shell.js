@@ -3,6 +3,7 @@
 
    const body = document.body;
    const base = (body?.getAttribute('data-base') || '.').trim();
+   const assetVersion = '20260318b';
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
    const projects = [
@@ -21,11 +22,11 @@
 
    function getPartialUrl(file) {
      if (!base || base === ".") {
-       return `assets/partials/${file}`;
+       return `assets/partials/${file}?v=${assetVersion}`;
      }
 
      const normalized = base.endsWith("/") ? base.slice(0, -1) : base;
-     return `${normalized}/assets/partials/${file}`;
+     return `${normalized}/assets/partials/${file}?v=${assetVersion}`;
    }
 
    async function injectPartial(selector, file) {
@@ -107,6 +108,18 @@
      return window.matchMedia('(max-width:900px) and (orientation:portrait)').matches;
    }
 
+   function updateNavBackdropVisibility() {
+     const backdrop = document.querySelector('.nav-backdrop');
+     if (!backdrop) return;
+
+     const y = window.scrollY || window.pageYOffset || 0;
+     const scrolled = y > 4;
+     const open = body.classList.contains('nav-menu-open') || body.classList.contains('nav-menu-closing');
+     const show = isPortraitMobile() ? open : scrolled;
+
+     backdrop.classList.toggle('is-visible', show);
+   }
+
    function setNavOpenState(nav, open){
      const toggle = nav?.querySelector('.nav-toggle');
      const sheet  = nav?.querySelector('#mobile-sheet');
@@ -125,11 +138,13 @@
      }
 
      body.classList.toggle('no-scroll', open);
+     updateNavBackdropVisibility();
 
      window.clearTimeout(setNavOpenState._stateTimer);
      setNavOpenState._stateTimer = window.setTimeout(() => {
        nav.classList.remove('nav--opening');
        body.classList.remove('nav-menu-closing');
+       updateNavBackdropVisibility();
      }, open ? 820 : 560);
    }
 
@@ -146,6 +161,8 @@
      if (!isPortraitMobile() && nav.classList.contains('nav--open')){
        setNavOpenState(nav, false);
      }
+
+     updateNavBackdropVisibility();
    }
 
    function initMobileMenuDelays(){
@@ -171,12 +188,14 @@
        ticking = false;
 
        const y = window.scrollY || window.pageYOffset || 0;
-       const scrolled = y > 6;
+       const scrolled = y > 4;
 
        if (scrolled !== last){
          document.body.classList.toggle('nav--scrolled', scrolled);
          last = scrolled;
        }
+
+       updateNavBackdropVisibility();
      };
 
      const onChange = () => {
@@ -719,15 +738,12 @@
          row.className = "hero-line";
          row.style.setProperty("--line-index", String(index));
 
-         const outline = document.createElement("span");
-         outline.className = "hero-outline";
-         outline.textContent = line;
+         const text = document.createElement("span");
+         text.className = "hero-text";
+         text.textContent = line;
+         text.setAttribute("data-text", line);
 
-         const fill = document.createElement("span");
-         fill.className = "hero-fill";
-         fill.textContent = line;
-
-         row.append(outline, fill);
+         row.append(text);
          title.appendChild(row);
        });
      };
@@ -768,7 +784,7 @@
      };
 
      let frame = 0;
-     const build = () => {
+     const build = () => new Promise((resolve) => {
        window.cancelAnimationFrame(frame);
        frame = window.requestAnimationFrame(() => {
          const lines = measureLines();
@@ -776,17 +792,20 @@
 
          if (!signature) {
            title.textContent = sourceText;
+           resolve();
            return;
          }
 
          if (signature === title.dataset.lineSignature && title.querySelector(".hero-line")) {
+           resolve();
            return;
          }
 
          title.dataset.lineSignature = signature;
          renderLines(lines);
+         resolve();
        });
-     };
+     });
 
      if (document.fonts?.ready) {
        try {
@@ -796,15 +815,21 @@
        }
      }
 
-     build();
+     await build();
 
      if ("ResizeObserver" in window) {
-       const observer = new ResizeObserver(build);
+       const observer = new ResizeObserver(() => {
+         build();
+       });
        observer.observe(title);
      }
 
-     window.addEventListener("resize", build);
-     window.addEventListener("orientationchange", build);
+     window.addEventListener("resize", () => {
+       build();
+     });
+     window.addEventListener("orientationchange", () => {
+       build();
+     });
    }
 
    function initParallax() {
