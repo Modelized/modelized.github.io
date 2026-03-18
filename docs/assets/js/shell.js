@@ -5,8 +5,6 @@
    const base = (body?.getAttribute('data-base') || '.').trim();
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-   const heroTitleSelector = '.hero-title';
-
    const projects = [
      {
        name: "iStage",
@@ -98,13 +96,11 @@
 
    function getNavOffset(){
      const nav = document.querySelector('.nav');
-     if (!nav) return 22;
+     if (!nav) return 24;
 
      const row = nav.querySelector('.row');
-     if (row){
-       return row.getBoundingClientRect().height + 22;
-     }
-     return nav.getBoundingClientRect().height + 22;
+     const rect = row ? row.getBoundingClientRect() : nav.getBoundingClientRect();
+     return Math.ceil(rect.bottom + 18);
    }
 
    function isPortraitMobile(){
@@ -119,7 +115,6 @@
 
      nav.classList.toggle('nav--open', open);
      nav.classList.toggle('nav--opening', open);
-     nav.classList.toggle('nav--closing', !open);
      body.classList.toggle('nav-menu-open', open);
      body.classList.toggle('nav-menu-closing', !open);
      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -131,17 +126,11 @@
 
      body.classList.toggle('no-scroll', open);
 
-     const backdrop = document.querySelector('.nav-backdrop');
-     if (backdrop){
-       backdrop.classList.toggle('is-visible', open || document.body.classList.contains('nav--scrolled'));
-     }
-
      window.clearTimeout(setNavOpenState._stateTimer);
      setNavOpenState._stateTimer = window.setTimeout(() => {
        nav.classList.remove('nav--opening');
-       nav.classList.remove('nav--closing');
        body.classList.remove('nav-menu-closing');
-     }, open ? 920 : 720);
+     }, open ? 820 : 560);
    }
 
    function closeMobileNav(){
@@ -171,11 +160,10 @@
      });
    }
 
-   function initNavBackdrop(){
-     if (document.body.dataset.backdropInit === '1') return;
-     document.body.dataset.backdropInit = '1';
+   function initNavScrollState(){
+     if (document.body.dataset.navScrollInit === '1') return;
+     document.body.dataset.navScrollInit = '1';
 
-     let backdrop = document.querySelector('.nav-backdrop');
      let last = null;
      let ticking = false;
 
@@ -183,12 +171,9 @@
        ticking = false;
 
        const y = window.scrollY || window.pageYOffset || 0;
-       const scrolled = y > 4;
+       const scrolled = y > 6;
 
        if (scrolled !== last){
-         if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
-         if (backdrop) backdrop.classList.toggle('is-visible', scrolled || document.body.classList.contains('nav-menu-open') || document.body.classList.contains('nav-menu-closing'));
-
          document.body.classList.toggle('nav--scrolled', scrolled);
          last = scrolled;
        }
@@ -205,6 +190,17 @@
      window.addEventListener('resize', onChange);
      window.addEventListener('orientationchange', onChange);
      window.addEventListener('pageshow', onChange);
+   }
+
+   function ensureMobileDecorativeMark(nav){
+     const sheetContent = nav?.querySelector('.sheet-content');
+     if (!sheetContent || sheetContent.querySelector('.mobile-mark')) return;
+
+     const mark = document.createElement('span');
+     mark.className = 'mobile-mark';
+     mark.setAttribute('aria-hidden', 'true');
+     mark.textContent = 'MODELIZED';
+     sheetContent.appendChild(mark);
    }
 
    function initMenuThumb(){
@@ -291,6 +287,7 @@
 
      window.addEventListener('resize', realign);
      window.addEventListener('orientationchange', realign);
+     window.addEventListener('modelized:navcurrentchange', realign);
      if (document.fonts?.ready) document.fonts.ready.then(realign);
 
      if (typeof ResizeObserver !== 'undefined'){
@@ -388,7 +385,15 @@
        return;
      }
 
-     const destination = target.getBoundingClientRect().top + window.scrollY - getNavOffset();
+     if (hash === '#hero'){
+       window.scrollTo({
+         top: 0,
+         behavior: prefersReducedMotion ? "auto" : "smooth"
+       });
+       return;
+     }
+
+     const destination = Math.max(0, target.getBoundingClientRect().top + window.scrollY - getNavOffset());
 
      window.scrollTo({
        top: destination,
@@ -456,9 +461,10 @@
        });
      }
 
+     ensureMobileDecorativeMark(nav);
      initMenuThumb();
      initMobileMenuDelays();
-     initNavBackdrop();
+     initNavScrollState();
    }
 
    function initSectionSpy() {
@@ -482,12 +488,20 @@
      });
 
      const setActive = (targetLinks) => {
-       links.forEach((item) => item.classList.remove("is-active"));
+       links.forEach((item) => {
+         item.classList.remove("is-active");
+         item.classList.remove("is-current");
+       });
        if (!targetLinks) {
+         window.dispatchEvent(new Event('modelized:navcurrentchange'));
          return;
        }
 
-       targetLinks.forEach((item) => item.classList.add("is-active"));
+       targetLinks.forEach((item) => {
+         item.classList.add("is-active");
+         item.classList.add("is-current");
+       });
+       window.dispatchEvent(new Event('modelized:navcurrentchange'));
      };
 
      const firstLinkForHash = (hash) => {
@@ -660,126 +674,6 @@
      revealElements.forEach((element) => observer.observe(element));
    }
 
-   function getHeroTitleText(title){
-     if (!title) return '';
-
-     const explicit = (title.getAttribute('data-title-text') || '').trim();
-     if (explicit) return explicit;
-
-     const text = (title.textContent || '')
-       .replace(/\s+/g, ' ')
-       .trim();
-
-     return text;
-   }
-
-   function splitHeroTitleLines(title){
-     if (!title) return;
-
-     const fullText = getHeroTitleText(title);
-     if (!fullText) return;
-
-     const words = fullText.split(' ').filter(Boolean);
-     if (!words.length) return;
-
-     const computed = window.getComputedStyle(title);
-     const measure = document.createElement('div');
-     measure.setAttribute('aria-hidden', 'true');
-     measure.style.position = 'absolute';
-     measure.style.left = '-99999px';
-     measure.style.top = '0';
-     measure.style.visibility = 'hidden';
-     measure.style.pointerEvents = 'none';
-     measure.style.whiteSpace = 'normal';
-     measure.style.width = `${Math.ceil(title.clientWidth || title.getBoundingClientRect().width)}px`;
-     measure.style.fontFamily = computed.fontFamily;
-     measure.style.fontSize = computed.fontSize;
-     measure.style.fontWeight = computed.fontWeight;
-     measure.style.letterSpacing = computed.letterSpacing;
-     measure.style.lineHeight = computed.lineHeight;
-     measure.style.textTransform = computed.textTransform;
-
-     const tokens = [];
-
-     words.forEach((word, index) => {
-       const span = document.createElement('span');
-       span.textContent = index < words.length - 1 ? `${word} ` : word;
-       measure.appendChild(span);
-       tokens.push(span);
-     });
-
-     document.body.appendChild(measure);
-
-     const lines = [];
-     let currentTop = null;
-     let currentLine = [];
-
-     tokens.forEach((token) => {
-       const top = token.offsetTop;
-
-       if (currentTop === null || Math.abs(top - currentTop) < 2){
-         currentTop = currentTop === null ? top : currentTop;
-         currentLine.push(token.textContent || '');
-         return;
-       }
-
-       lines.push(currentLine.join('').trim());
-       currentTop = top;
-       currentLine = [token.textContent || ''];
-     });
-
-     if (currentLine.length){
-       lines.push(currentLine.join('').trim());
-     }
-
-     document.body.removeChild(measure);
-
-     const normalizedLines = lines.filter(Boolean);
-     if (!normalizedLines.length) return;
-
-     title.innerHTML = '';
-     title.setAttribute('data-title-text', fullText);
-     title.setAttribute('aria-label', fullText);
-
-     normalizedLines.forEach((lineText) => {
-       const line = document.createElement('span');
-       line.className = 'hero-line';
-
-       const inner = document.createElement('span');
-       inner.textContent = lineText;
-
-       line.appendChild(inner);
-       title.appendChild(line);
-     });
-   }
-
-   function initAdaptiveHeroTitle(){
-     const title = document.querySelector(heroTitleSelector);
-     if (!title) return;
-
-     let frame = 0;
-
-     const render = () => {
-       frame = 0;
-       splitHeroTitleLines(title);
-     };
-
-     const requestRender = () => {
-       if (frame) return;
-       frame = requestAnimationFrame(render);
-     };
-
-     requestRender();
-
-     window.addEventListener('resize', requestRender);
-     window.addEventListener('orientationchange', requestRender);
-     window.addEventListener('pageshow', requestRender);
-
-     if (document.fonts?.ready){
-       document.fonts.ready.then(requestRender).catch(() => {});
-     }
-   }
-
    function initHeroIntro() {
      if (prefersReducedMotion) {
        body.classList.add("hero-ready");
@@ -798,6 +692,119 @@
      }
 
      applyReady();
+   }
+
+   async function initHeroTitle() {
+     const title = document.querySelector('.hero-title');
+     if (!title) {
+       return;
+     }
+
+     const sourceText = (title.dataset.heroText || title.getAttribute('aria-label') || title.textContent || "").trim();
+     if (!sourceText) {
+       return;
+     }
+
+     title.dataset.heroText = sourceText;
+     const words = sourceText.split(/\s+/).filter(Boolean);
+     if (!words.length) {
+       return;
+     }
+
+     const renderLines = (lines) => {
+       title.textContent = "";
+
+       lines.forEach((line, index) => {
+         const row = document.createElement("span");
+         row.className = "hero-line";
+         row.style.setProperty("--line-index", String(index));
+
+         const outline = document.createElement("span");
+         outline.className = "hero-outline";
+         outline.textContent = line;
+
+         const fill = document.createElement("span");
+         fill.className = "hero-fill";
+         fill.textContent = line;
+
+         row.append(outline, fill);
+         title.appendChild(row);
+       });
+     };
+
+     const measureLines = () => {
+       const width = Math.max(1, Math.round(title.getBoundingClientRect().width));
+       const measure = document.createElement("span");
+       measure.className = "hero-title hero-title--measure";
+       measure.setAttribute("aria-hidden", "true");
+       measure.style.width = `${width}px`;
+
+       words.forEach((word, index) => {
+         const wordSpan = document.createElement("span");
+         wordSpan.className = "hero-word";
+         wordSpan.textContent = `${word}${index < words.length - 1 ? " " : ""}`;
+         measure.appendChild(wordSpan);
+       });
+
+       (title.parentElement || document.body).appendChild(measure);
+
+       const groups = [];
+       let lastTop = null;
+
+       measure.querySelectorAll(".hero-word").forEach((wordSpan) => {
+         const token = wordSpan.textContent.trim();
+         if (!token) return;
+
+         const top = wordSpan.offsetTop;
+         if (lastTop === null || Math.abs(top - lastTop) > 2) {
+           groups.push([]);
+           lastTop = top;
+         }
+         groups[groups.length - 1].push(token);
+       });
+
+       measure.remove();
+       return groups.map((group) => group.join(" "));
+     };
+
+     let frame = 0;
+     const build = () => {
+       window.cancelAnimationFrame(frame);
+       frame = window.requestAnimationFrame(() => {
+         const lines = measureLines();
+         const signature = lines.join("|");
+
+         if (!signature) {
+           title.textContent = sourceText;
+           return;
+         }
+
+         if (signature === title.dataset.lineSignature && title.querySelector(".hero-line")) {
+           return;
+         }
+
+         title.dataset.lineSignature = signature;
+         renderLines(lines);
+       });
+     };
+
+     if (document.fonts?.ready) {
+       try {
+         await document.fonts.ready;
+       } catch (_error) {
+         // Continue with current metrics if font readiness fails.
+       }
+     }
+
+     build();
+
+     if ("ResizeObserver" in window) {
+       const observer = new ResizeObserver(build);
+       observer.observe(title);
+     }
+
+     window.addEventListener("resize", build);
+     window.addEventListener("orientationchange", build);
    }
 
    function initParallax() {
@@ -835,11 +842,6 @@
        body.style.setProperty("--scroll-progress", progress.toFixed(4));
        body.style.setProperty("--ambient-shift-y", `${ambientShiftY.toFixed(2)}px`);
        body.style.setProperty("--ambient-shift-x", `${ambientShiftX.toFixed(2)}px`);
-
-       const scene = document.querySelector('.ambient-scene');
-       if (scene){
-         scene.style.transform = `translate3d(${ambientShiftX.toFixed(2)}px, ${ambientShiftY.toFixed(2)}px, 0)`;
-       }
      };
 
      const requestFrame = () => {
@@ -897,15 +899,10 @@
      initSectionSpy();
      initSectionDepth();
      initReveal();
-     initAdaptiveHeroTitle();
+     await initHeroTitle();
      initHeroIntro();
      initParallax();
      initHoverTracking();
-
-     requestAnimationFrame(() => {
-       const title = document.querySelector(heroTitleSelector);
-       if (title) splitHeroTitleLines(title);
-     });
 
      if (location.hash){
        requestAnimationFrame(() => {
