@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Modelized | Shape the Unseen</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260318b">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -16,8 +16,7 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="mask-icon" href="pinned-tab.svg" color="#000000">
 
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#000000">
   <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -30,12 +29,6 @@
   <script>document.documentElement.classList.add('js');</script>
 </head>
 <body class="page-home" data-base=".">
-  <div class="ambient-scene" aria-hidden="true">
-    <span class="ambient-orb orb-a"></span>
-    <span class="ambient-orb orb-b"></span>
-    <span class="ambient-orb orb-c"></span>
-  </div>
-
   <div class="nav-backdrop" aria-hidden="true"></div>
   <div id="nav-slot"></div>
 
@@ -47,9 +40,7 @@
           <p class="hero-meta">Code. Canvas. Chords.</p>
         </div>
 
-        <h1 class="hero-title" aria-label="SHAPE THE UNSEEN." data-title-text="SHAPE THE UNSEEN." data-parallax="0.08">
-          SHAPE THE UNSEEN.
-        </h1>
+        <h1 class="hero-title" aria-label="SHAPE THE UNSEEN." data-hero-text="SHAPE THE UNSEEN." data-parallax="0.08">SHAPE THE UNSEEN.</h1>
 
         <div class="hero-bottom reveal" data-reveal data-reveal-delay="260" data-parallax="0.03">
           <p class="hero-subtitle">An independent creative technology practice led by Jason Lee.</p>
@@ -101,7 +92,7 @@
         <div class="section-head reveal" data-reveal data-parallax="0.02">
           <p class="eyebrow">Current Projects</p>
           <h2>Live Modules</h2>
-          <p class="section-note">A live module currently available through Modelized.</p>
+          <p class="section-note">Add a new project by copying one object block in <code>assets/js/shell.js</code>.</p>
         </div>
         <div id="project-track" class="project-track"></div>
       </div>
@@ -131,6 +122,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js" defer></script>
+  <script src="assets/js/shell.js?v=20260318b" defer></script>
 </body>
 </html>
