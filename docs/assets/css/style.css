@@ -650,14 +650,13 @@ a {
     opacity: 0;
     visibility: hidden;
     transition:
-      opacity .34s ease,
-      visibility 0s linear .34s,
-      backdrop-filter .42s ease,
-      -webkit-backdrop-filter .42s ease;
+      opacity .18s ease,
+      visibility 0s linear .18s,
+      backdrop-filter .18s ease,
+      -webkit-backdrop-filter .18s ease;
   }
 
-  body.nav-menu-open .nav-backdrop,
-  body.nav-menu-closing .nav-backdrop {
+  body.nav-menu-open .nav-backdrop {
     opacity: 1;
     visibility: visible;
     transition-delay: 0s, 0s, 0s, 0s;
@@ -688,6 +687,17 @@ a {
     overflow: hidden;
   }
 
+  .nav--open .nav-inner,
+  body.nav-menu-closing .nav-inner {
+    background: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0;
+    overflow: visible;
+  }
+
   body.nav--scrolled .nav-inner {
     box-shadow: var(--nav-shadow-mobile-scrolled);
   }
@@ -697,8 +707,8 @@ a {
     grid-template-rows: 0fr;
     opacity: 0;
     transition:
-      grid-template-rows .45s cubic-bezier(.22,1,.36,1),
-      opacity .28s ease;
+      grid-template-rows .36s cubic-bezier(.22,1,.36,1),
+      opacity .22s ease;
   }
 
   .row {
@@ -754,9 +764,15 @@ a {
 
   .sheet-content {
     position: relative;
-    min-height: min(76svh, 660px);
-    padding: 0 24px 22px;
+    min-height: 0;
+    padding: 0 24px;
     overflow: hidden;
+  }
+
+  .nav--open .sheet-content,
+  body.nav-menu-closing .sheet-content {
+    min-height: min(76svh, 660px);
+    padding-bottom: 22px;
   }
 
   .mobile-menu {

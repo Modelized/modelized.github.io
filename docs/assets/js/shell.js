@@ -3,7 +3,7 @@
 
    const body = document.body;
    const base = (body?.getAttribute('data-base') || '.').trim();
-   const assetVersion = '20260318b';
+  const assetVersion = '20260318d';
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
    const projects = [
@@ -114,7 +114,7 @@
 
      const y = window.scrollY || window.pageYOffset || 0;
      const scrolled = y > 4;
-     const open = body.classList.contains('nav-menu-open') || body.classList.contains('nav-menu-closing');
+    const open = body.classList.contains('nav-menu-open');
      const show = isPortraitMobile() ? open : scrolled;
 
      backdrop.classList.toggle('is-visible', show);
@@ -145,8 +145,8 @@
        nav.classList.remove('nav--opening');
        body.classList.remove('nav-menu-closing');
        updateNavBackdropVisibility();
-     }, open ? 820 : 560);
-   }
+    }, open ? 820 : 320);
+  }
 
    function closeMobileNav(){
      const nav = document.querySelector('.nav');
