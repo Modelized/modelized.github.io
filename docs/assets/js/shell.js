@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
- const assetVersion = '20260318e';
+ const assetVersion = '20260319a';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const projects = [
@@ -123,15 +123,12 @@
       body.classList.add('nav-menu-open');
       body.classList.remove('nav-menu-closing');
       body.classList.add('no-scroll');
-      syncMobileMenuGeometry(nav);
-      requestAnimationFrame(() => syncMobileMenuGeometry(nav));
     }else{
       nav.classList.remove('nav--open');
       nav.classList.remove('nav--opening');
       body.classList.remove('nav-menu-open');
       body.classList.add('nav-menu-closing');
       body.classList.remove('no-scroll');
-      syncMobileMenuGeometry(nav);
     }
 
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -144,7 +141,6 @@
    setNavOpenState._stateTimer = window.setTimeout(() => {
      nav.classList.remove('nav--opening');
      body.classList.remove('nav-menu-closing');
-     syncMobileMenuGeometry(nav);
    }, open ? 700 : 240);
   }
 
@@ -162,45 +158,6 @@
      setNavOpenState(nav, false);
    }
  }
-
-  function syncMobileMenuGeometry(nav){
-    if (!nav) return;
-
-    const brand = nav.querySelector('.brand');
-    const firstLink = nav.querySelector('.mobile-menu a');
-    const wordmark = document.querySelector('.mobile-menu-wordmark');
-
-    if (!isPortraitMobile() || !brand || !firstLink){
-      nav.style.removeProperty('--mobile-menu-start-x');
-      nav.style.removeProperty('--mobile-menu-start-y');
-      nav.style.removeProperty('--mobile-brand-shift-x');
-      nav.style.removeProperty('--mobile-brand-shift-y');
-      nav.style.removeProperty('--mobile-wordmark-bottom');
-      nav.style.removeProperty('--mobile-wordmark-right');
-      return;
-    }
-
-    const navRect = nav.getBoundingClientRect();
-    const brandRect = brand.getBoundingClientRect();
-    const firstLinkRect = firstLink.getBoundingClientRect();
-
-    const startX = Math.max(0, firstLinkRect.left - navRect.left);
-    const startY = Math.max(0, firstLinkRect.top - navRect.top);
-    const brandShiftX = Math.round(startX - (brandRect.left - navRect.left));
-    const brandShiftY = Math.round(startY - (brandRect.top - navRect.top));
-
-    nav.style.setProperty('--mobile-menu-start-x', `${Math.round(startX)}px`);
-    nav.style.setProperty('--mobile-menu-start-y', `${Math.round(startY)}px`);
-    nav.style.setProperty('--mobile-brand-shift-x', `${brandShiftX}px`);
-    nav.style.setProperty('--mobile-brand-shift-y', `${brandShiftY}px`);
-
-    if (wordmark){
-      const bottom = Math.max(18, Math.round(window.innerHeight * 0.045));
-      const right = Math.max(-22, Math.round(window.innerWidth * -0.018));
-      nav.style.setProperty('--mobile-wordmark-bottom', `${bottom}px`);
-      nav.style.setProperty('--mobile-wordmark-right', `${right}px`);
-    }
-  }
 
   function initMobileMenuDelays(){
     const items = Array.from(document.querySelectorAll('.mobile-menu li'));
@@ -251,31 +208,6 @@
    window.addEventListener('orientationchange', onChange);
    window.addEventListener('pageshow', onChange);
  }
-
- function initNavGeometrySync(){
-   if (document.body.dataset.navGeometryInit === '1') return;
-   document.body.dataset.navGeometryInit = '1';
-
-   let ticking = false;
-
-   const compute = () => {
-     ticking = false;
-     syncMobileMenuGeometry(document.querySelector('.nav'));
-   };
-
-   const onChange = () => {
-     if (ticking) return;
-     ticking = true;
-     requestAnimationFrame(compute);
-   };
-
-   compute();
-   window.addEventListener('scroll', onChange, { passive:true });
-   window.addEventListener('resize', onChange);
-   window.addEventListener('orientationchange', onChange);
-   window.addEventListener('pageshow', onChange);
- }
-
 
   function initMenuThumb(){
     const menu = document.querySelector('ul.menu');
@@ -504,12 +436,7 @@
     if (toggle && sheet && nav){
       toggle.addEventListener('click', () => {
         const open = !nav.classList.contains('nav--open');
-        if (open){
-          syncMobileMenuGeometry(nav);
-          requestAnimationFrame(() => syncMobileMenuGeometry(nav));
-        }
         setNavOpenState(nav, open);
-        requestAnimationFrame(() => syncMobileMenuGeometry(nav));
       });
 
       document.addEventListener('keydown', (e) => {
@@ -521,15 +448,6 @@
       window.addEventListener('resize', syncMobileNavState);
       window.addEventListener('orientationchange', syncMobileNavState);
       window.addEventListener('pageshow', syncMobileNavState);
-      window.addEventListener('resize', () => syncMobileMenuGeometry(nav));
-      window.addEventListener('orientationchange', () => syncMobileMenuGeometry(nav));
-      window.addEventListener('pageshow', () => syncMobileMenuGeometry(nav));
-
-      if (typeof ResizeObserver !== 'undefined'){
-        const navObserver = new ResizeObserver(() => syncMobileMenuGeometry(nav));
-        navObserver.observe(nav);
-        navObserver.observe(sheet);
-      }
     }
 
     const brand = document.querySelector('.brand');
@@ -549,11 +467,9 @@
       });
     }
 
-   syncMobileMenuGeometry(nav);
    initMenuThumb();
    initMobileMenuDelays();
    initNavBackdrop();
-   initNavGeometrySync();
   }
 
   function initSectionSpy() {

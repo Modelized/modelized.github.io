@@ -54,7 +54,7 @@
   --banner-top-gap: 14px;
   --heading-font: "Unbounded", "Arial", sans-serif;
   --body-font: "Space Grotesk", "Segoe UI", sans-serif;
-  --mobile-nav-inline: 34px;
+  --mobile-nav-inline: clamp(38px, 8vw, 46px);
 }
 
 * {
@@ -229,13 +229,17 @@ a {
 
 .site-nav-shell {
   position: relative;
-  z-index: 2;
+  z-index: 3;
+}
+
+.nav-menu-blur {
+  display: none;
 }
 
 .mobile-menu-wordmark-wrap {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
 }
 
@@ -681,6 +685,47 @@ a {
     transition: opacity .22s ease;
   }
 
+  .nav-menu-blur {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100svh;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    background:
+      radial-gradient(70% 54% at 20% 24%, rgba(255, 157, 77, 0.14), rgba(255, 157, 77, 0) 72%),
+      radial-gradient(64% 52% at 78% 34%, rgba(82, 104, 255, 0.14), rgba(82, 104, 255, 0) 74%),
+      linear-gradient(180deg, rgba(0,0,0,.42) 0%, rgba(0,0,0,.26) 42%, rgba(0,0,0,.12) 100%);
+    backdrop-filter: saturate(100%) blur(0px);
+    -webkit-backdrop-filter: saturate(100%) blur(0px);
+    transform: translate3d(0, 0, 0) scale(1.015);
+    transform-origin: 50% 0%;
+    overflow: clip;
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 96%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 96%, rgba(0,0,0,0) 100%);
+    transition:
+      opacity .34s cubic-bezier(.22,1,.36,1),
+      transform .52s cubic-bezier(.22,1,.36,1),
+      backdrop-filter .42s cubic-bezier(.22,1,.36,1),
+      -webkit-backdrop-filter .42s cubic-bezier(.22,1,.36,1),
+      visibility 0s linear .34s;
+    will-change: opacity, transform;
+  }
+
+  body.nav-menu-open .nav-menu-blur,
+  body.nav-menu-closing .nav-menu-blur {
+    opacity: 1;
+    visibility: visible;
+    transform: translate3d(0, 0, 0) scale(1);
+    backdrop-filter: saturate(160%) blur(20px);
+    -webkit-backdrop-filter: saturate(160%) blur(20px);
+    transition-delay: 0s, 0s, 0s, 0s, 0s;
+  }
+
   .desktop {
     display: none;
   }
@@ -691,13 +736,13 @@ a {
 
   .site-nav-shell {
     position: relative;
-    z-index: 2;
+    z-index: 3;
   }
 
   .mobile-menu-wordmark-wrap {
     position: fixed;
     inset: 0;
-    z-index: 1;
+    z-index: 2;
     pointer-events: none;
   }
 
@@ -773,7 +818,7 @@ a {
   }
 
   .nav--open .brand {
-    transform: translate3d(calc(var(--mobile-brand-shift-x, 22px) + 4px), calc(var(--mobile-brand-shift-y, 58px) + 10px), 0) scale(1.28);
+    transform: translate3d(0, 0, 0) scale(1.12);
   }
 
   .nav-search,
@@ -838,21 +883,21 @@ a {
 
   .mobile-menu-wordmark {
     position: fixed;
-    right: var(--mobile-wordmark-right, -1.15rem);
-    bottom: var(--mobile-wordmark-bottom, calc(env(safe-area-inset-bottom, 0px) + 1.35rem));
+    right: -1.3rem;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
     z-index: 1;
     display: block;
     font-family: var(--heading-font);
-    font-size: clamp(8.8rem, 26vw, 11.8rem);
+    font-size: clamp(9.4rem, 27vw, 12.6rem);
     font-weight: 800;
     line-height: 1;
     letter-spacing: 0.015em;
     text-transform: uppercase;
     white-space: nowrap;
     color: transparent;
-    -webkit-text-stroke: 1px rgba(243, 242, 238, 0.24);
+    -webkit-text-stroke: 1.15px rgba(243, 242, 238, 0.22);
     opacity: 0;
-    transform: rotate(90deg) translate3d(1.3rem, 0, 0);
+    transform: translate3d(1.1rem, 0, 0) rotate(-90deg);
     transform-origin: right bottom;
     filter: blur(18px);
     transition:
@@ -867,17 +912,17 @@ a {
     z-index: 3;
     margin: 0;
     display: grid;
-    gap: 0.42rem;
-    padding: 252px 0 34px;
+    gap: 0.3rem;
+    padding: 192px 0 34px;
     background: transparent !important;
   }
 
   .mobile-menu a {
     padding: 8px 0;
     border-radius: 0;
-    font-size: clamp(1.5rem, 5.7vw, 1.82rem);
+    font-size: clamp(1.82rem, 6.9vw, 2.14rem);
     line-height: 1.06;
-    font-weight: 750;
+    font-weight: 700;
     letter-spacing: -0.02em;
     color: var(--nav-text);
   }
@@ -940,8 +985,8 @@ a {
   }
 
   body.nav-menu-open .mobile-menu-wordmark {
-    opacity: 0.34;
-    transform: rotate(90deg) translate3d(0, 0, 0);
+    opacity: 0.3;
+    transform: translate3d(0, 0, 0) rotate(-90deg);
     filter: blur(0);
     transition-delay: .1s;
   }
@@ -955,7 +1000,7 @@ a {
 
   body.nav-menu-closing .mobile-menu-wordmark {
     opacity: 0;
-    transform: rotate(90deg) translate3d(.7rem, 0, 0);
+    transform: translate3d(.7rem, 0, 0) rotate(-90deg);
     filter: blur(12px);
     transition-delay: 0s;
   }
