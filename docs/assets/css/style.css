@@ -592,10 +592,32 @@ a {
     opacity: 0;
     visibility: hidden;
     background: rgba(0, 0, 0, 0.24);
+    overflow: hidden;
     transition:
       opacity .28s cubic-bezier(.22,1,.36,1),
       visibility 0s linear .28s;
     will-change: opacity;
+  }
+
+  .nav-menu-blur::before,
+  .nav-menu-blur::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+  }
+
+  .nav-menu-blur::before {
+    top: 0;
+    height: calc(env(safe-area-inset-top, 0px) + 56px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0));
+  }
+
+  .nav-menu-blur::after {
+    bottom: 0;
+    height: calc(env(safe-area-inset-bottom, 0px) + 54px);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0));
   }
 
   body.nav-menu-open .nav-menu-blur {
