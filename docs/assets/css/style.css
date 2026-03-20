@@ -610,14 +610,14 @@ a {
 
   .nav-menu-blur::before {
     top: 0;
-    height: calc(env(safe-area-inset-top, 0px) + 56px);
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0));
+    height: calc(env(safe-area-inset-top, 0px) + 72px);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.12) 42%, rgba(0, 0, 0, 0) 100%);
   }
 
   .nav-menu-blur::after {
     bottom: 0;
-    height: calc(env(safe-area-inset-bottom, 0px) + 54px);
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0));
+    height: calc(env(safe-area-inset-bottom, 0px) + 68px);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.24) 0%, rgba(0, 0, 0, 0.1) 42%, rgba(0, 0, 0, 0) 100%);
   }
 
   body.nav-menu-open .nav-menu-blur {
