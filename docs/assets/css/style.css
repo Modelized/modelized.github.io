@@ -54,7 +54,7 @@
   --banner-top-gap: 14px;
   --heading-font: "Unbounded", "Arial", sans-serif;
   --body-font: "Space Grotesk", "Segoe UI", sans-serif;
-  --mobile-nav-inline: clamp(38px, 8vw, 46px);
+  --mobile-nav-inline: clamp(46px, 10vw, 56px);
 }
 
 * {
@@ -691,38 +691,38 @@ a {
     top: 0;
     left: 0;
     right: 0;
-    height: 100svh;
+    bottom: 0;
+    height: auto;
     z-index: 1;
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
     background:
-      radial-gradient(70% 54% at 20% 24%, rgba(255, 157, 77, 0.14), rgba(255, 157, 77, 0) 72%),
-      radial-gradient(64% 52% at 78% 34%, rgba(82, 104, 255, 0.14), rgba(82, 104, 255, 0) 74%),
-      linear-gradient(180deg, rgba(0,0,0,.42) 0%, rgba(0,0,0,.26) 42%, rgba(0,0,0,.12) 100%);
+      radial-gradient(72% 56% at 18% 24%, rgba(255, 157, 77, 0.16), rgba(255, 157, 77, 0) 72%),
+      radial-gradient(68% 56% at 80% 36%, rgba(82, 104, 255, 0.15), rgba(82, 104, 255, 0) 74%),
+      linear-gradient(180deg, rgba(6, 8, 12, 0.16) 0%, rgba(6, 8, 12, 0.13) 48%, rgba(6, 8, 12, 0.1) 100%);
     backdrop-filter: saturate(100%) blur(0px);
     -webkit-backdrop-filter: saturate(100%) blur(0px);
-    transform: translate3d(0, 0, 0) scale(1.015);
+    transform: translate3d(0, 0, 0) scale(1.01);
     transform-origin: 50% 0%;
-    overflow: clip;
-    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 96%, rgba(0,0,0,0) 100%);
-    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 96%, rgba(0,0,0,0) 100%);
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) calc(100% - 8px), rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) calc(100% - 8px), rgba(0,0,0,0) 100%);
     transition:
-      opacity .34s cubic-bezier(.22,1,.36,1),
-      transform .52s cubic-bezier(.22,1,.36,1),
-      backdrop-filter .42s cubic-bezier(.22,1,.36,1),
-      -webkit-backdrop-filter .42s cubic-bezier(.22,1,.36,1),
-      visibility 0s linear .34s;
+      opacity .3s cubic-bezier(.22,1,.36,1),
+      transform .46s cubic-bezier(.22,1,.36,1),
+      backdrop-filter .38s cubic-bezier(.22,1,.36,1),
+      -webkit-backdrop-filter .38s cubic-bezier(.22,1,.36,1),
+      visibility 0s linear .3s;
     will-change: opacity, transform;
   }
 
-  body.nav-menu-open .nav-menu-blur,
-  body.nav-menu-closing .nav-menu-blur {
+  body.nav-menu-open .nav-menu-blur {
     opacity: 1;
     visibility: visible;
     transform: translate3d(0, 0, 0) scale(1);
-    backdrop-filter: saturate(160%) blur(20px);
-    -webkit-backdrop-filter: saturate(160%) blur(20px);
+    backdrop-filter: saturate(154%) blur(18px);
+    -webkit-backdrop-filter: saturate(154%) blur(18px);
     transition-delay: 0s, 0s, 0s, 0s, 0s;
   }
 
@@ -818,7 +818,7 @@ a {
   }
 
   .nav--open .brand {
-    transform: translate3d(0, 0, 0) scale(1.12);
+    transform: translate3d(6px, 56px, 0) scale(1.18);
   }
 
   .nav-search,
@@ -883,8 +883,8 @@ a {
 
   .mobile-menu-wordmark {
     position: fixed;
-    right: -1.3rem;
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 1.25rem);
+    right: -1rem;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + clamp(4.8rem, 13vh, 6.4rem));
     z-index: 1;
     display: block;
     font-family: var(--heading-font);
@@ -912,8 +912,8 @@ a {
     z-index: 3;
     margin: 0;
     display: grid;
-    gap: 0.3rem;
-    padding: 192px 0 34px;
+    gap: 0.34rem;
+    padding: 194px 0 34px;
     background: transparent !important;
   }
 
@@ -929,12 +929,12 @@ a {
 
   .mobile-menu li {
     opacity: 0;
-    transform: translate3d(0, -22px, 0);
-    filter: blur(14px);
+    transform: translate3d(0, -32px, 0);
+    filter: blur(8px);
     transition:
-      opacity .42s cubic-bezier(.16,1,.3,1),
-      transform .74s cubic-bezier(.22,1,.36,1),
-      filter .64s cubic-bezier(.22,1,.36,1);
+      opacity .38s cubic-bezier(.16,1,.3,1),
+      transform .82s cubic-bezier(.22,1,.36,1),
+      filter .52s cubic-bezier(.22,1,.36,1);
     will-change: opacity, transform, filter;
   }
 
@@ -993,16 +993,9 @@ a {
 
   body.nav-menu-closing .mobile-menu li {
     opacity: 0;
-    transform: translate3d(0, -10px, 0);
-    filter: blur(10px);
+    transform: translate3d(0, -14px, 0);
+    filter: blur(5px);
     transition-delay: 0s, 0s, 0s;
-  }
-
-  body.nav-menu-closing .mobile-menu-wordmark {
-    opacity: 0;
-    transform: translate3d(.7rem, 0, 0) rotate(-90deg);
-    filter: blur(12px);
-    transition-delay: 0s;
   }
 }
 
