@@ -582,13 +582,16 @@ a {
 
   .nav-menu-blur {
     display: block;
-    position: fixed;
-    inset: 0;
+    position: absolute;
+    top: var(--menu-blur-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--menu-blur-height, 0px);
     z-index: 2;
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
-    background: rgba(0, 0, 0, 0.32);
+    background: transparent;
     transition:
       opacity .28s cubic-bezier(.22,1,.36,1),
       visibility 0s linear .28s;
