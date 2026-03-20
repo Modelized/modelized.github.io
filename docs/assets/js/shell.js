@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
- const assetVersion = '20260320d';
+  const assetVersion = '20260320e';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const projects = [
@@ -118,8 +118,6 @@
 
   function clearPortraitMenuLayoutVars(){
     const root = document.documentElement;
-    root.style.removeProperty('--mobile-vv-top');
-    root.style.removeProperty('--mobile-vv-height');
     root.style.removeProperty('--mobile-row-inline');
     root.style.removeProperty('--mobile-menu-inline');
     root.style.removeProperty('--mobile-menu-top');
@@ -142,9 +140,6 @@
     const viewportHeight = Math.round(vv?.height ?? window.innerHeight);
     const viewportWidth = Math.round(vv?.width ?? window.innerWidth);
     const viewportBottom = viewportTop + viewportHeight;
-
-    root.style.setProperty('--mobile-vv-top', `${viewportTop}px`);
-    root.style.setProperty('--mobile-vv-height', `${Math.max(0, viewportHeight)}px`);
 
     const rowInline = Math.round(Math.min(Math.max(viewportWidth * 0.118, 50), 60));
     const menuInline = Math.round(Math.min(Math.max(viewportWidth * 0.084, 36), 46));
