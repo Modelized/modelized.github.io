@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
- const assetVersion = '20260320b';
+ const assetVersion = '20260320d';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const projects = [
@@ -112,6 +112,8 @@
     const root = document.documentElement;
     root.style.removeProperty('--mobile-vv-top');
     root.style.removeProperty('--mobile-vv-height');
+    root.style.removeProperty('--mobile-row-inline');
+    root.style.removeProperty('--mobile-menu-inline');
     root.style.removeProperty('--mobile-menu-top');
     root.style.removeProperty('--mobile-brand-shift-x');
     root.style.removeProperty('--mobile-brand-shift-y');
@@ -131,41 +133,74 @@
     const viewportTop = Math.round(vv?.offsetTop ?? 0);
     const viewportHeight = Math.round(vv?.height ?? window.innerHeight);
     const viewportWidth = Math.round(vv?.width ?? window.innerWidth);
+    const viewportBottom = viewportTop + viewportHeight;
 
     root.style.setProperty('--mobile-vv-top', `${viewportTop}px`);
     root.style.setProperty('--mobile-vv-height', `${Math.max(0, viewportHeight)}px`);
 
-    const menuTop = Math.round(Math.min(Math.max(viewportHeight * 0.3, 228), 286));
-    root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
+    const rowInline = Math.round(Math.min(Math.max(viewportWidth * 0.1, 44), 52));
+    const menuInline = Math.round(Math.min(Math.max(viewportWidth * 0.07, 30), 38));
+    root.style.setProperty('--mobile-row-inline', `${rowInline}px`);
+    root.style.setProperty('--mobile-menu-inline', `${menuInline}px`);
 
-    const wordmarkFontSize = Math.round(Math.min(Math.max(viewportHeight * 0.112, 94), 122));
-    const wordmarkRight = Math.round(Math.max(-18, Math.min(-8, viewportWidth * -0.018)));
-    const wordmarkBottom = Math.round(Math.min(Math.max(viewportHeight * 0.165, 84), 122));
-
-    root.style.setProperty('--mobile-wordmark-font-size', `${wordmarkFontSize}px`);
-    root.style.setProperty('--mobile-wordmark-right', `${wordmarkRight}px`);
-    root.style.setProperty('--mobile-wordmark-bottom', `${wordmarkBottom}px`);
+    const row = nav.querySelector('.row');
+    const sheetContent = nav.querySelector('.sheet-content');
+    if (row && sheetContent){
+      const rowRect = row.getBoundingClientRect();
+      const sheetContentRect = sheetContent.getBoundingClientRect();
+      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.145, 98), 132));
+      const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top));
+      root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
+    }
 
     const shouldAlignBrand =
       nav.classList.contains('nav--open') ||
-      nav.classList.contains('nav--opening') ||
-      body.classList.contains('nav-menu-closing');
+      nav.classList.contains('nav--opening');
 
-    if (!shouldAlignBrand) return;
+    if (shouldAlignBrand){
+      const brand = nav.querySelector('.brand');
+      const logo = nav.querySelector('.brand-logo');
+      const firstLink = nav.querySelector('.mobile-menu a');
+      if (brand && firstLink){
+        const anchorRect = brand.getBoundingClientRect();
+        const logoRect = (logo || brand).getBoundingClientRect();
+        const firstLinkRect = firstLink.getBoundingClientRect();
+        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.028, 18), 26));
+        const targetTop = firstLinkRect.top - logoRect.height - gapAbove;
+        const shiftX = Math.round(firstLinkRect.left - logoRect.left);
+        const shiftY = Math.round(targetTop - logoRect.top);
 
-    const brand = nav.querySelector('.brand');
-    const firstLink = nav.querySelector('.mobile-menu a');
-    if (!brand || !firstLink) return;
+        root.style.setProperty('--mobile-brand-shift-x', `${shiftX}px`);
+        root.style.setProperty('--mobile-brand-shift-y', `${shiftY}px`);
+      }
+    }
 
-    const brandRect = brand.getBoundingClientRect();
-    const firstLinkRect = firstLink.getBoundingClientRect();
-    const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.024, 18), 24));
-    const targetTop = firstLinkRect.top - brandRect.height - gapAbove;
-    const shiftX = Math.round(firstLinkRect.left - brandRect.left);
-    const shiftY = Math.round(targetTop - brandRect.top);
+    const wordmark = document.querySelector('.mobile-menu-wordmark');
+    if (!wordmark) return;
 
-    root.style.setProperty('--mobile-brand-shift-x', `${shiftX}px`);
-    root.style.setProperty('--mobile-brand-shift-y', `${shiftY}px`);
+    const baseRight = Math.round(Math.min(Math.max(viewportWidth * 0.018, 10), 18));
+    const baseBottom = Math.round(Math.min(Math.max(viewportHeight * 0.085, 48), 74));
+    let fontSize = Math.round(Math.min(Math.max(viewportHeight * 0.115, 92), 132));
+
+    root.style.setProperty('--mobile-wordmark-right', `${baseRight}px`);
+    root.style.setProperty('--mobile-wordmark-bottom', `${baseBottom}px`);
+    root.style.setProperty('--mobile-wordmark-font-size', `${fontSize}px`);
+
+    let wordmarkRect = wordmark.getBoundingClientRect();
+    if (wordmarkRect.height > 0){
+      const desiredHeight = viewportHeight * 0.72;
+      fontSize = Math.round(Math.min(Math.max(fontSize * (desiredHeight / wordmarkRect.height), 92), 144));
+      root.style.setProperty('--mobile-wordmark-font-size', `${fontSize}px`);
+
+      wordmarkRect = wordmark.getBoundingClientRect();
+      const overflowBottom = Math.max(0, wordmarkRect.bottom - (viewportBottom - 18));
+      const overflowRight = Math.max(0, wordmarkRect.right - (viewportWidth - 12));
+      const correctedBottom = baseBottom + Math.ceil(overflowBottom) + 4;
+      const correctedRight = baseRight + Math.ceil(overflowRight);
+
+      root.style.setProperty('--mobile-wordmark-bottom', `${correctedBottom}px`);
+      root.style.setProperty('--mobile-wordmark-right', `${correctedRight}px`);
+    }
   }
 
   function clearTransientMobileMenuState(nav){
