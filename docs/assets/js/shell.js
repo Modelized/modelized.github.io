@@ -130,12 +130,9 @@
     root.style.removeProperty('--mobile-wordmark-bottom');
   }
 
-  function syncPortraitMobileMenuLayout(nav){
+  function syncPortraitMenuBlurViewport(){
     const root = document.documentElement;
-    if (!nav || !isPortraitMobile()){
-      clearPortraitMenuLayoutVars();
-      return;
-    }
+    if (!isPortraitMobile()) return null;
 
     const vv = window.visualViewport;
     const scrollTop = Math.round(window.scrollY || window.pageYOffset || 0);
@@ -146,6 +143,20 @@
 
     root.style.setProperty('--menu-blur-top', `${scrollTop + viewportTop}px`);
     root.style.setProperty('--menu-blur-height', `${Math.max(0, viewportHeight)}px`);
+
+    return { viewportHeight, viewportWidth, viewportBottom };
+  }
+
+  function syncPortraitMobileMenuLayout(nav){
+    const root = document.documentElement;
+    if (!nav || !isPortraitMobile()){
+      clearPortraitMenuLayoutVars();
+      return;
+    }
+
+    const viewport = syncPortraitMenuBlurViewport();
+    if (!viewport) return;
+    const { viewportHeight, viewportWidth, viewportBottom } = viewport;
 
     const rowInline = Math.round(Math.min(Math.max(viewportWidth * 0.118, 50), 60));
     const menuInline = Math.round(Math.min(Math.max(viewportWidth * 0.084, 36), 46));
@@ -232,12 +243,12 @@
     if (open){
       nav.classList.add('nav--open');
       nav.classList.add('nav--opening');
-      body.classList.add('nav-menu-open');
       body.classList.remove('nav-menu-closing');
-      body.classList.add('no-scroll');
 
       requestAnimationFrame(() => {
         syncPortraitMobileMenuLayout(nav);
+        body.classList.add('nav-menu-open');
+        body.classList.add('no-scroll');
         requestAnimationFrame(() => {
           nav.classList.remove('nav--opening');
         });
@@ -577,10 +588,14 @@
       window.addEventListener('orientationchange', syncMobileNavState);
       window.addEventListener('pageshow', syncMobileNavState);
       if (window.visualViewport){
+        let viewportSyncRaf = 0;
         const syncViewportLayout = () => {
-          if (isPortraitMenuActive(nav) && nav.classList.contains('nav--opening')) {
-            syncPortraitMobileMenuLayout(nav);
-          }
+          if (!isPortraitMenuActive(nav) || !nav.classList.contains('nav--opening')) return;
+          if (viewportSyncRaf) return;
+          viewportSyncRaf = requestAnimationFrame(() => {
+            viewportSyncRaf = 0;
+            syncPortraitMenuBlurViewport();
+          });
         };
         window.visualViewport.addEventListener('resize', syncViewportLayout);
         window.visualViewport.addEventListener('scroll', syncViewportLayout);
