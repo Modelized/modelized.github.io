@@ -582,9 +582,12 @@ a {
 
   .nav-menu-blur {
     display: block;
-    position: fixed;
-    inset: 0;
-    z-index: 1;
+    position: absolute;
+    top: var(--menu-blur-top, 0px);
+    left: 0;
+    right: 0;
+    height: var(--menu-blur-height, 0px);
+    z-index: 2;
     pointer-events: none;
     opacity: 0;
     visibility: hidden;
@@ -604,17 +607,14 @@ a {
   .page-wrap,
   .site-footer {
     transition:
-      filter .28s cubic-bezier(.22,1,.36,1),
-      -webkit-filter .28s cubic-bezier(.22,1,.36,1),
-      opacity .28s ease;
-    will-change: filter;
+      opacity .28s ease,
+      filter .28s cubic-bezier(.22,1,.36,1);
   }
 
   body.nav-menu-open .page-wrap,
   body.nav-menu-open .site-footer {
-    filter: blur(16px) saturate(138%);
-    -webkit-filter: blur(16px) saturate(138%);
     opacity: 1;
+    filter: blur(16px) saturate(138%);
   }
 
   .desktop {
