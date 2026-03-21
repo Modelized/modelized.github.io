@@ -634,12 +634,12 @@
 
   function scrollToTarget(hash) {
     if (!hash || hash === "#") {
-      return;
+      return null;
     }
 
     const target = document.querySelector(hash);
     if (!target) {
-      return;
+      return null;
     }
 
     if (hash === '#hero'){
@@ -647,7 +647,7 @@
         top: 0,
         behavior: prefersReducedMotion ? "auto" : "smooth"
       });
-      return;
+      return 0;
     }
 
     const destination = Math.max(0, target.getBoundingClientRect().top + window.scrollY - getNavOffset());
@@ -656,6 +656,8 @@
       top: destination,
       behavior: prefersReducedMotion ? "auto" : "smooth"
     });
+
+    return destination;
   }
 
   function initAnchorScroll(){
@@ -670,7 +672,10 @@
       if (!target) return;
 
       event.preventDefault();
-      scrollToTarget(hash);
+      const destination = scrollToTarget(hash);
+      window.dispatchEvent(new CustomEvent('modelized:navautoscroll', {
+        detail: { hash, destination }
+      }));
 
       const nav = document.querySelector('.nav');
       if (nav?.classList.contains('nav--open')){
@@ -792,25 +797,55 @@
     };
 
     const homeSection = document.querySelector("#hero");
-    let lastViewportHash = location.hash === "#hero" ? "" : location.hash;
+    let lockedHash = "";
+    let lockedDestination = null;
+    let lockFrame = 0;
+    let lockTimer = 0;
 
-    const syncUrlToSection = (section) => {
-      if (!section || !section.id) {
-        return;
+    const clearScrollLock = () => {
+      if (lockFrame) {
+        cancelAnimationFrame(lockFrame);
+        lockFrame = 0;
       }
-
-      const sectionHash = `#${section.id}`;
-      const nextHash = section === homeSection ? "" : sectionHash;
-      if (nextHash === lastViewportHash) {
-        return;
+      if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = 0;
       }
+      lockedHash = "";
+      lockedDestination = null;
+    };
 
-      const nextUrl = nextHash
-        ? `${location.pathname}${location.search}${nextHash}`
-        : `${location.pathname}${location.search}`;
+    const releaseScrollLock = () => {
+      clearScrollLock();
+      syncFromViewport();
+    };
 
-      history.replaceState(null, "", nextUrl);
-      lastViewportHash = nextHash;
+    const watchScrollLock = () => {
+      if (!lockedHash) return;
+
+      let lastY = getScrollTop();
+      let stillFrames = 0;
+
+      const tick = () => {
+        lockFrame = 0;
+        if (!lockedHash) return;
+
+        const currentY = getScrollTop();
+        const delta = Math.abs(currentY - lastY);
+        const nearDestination = lockedDestination !== null && Math.abs(currentY - lockedDestination) <= 2;
+
+        lastY = currentY;
+        stillFrames = (nearDestination || delta < 0.5) ? (stillFrames + 1) : 0;
+
+        if (stillFrames >= 3) {
+          releaseScrollLock();
+          return;
+        }
+
+        lockFrame = requestAnimationFrame(tick);
+      };
+
+      lockFrame = requestAnimationFrame(tick);
     };
 
     setActiveByHash(location.hash);
@@ -823,6 +858,11 @@
     map.forEach((_link, section) => sectionRatios.set(section, 0));
 
     const syncFromViewport = () => {
+      if (lockedHash) {
+        setActiveByHash(lockedHash);
+        return;
+      }
+
       const viewportFocus = window.innerHeight * 0.45;
       let currentSection = null;
       let bestScore = -Infinity;
@@ -853,7 +893,6 @@
 
       const currentHash = currentSection.id ? `#${currentSection.id}` : "";
       setActiveByHash(currentHash);
-      syncUrlToSection(currentSection);
     };
 
     const observer = new IntersectionObserver(
@@ -872,6 +911,29 @@
 
     map.forEach((_link, section) => observer.observe(section));
     requestAnimationFrame(syncFromViewport);
+
+    window.addEventListener('modelized:navautoscroll', (event) => {
+      const nextHash = event.detail?.hash;
+      if (!nextHash) return;
+
+      clearScrollLock();
+      lockedHash = nextHash;
+      lockedDestination = typeof event.detail?.destination === 'number' ? event.detail.destination : null;
+      setActiveByHash(lockedHash);
+
+      if (prefersReducedMotion) {
+        lockTimer = window.setTimeout(releaseScrollLock, 0);
+        return;
+      }
+
+      lockTimer = window.setTimeout(watchScrollLock, 120);
+    });
+
+    window.addEventListener('orientationchange', clearScrollLock);
+    window.addEventListener('resize', () => {
+      if (!lockedHash) return;
+      lockTimer = window.setTimeout(releaseScrollLock, 0);
+    });
   }
 
   function initSectionDepth() {
@@ -1211,15 +1273,6 @@
     initParallax();
     initHoverTracking();
 
-    if (location.hash){
-      requestAnimationFrame(() => {
-        scrollToTarget(location.hash);
-      });
-    }else{
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, behavior: 'auto' });
-      });
-    }
   }
 
   if (document.readyState === "loading") {
