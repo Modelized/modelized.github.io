@@ -5,6 +5,7 @@
   const base = (body?.getAttribute('data-base') || '.').trim();
   const assetVersion = '20260320h';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
 
   const projects = [
     {
@@ -93,6 +94,36 @@
     if (year) {
       year.textContent = new Date().getFullYear();
     }
+  }
+
+  function getScrollTop() {
+    const scrollEl = document.scrollingElement || document.documentElement || document.body;
+    return Math.max(
+      window.scrollY || 0,
+      window.pageYOffset || 0,
+      scrollEl?.scrollTop || 0
+    );
+  }
+
+  function createSettledScheduler(callback) {
+    const timers = [];
+
+    const clear = () => {
+      while (timers.length) {
+        window.clearTimeout(timers.pop());
+      }
+    };
+
+    const schedule = (baseDelay = 0, beforeSchedule) => {
+      clear();
+      beforeSchedule?.();
+
+      SETTLE_PASS_DELAYS.forEach((offset) => {
+        timers.push(window.setTimeout(callback, baseDelay + offset));
+      });
+    };
+
+    return { clear, schedule };
   }
 
   function getNavOffset(){
@@ -312,6 +343,69 @@
     });
   }
 
+  function initOrientationRecovery(){
+    let lastPortrait = isPortraitMobile();
+    let lastPortraitStableScrollY = lastPortrait ? getScrollTop() : 0;
+    let pendingRecovery = null;
+
+    const updateStableState = () => {
+      lastPortrait = isPortraitMobile();
+      if (lastPortrait){
+        lastPortraitStableScrollY = getScrollTop();
+      }
+    };
+
+    const settledRecovery = createSettledScheduler(() => {
+      if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
+        const currentY = getScrollTop();
+        if (Math.abs(currentY - lastPortraitStableScrollY) > 1){
+          window.scrollTo({ top: lastPortraitStableScrollY, behavior: 'auto' });
+        }
+      }
+
+      pendingRecovery = null;
+      updateStableState();
+    });
+
+    window.addEventListener('scroll', () => {
+      if (!pendingRecovery && isPortraitMobile()){
+        lastPortraitStableScrollY = getScrollTop();
+      }
+    }, { passive:true });
+
+    window.addEventListener('orientationchange', () => {
+      const wasPortrait = lastPortrait;
+      if (wasPortrait){
+        lastPortraitStableScrollY = getScrollTop();
+      }
+
+      pendingRecovery = {
+        restorePortraitScroll: !wasPortrait
+      };
+      settledRecovery.schedule(160);
+    });
+
+    window.addEventListener('resize', () => {
+      if (pendingRecovery){
+        settledRecovery.schedule(120);
+        return;
+      }
+      updateStableState();
+    });
+
+    window.addEventListener('pageshow', updateStableState);
+
+    if (window.visualViewport){
+      const syncViewportRecovery = () => {
+        if (!pendingRecovery) return;
+        settledRecovery.schedule(120);
+      };
+
+      window.visualViewport.addEventListener('resize', syncViewportRecovery);
+      window.visualViewport.addEventListener('scroll', syncViewportRecovery);
+    }
+  }
+
  function initNavBackdrop(){
    if (document.body.dataset.backdropInit === '1') return;
    document.body.dataset.backdropInit = '1';
@@ -320,11 +414,20 @@
    let last = null;
    let ticking = false;
 
+   const getScrolled = () => {
+     return getScrollTop() > 4;
+   };
+
+   const resetBackdropState = () => {
+     if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
+     backdrop?.classList.remove('is-visible');
+     document.body.classList.remove('nav--scrolled');
+     last = null;
+   };
+
    const compute = () => {
      ticking = false;
-
-     const y = window.scrollY || window.pageYOffset || 0;
-     const scrolled = y > 4;
+     const scrolled = getScrolled();
 
      if (scrolled !== last){
        if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
@@ -341,11 +444,20 @@
      requestAnimationFrame(compute);
    };
 
+   const settledChange = createSettledScheduler(onChange);
+   const scheduleSettledChange = (baseDelay = 0) => {
+     settledChange.schedule(baseDelay, resetBackdropState);
+   };
+
    compute();
    window.addEventListener('scroll', onChange, { passive:true });
-   window.addEventListener('resize', onChange);
-   window.addEventListener('orientationchange', onChange);
-   window.addEventListener('pageshow', onChange);
+   window.addEventListener('resize', () => scheduleSettledChange(80));
+   window.addEventListener('orientationchange', () => scheduleSettledChange(140));
+   window.addEventListener('pageshow', () => scheduleSettledChange(80));
+   if (window.visualViewport){
+     window.visualViewport.addEventListener('resize', () => scheduleSettledChange(100));
+     window.visualViewport.addEventListener('scroll', () => scheduleSettledChange(100));
+   }
  }
 
   function initMenuThumb(){
@@ -934,14 +1046,9 @@
     };
 
     let frame = 0;
-    const settleTimers = [];
-    const clearScheduledBuilds = () => {
+    const cancelPendingBuild = () => {
       window.cancelAnimationFrame(frame);
       frame = 0;
-
-      while (settleTimers.length) {
-        window.clearTimeout(settleTimers.pop());
-      }
     };
 
     const runBuild = () => new Promise((resolve) => {
@@ -969,20 +1076,9 @@
       });
     });
 
-    const scheduleBuild = (delay = 0) => {
-      clearScheduledBuilds();
-      settleTimers.push(window.setTimeout(() => {
-        runBuild();
-      }, delay));
-    };
-
+    const settledBuild = createSettledScheduler(runBuild);
     const scheduleSettledBuild = (baseDelay = 0) => {
-      clearScheduledBuilds();
-      [baseDelay, baseDelay + 140, baseDelay + 320, baseDelay + 560].forEach((delay) => {
-        settleTimers.push(window.setTimeout(() => {
-          runBuild();
-        }, delay));
-      });
+      settledBuild.schedule(baseDelay, cancelPendingBuild);
     };
 
     if (document.fonts?.ready) {
@@ -1104,6 +1200,7 @@
     renderProjects();
     initYear();
     initNav();
+    initOrientationRecovery();
     syncMobileNavState();
     initAnchorScroll();
     initSectionSpy();
