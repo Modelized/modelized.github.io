@@ -319,11 +319,17 @@
    let backdrop = document.querySelector('.nav-backdrop');
    let last = null;
    let ticking = false;
+   const settleTimers = [];
 
    const compute = () => {
      ticking = false;
 
-     const y = window.scrollY || window.pageYOffset || 0;
+     const scrollEl = document.scrollingElement || document.documentElement || document.body;
+     const y = Math.max(
+       window.scrollY || 0,
+       window.pageYOffset || 0,
+       scrollEl?.scrollTop || 0
+     );
      const scrolled = y > 4;
 
      if (scrolled !== last){
@@ -341,11 +347,28 @@
      requestAnimationFrame(compute);
    };
 
+   const clearSettleTimers = () => {
+     while (settleTimers.length) {
+       window.clearTimeout(settleTimers.pop());
+     }
+   };
+
+   const scheduleSettledChange = (baseDelay = 0) => {
+     clearSettleTimers();
+     [baseDelay, baseDelay + 140, baseDelay + 320, baseDelay + 560].forEach((delay) => {
+       settleTimers.push(window.setTimeout(onChange, delay));
+     });
+   };
+
    compute();
    window.addEventListener('scroll', onChange, { passive:true });
-   window.addEventListener('resize', onChange);
-   window.addEventListener('orientationchange', onChange);
-   window.addEventListener('pageshow', onChange);
+   window.addEventListener('resize', () => scheduleSettledChange(80));
+   window.addEventListener('orientationchange', () => scheduleSettledChange(140));
+   window.addEventListener('pageshow', () => scheduleSettledChange(80));
+   if (window.visualViewport){
+     window.visualViewport.addEventListener('resize', () => scheduleSettledChange(100));
+     window.visualViewport.addEventListener('scroll', () => scheduleSettledChange(100));
+   }
  }
 
   function initMenuThumb(){
