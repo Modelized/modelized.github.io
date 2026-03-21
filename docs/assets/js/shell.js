@@ -96,6 +96,15 @@
     }
   }
 
+  function getScrollTop() {
+    const scrollEl = document.scrollingElement || document.documentElement || document.body;
+    return Math.max(
+      window.scrollY || 0,
+      window.pageYOffset || 0,
+      scrollEl?.scrollTop || 0
+    );
+  }
+
   function createSettledScheduler(callback) {
     const timers = [];
 
@@ -334,6 +343,61 @@
     });
   }
 
+  function initOrientationRecovery(){
+    let lastPortrait = isPortraitMobile();
+    let lastStableScrollY = getScrollTop();
+    let pendingRecovery = null;
+
+    const updateStableState = () => {
+      lastPortrait = isPortraitMobile();
+      lastStableScrollY = getScrollTop();
+    };
+
+    const settledRecovery = createSettledScheduler(() => {
+      if (pendingRecovery && isPortraitMobile() && !pendingRecovery.previousPortrait){
+        const currentY = getScrollTop();
+        if (Math.abs(currentY - pendingRecovery.scrollY) > 1){
+          window.scrollTo({ top: pendingRecovery.scrollY, behavior: 'auto' });
+        }
+      }
+
+      pendingRecovery = null;
+      updateStableState();
+    });
+
+    window.addEventListener('scroll', () => {
+      lastStableScrollY = getScrollTop();
+    }, { passive:true });
+
+    window.addEventListener('orientationchange', () => {
+      pendingRecovery = {
+        previousPortrait: lastPortrait,
+        scrollY: lastStableScrollY
+      };
+      settledRecovery.schedule(160);
+    });
+
+    window.addEventListener('resize', () => {
+      if (pendingRecovery){
+        settledRecovery.schedule(120);
+        return;
+      }
+      updateStableState();
+    });
+
+    window.addEventListener('pageshow', updateStableState);
+
+    if (window.visualViewport){
+      const syncViewportRecovery = () => {
+        if (!pendingRecovery) return;
+        settledRecovery.schedule(120);
+      };
+
+      window.visualViewport.addEventListener('resize', syncViewportRecovery);
+      window.visualViewport.addEventListener('scroll', syncViewportRecovery);
+    }
+  }
+
  function initNavBackdrop(){
    if (document.body.dataset.backdropInit === '1') return;
    document.body.dataset.backdropInit = '1';
@@ -343,13 +407,7 @@
    let ticking = false;
 
    const getScrolled = () => {
-     const scrollEl = document.scrollingElement || document.documentElement || document.body;
-     const y = Math.max(
-       window.scrollY || 0,
-       window.pageYOffset || 0,
-       scrollEl?.scrollTop || 0
-     );
-     return y > 4;
+     return getScrollTop() > 4;
    };
 
    const resetBackdropState = () => {
@@ -1134,6 +1192,7 @@
     renderProjects();
     initYear();
     initNav();
+    initOrientationRecovery();
     syncMobileNavState();
     initAnchorScroll();
     initSectionSpy();
