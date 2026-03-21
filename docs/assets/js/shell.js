@@ -923,9 +923,10 @@
     };
 
     let frame = 0;
-    const build = () => new Promise((resolve) => {
-      window.cancelAnimationFrame(frame);
+    let settleTimer = 0;
+    const runBuild = () => new Promise((resolve) => {
       frame = window.requestAnimationFrame(() => {
+        frame = 0;
         const lines = measureLines();
         const signature = lines.join("|");
 
@@ -946,6 +947,14 @@
       });
     });
 
+    const scheduleBuild = (delay = 0) => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => {
+        runBuild();
+      }, delay);
+    };
+
     if (document.fonts?.ready) {
       try {
         await document.fonts.ready;
@@ -954,21 +963,28 @@
       }
     }
 
-    await build();
+    await runBuild();
 
     if ("ResizeObserver" in window) {
+      const resizeTarget = title.parentElement || title;
       const observer = new ResizeObserver(() => {
-        build();
+        scheduleBuild(80);
       });
+      observer.observe(resizeTarget);
       observer.observe(title);
     }
 
     window.addEventListener("resize", () => {
-      build();
+      scheduleBuild(120);
     });
     window.addEventListener("orientationchange", () => {
-      build();
+      scheduleBuild(180);
     });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        scheduleBuild(120);
+      });
+    }
   }
 
   function initParallax() {
