@@ -617,6 +617,27 @@ a {
     filter: blur(16px) saturate(138%);
   }
 
+  body.nav-menu-open .hero-title {
+    filter: none;
+    will-change: auto;
+  }
+
+  body.nav-menu-open .hero-text {
+    text-shadow:
+      1px 0 0 var(--hero-outline-color),
+      -1px 0 0 var(--hero-outline-color),
+      0 1px 0 var(--hero-outline-color),
+      0 -1px 0 var(--hero-outline-color),
+      1px 1px 0 var(--hero-outline-color),
+      -1px -1px 0 var(--hero-outline-color),
+      1px -1px 0 var(--hero-outline-color),
+      -1px 1px 0 var(--hero-outline-color);
+  }
+
+  body.nav-menu-open .hero-text::after {
+    filter: none;
+  }
+
   .desktop {
     display: none;
   }
