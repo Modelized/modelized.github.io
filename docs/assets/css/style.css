@@ -567,17 +567,7 @@ a {
   }
 
   .nav-backdrop {
-    top: 0;
-    left: 0;
-    right: 0;
-    inset: auto;
-    height: var(--nav-backdrop-h-mobile);
-    background: var(--nav-backdrop);
-    opacity: 0;
-    visibility: visible;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    transition: opacity .22s ease;
+    display: none !important;
   }
 
   .nav-menu-blur {
