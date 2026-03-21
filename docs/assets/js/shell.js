@@ -5,6 +5,7 @@
   const base = (body?.getAttribute('data-base') || '.').trim();
   const assetVersion = '20260320h';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
 
   const projects = [
     {
@@ -93,6 +94,27 @@
     if (year) {
       year.textContent = new Date().getFullYear();
     }
+  }
+
+  function createSettledScheduler(callback) {
+    const timers = [];
+
+    const clear = () => {
+      while (timers.length) {
+        window.clearTimeout(timers.pop());
+      }
+    };
+
+    const schedule = (baseDelay = 0, beforeSchedule) => {
+      clear();
+      beforeSchedule?.();
+
+      SETTLE_PASS_DELAYS.forEach((offset) => {
+        timers.push(window.setTimeout(callback, baseDelay + offset));
+      });
+    };
+
+    return { clear, schedule };
   }
 
   function getNavOffset(){
@@ -319,7 +341,6 @@
    let backdrop = document.querySelector('.nav-backdrop');
    let last = null;
    let ticking = false;
-   const settleTimers = [];
 
    const getScrolled = () => {
      const scrollEl = document.scrollingElement || document.documentElement || document.body;
@@ -357,18 +378,9 @@
      requestAnimationFrame(compute);
    };
 
-   const clearSettleTimers = () => {
-     while (settleTimers.length) {
-       window.clearTimeout(settleTimers.pop());
-     }
-   };
-
+   const settledChange = createSettledScheduler(onChange);
    const scheduleSettledChange = (baseDelay = 0) => {
-     clearSettleTimers();
-     resetBackdropState();
-     [baseDelay, baseDelay + 140, baseDelay + 320, baseDelay + 560].forEach((delay) => {
-       settleTimers.push(window.setTimeout(onChange, delay));
-     });
+     settledChange.schedule(baseDelay, resetBackdropState);
    };
 
    compute();
@@ -968,14 +980,9 @@
     };
 
     let frame = 0;
-    const settleTimers = [];
-    const clearScheduledBuilds = () => {
+    const cancelPendingBuild = () => {
       window.cancelAnimationFrame(frame);
       frame = 0;
-
-      while (settleTimers.length) {
-        window.clearTimeout(settleTimers.pop());
-      }
     };
 
     const runBuild = () => new Promise((resolve) => {
@@ -1003,20 +1010,9 @@
       });
     });
 
-    const scheduleBuild = (delay = 0) => {
-      clearScheduledBuilds();
-      settleTimers.push(window.setTimeout(() => {
-        runBuild();
-      }, delay));
-    };
-
+    const settledBuild = createSettledScheduler(runBuild);
     const scheduleSettledBuild = (baseDelay = 0) => {
-      clearScheduledBuilds();
-      [baseDelay, baseDelay + 140, baseDelay + 320, baseDelay + 560].forEach((delay) => {
-        settleTimers.push(window.setTimeout(() => {
-          runBuild();
-        }, delay));
-      });
+      settledBuild.schedule(baseDelay, cancelPendingBuild);
     };
 
     if (document.fonts?.ready) {
