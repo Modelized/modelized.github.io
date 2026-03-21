@@ -672,10 +672,7 @@
       if (!target) return;
 
       event.preventDefault();
-      const destination = scrollToTarget(hash);
-      window.dispatchEvent(new CustomEvent('modelized:navautoscroll', {
-        detail: { hash, destination }
-      }));
+      scrollToTarget(hash);
 
       const nav = document.querySelector('.nav');
       if (nav?.classList.contains('nav--open')){
@@ -798,21 +795,14 @@
 
     const homeSection = document.querySelector("#hero");
     let lockedHash = "";
-    let lockedDestination = null;
-    let lockFrame = 0;
     let lockTimer = 0;
 
     const clearScrollLock = () => {
-      if (lockFrame) {
-        cancelAnimationFrame(lockFrame);
-        lockFrame = 0;
-      }
       if (lockTimer) {
         clearTimeout(lockTimer);
         lockTimer = 0;
       }
       lockedHash = "";
-      lockedDestination = null;
     };
 
     const releaseScrollLock = () => {
@@ -820,32 +810,12 @@
       syncFromViewport();
     };
 
-    const watchScrollLock = () => {
+    const scheduleScrollLockRelease = (delay = 140) => {
       if (!lockedHash) return;
-
-      let lastY = getScrollTop();
-      let stillFrames = 0;
-
-      const tick = () => {
-        lockFrame = 0;
-        if (!lockedHash) return;
-
-        const currentY = getScrollTop();
-        const delta = Math.abs(currentY - lastY);
-        const nearDestination = lockedDestination !== null && Math.abs(currentY - lockedDestination) <= 2;
-
-        lastY = currentY;
-        stillFrames = (nearDestination || delta < 0.5) ? (stillFrames + 1) : 0;
-
-        if (stillFrames >= 3) {
-          releaseScrollLock();
-          return;
-        }
-
-        lockFrame = requestAnimationFrame(tick);
-      };
-
-      lockFrame = requestAnimationFrame(tick);
+      if (lockTimer) {
+        clearTimeout(lockTimer);
+      }
+      lockTimer = window.setTimeout(releaseScrollLock, delay);
     };
 
     setActiveByHash(location.hash);
@@ -912,28 +882,24 @@
     map.forEach((_link, section) => observer.observe(section));
     requestAnimationFrame(syncFromViewport);
 
-    window.addEventListener('modelized:navautoscroll', (event) => {
-      const nextHash = event.detail?.hash;
-      if (!nextHash) return;
+    links.forEach((link) => {
+      link.addEventListener('click', () => {
+        const nextHash = link.getAttribute('href');
+        if (!nextHash || !nextHash.startsWith('#')) return;
 
-      clearScrollLock();
-      lockedHash = nextHash;
-      lockedDestination = typeof event.detail?.destination === 'number' ? event.detail.destination : null;
-      setActiveByHash(lockedHash);
-
-      if (prefersReducedMotion) {
-        lockTimer = window.setTimeout(releaseScrollLock, 0);
-        return;
-      }
-
-      lockTimer = window.setTimeout(watchScrollLock, 120);
+        clearScrollLock();
+        lockedHash = nextHash;
+        setActiveByHash(lockedHash);
+        scheduleScrollLockRelease(prefersReducedMotion ? 0 : 180);
+      });
     });
+
+    window.addEventListener('scroll', () => {
+      scheduleScrollLockRelease(140);
+    }, { passive: true });
 
     window.addEventListener('orientationchange', clearScrollLock);
-    window.addEventListener('resize', () => {
-      if (!lockedHash) return;
-      lockTimer = window.setTimeout(releaseScrollLock, 0);
-    });
+    window.addEventListener('resize', releaseScrollLock);
   }
 
   function initSectionDepth() {
