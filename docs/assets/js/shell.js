@@ -321,8 +321,18 @@
    let ticking = false;
    const settleTimers = [];
 
-   const compute = () => {
-     ticking = false;
+   const isVisuallyScrolled = () => {
+     if (isPortraitMobile()) {
+       const hero = document.getElementById('hero');
+       const pageWrap = document.querySelector('.page-wrap');
+
+       if (hero && pageWrap) {
+         const heroTop = hero.getBoundingClientRect().top;
+         const pageWrapStyles = getComputedStyle(pageWrap);
+         const expectedTop = parseFloat(pageWrapStyles.paddingTop) || 0;
+         return heroTop < (expectedTop - 4);
+       }
+     }
 
      const scrollEl = document.scrollingElement || document.documentElement || document.body;
      const y = Math.max(
@@ -330,7 +340,12 @@
        window.pageYOffset || 0,
        scrollEl?.scrollTop || 0
      );
-     const scrolled = y > 4;
+     return y > 4;
+   };
+
+   const compute = () => {
+     ticking = false;
+     const scrolled = isVisuallyScrolled();
 
      if (scrolled !== last){
        if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
