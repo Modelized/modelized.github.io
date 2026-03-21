@@ -343,109 +343,6 @@
     });
   }
 
-  function initOrientationRecovery(){
-    let lastPortrait = isPortraitMobile();
-    let lastPortraitStableScrollY = lastPortrait ? getScrollTop() : 0;
-    let pendingRecovery = null;
-    let finishTimer = 0;
-
-    const updateStableState = () => {
-      lastPortrait = isPortraitMobile();
-      if (lastPortrait){
-        lastPortraitStableScrollY = getScrollTop();
-      }
-    };
-
-    const clearFinishTimer = () => {
-      if (!finishTimer) return;
-      window.clearTimeout(finishTimer);
-      finishTimer = 0;
-    };
-
-    const queueFinishRecovery = () => {
-      if (!pendingRecovery?.restorePortraitScroll) return;
-      clearFinishTimer();
-      finishTimer = window.setTimeout(() => {
-        pendingRecovery = null;
-        updateStableState();
-      }, 220);
-    };
-
-    const settledRecovery = createSettledScheduler(() => {
-      if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
-        const currentY = getScrollTop();
-        const targetY = pendingRecovery.scrollY;
-        if (Math.abs(currentY - targetY) > 1){
-          window.scrollTo({ top: targetY, behavior: 'auto' });
-        }
-        queueFinishRecovery();
-        return;
-      }
-
-      pendingRecovery = null;
-      updateStableState();
-    });
-
-    window.addEventListener('scroll', () => {
-      if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
-        const currentY = getScrollTop();
-        if (Math.abs(currentY - pendingRecovery.scrollY) > 1){
-          clearFinishTimer();
-          settledRecovery.schedule(80);
-        } else {
-          queueFinishRecovery();
-        }
-        return;
-      }
-
-      if (!pendingRecovery && isPortraitMobile()){
-        lastPortraitStableScrollY = getScrollTop();
-      }
-    }, { passive:true });
-
-    window.addEventListener('orientationchange', () => {
-      const wasPortrait = lastPortrait;
-      if (wasPortrait){
-        lastPortraitStableScrollY = getScrollTop();
-      }
-
-      pendingRecovery = {
-        restorePortraitScroll: !wasPortrait,
-        scrollY: lastPortraitStableScrollY
-      };
-      clearFinishTimer();
-      if (pendingRecovery.restorePortraitScroll){
-        settledRecovery.schedule(160);
-      }
-    });
-
-    window.addEventListener('resize', () => {
-      if (pendingRecovery){
-        clearFinishTimer();
-        settledRecovery.schedule(120);
-        return;
-      }
-      updateStableState();
-    });
-
-    window.addEventListener('pageshow', () => {
-      pendingRecovery = null;
-      clearFinishTimer();
-      updateStableState();
-    });
-
-    if (window.visualViewport){
-      const syncViewportRecovery = () => {
-        if (!pendingRecovery) return;
-        clearFinishTimer();
-        settledRecovery.schedule(120);
-      };
-
-      window.visualViewport.addEventListener('resize', syncViewportRecovery);
-      window.visualViewport.addEventListener('scroll', syncViewportRecovery);
-    }
-  }
-
  function initNavBackdrop(){
    if (document.body.dataset.backdropInit === '1') return;
    document.body.dataset.backdropInit = '1';
@@ -1268,7 +1165,6 @@
     renderProjects();
     initYear();
     initNav();
-    initOrientationRecovery();
     syncMobileNavState();
     initAnchorScroll();
     initSectionSpy();
