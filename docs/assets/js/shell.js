@@ -189,9 +189,7 @@
     if (!viewport) return;
     const { viewportHeight, viewportWidth, viewportBottom } = viewport;
 
-    const rowInline = Math.round(Math.min(Math.max(viewportWidth * 0.118, 50), 60));
     const menuInline = Math.round(Math.min(Math.max(viewportWidth * 0.084, 36), 46));
-    root.style.setProperty('--mobile-row-inline', `${rowInline}px`);
     root.style.setProperty('--mobile-menu-inline', `${menuInline}px`);
 
     const row = nav.querySelector('.row');
