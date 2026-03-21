@@ -564,7 +564,7 @@ a {
 @media (max-width:900px) and (orientation:portrait) {
   :root {
     --nav-pill-height-mobile: 52px;
-    --mobile-row-inline: clamp(58px, 13.2vw, 68px);
+    --mobile-row-inline: clamp(20px, 5.6vw, 24px);
   }
 
   .nav {
@@ -747,14 +747,6 @@ a {
     margin-left: auto;
     position: relative;
     z-index: 5;
-  }
-
-  .container.row,
-  .container.sheet {
-    max-width: none;
-    width: auto;
-    padding-left: 0;
-    padding-right: 0;
   }
 
   .nav .sheet-content {
