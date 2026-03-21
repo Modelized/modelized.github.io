@@ -347,6 +347,7 @@
     let lastPortrait = isPortraitMobile();
     let lastPortraitStableScrollY = lastPortrait ? getScrollTop() : 0;
     let pendingRecovery = null;
+    let finishTimer = 0;
 
     const updateStableState = () => {
       lastPortrait = isPortraitMobile();
@@ -355,12 +356,30 @@
       }
     };
 
+    const clearFinishTimer = () => {
+      if (!finishTimer) return;
+      window.clearTimeout(finishTimer);
+      finishTimer = 0;
+    };
+
+    const queueFinishRecovery = () => {
+      if (!pendingRecovery?.restorePortraitScroll) return;
+      clearFinishTimer();
+      finishTimer = window.setTimeout(() => {
+        pendingRecovery = null;
+        updateStableState();
+      }, 220);
+    };
+
     const settledRecovery = createSettledScheduler(() => {
       if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
         const currentY = getScrollTop();
-        if (Math.abs(currentY - lastPortraitStableScrollY) > 1){
-          window.scrollTo({ top: lastPortraitStableScrollY, behavior: 'auto' });
+        const targetY = pendingRecovery.scrollY;
+        if (Math.abs(currentY - targetY) > 1){
+          window.scrollTo({ top: targetY, behavior: 'auto' });
         }
+        queueFinishRecovery();
+        return;
       }
 
       pendingRecovery = null;
@@ -368,6 +387,17 @@
     });
 
     window.addEventListener('scroll', () => {
+      if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
+        const currentY = getScrollTop();
+        if (Math.abs(currentY - pendingRecovery.scrollY) > 1){
+          clearFinishTimer();
+          settledRecovery.schedule(80);
+        } else {
+          queueFinishRecovery();
+        }
+        return;
+      }
+
       if (!pendingRecovery && isPortraitMobile()){
         lastPortraitStableScrollY = getScrollTop();
       }
@@ -380,24 +410,34 @@
       }
 
       pendingRecovery = {
-        restorePortraitScroll: !wasPortrait
+        restorePortraitScroll: !wasPortrait,
+        scrollY: lastPortraitStableScrollY
       };
-      settledRecovery.schedule(160);
+      clearFinishTimer();
+      if (pendingRecovery.restorePortraitScroll){
+        settledRecovery.schedule(160);
+      }
     });
 
     window.addEventListener('resize', () => {
       if (pendingRecovery){
+        clearFinishTimer();
         settledRecovery.schedule(120);
         return;
       }
       updateStableState();
     });
 
-    window.addEventListener('pageshow', updateStableState);
+    window.addEventListener('pageshow', () => {
+      pendingRecovery = null;
+      clearFinishTimer();
+      updateStableState();
+    });
 
     if (window.visualViewport){
       const syncViewportRecovery = () => {
         if (!pendingRecovery) return;
+        clearFinishTimer();
         settledRecovery.schedule(120);
       };
 
