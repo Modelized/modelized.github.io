@@ -562,6 +562,25 @@ a {
 
 /* Mobile portrait nav */
 @media (max-width:900px) and (orientation:portrait) {
+  html,
+  body {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.11), rgba(255, 157, 77, 0) 70%),
+      radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.1), rgba(82, 104, 255, 0) 72%),
+      radial-gradient(78% 66% at 56% 100%, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 72%),
+      linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+  }
+
   .nav {
     top: calc(env(safe-area-inset-top, 0px) + 8px);
   }
