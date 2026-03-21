@@ -347,6 +347,7 @@
     let lastPortrait = isPortraitMobile();
     let lastPortraitStableScrollY = lastPortrait ? getScrollTop() : 0;
     let pendingRecovery = null;
+    let finishTimer = 0;
 
     const updateStableState = () => {
       lastPortrait = isPortraitMobile();
@@ -355,12 +356,30 @@
       }
     };
 
+    const clearFinishTimer = () => {
+      if (!finishTimer) return;
+      window.clearTimeout(finishTimer);
+      finishTimer = 0;
+    };
+
+    const queueFinishRecovery = () => {
+      if (!pendingRecovery?.restorePortraitScroll) return;
+      clearFinishTimer();
+      finishTimer = window.setTimeout(() => {
+        pendingRecovery = null;
+        updateStableState();
+      }, 220);
+    };
+
     const settledRecovery = createSettledScheduler(() => {
       if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
         const currentY = getScrollTop();
-        if (Math.abs(currentY - lastPortraitStableScrollY) > 1){
-          window.scrollTo({ top: lastPortraitStableScrollY, behavior: 'auto' });
+        const targetY = pendingRecovery.scrollY;
+        if (Math.abs(currentY - targetY) > 1){
+          window.scrollTo({ top: targetY, behavior: 'auto' });
         }
+        queueFinishRecovery();
+        return;
       }
 
       pendingRecovery = null;
@@ -368,6 +387,17 @@
     });
 
     window.addEventListener('scroll', () => {
+      if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
+        const currentY = getScrollTop();
+        if (Math.abs(currentY - pendingRecovery.scrollY) > 1){
+          clearFinishTimer();
+          settledRecovery.schedule(80);
+        } else {
+          queueFinishRecovery();
+        }
+        return;
+      }
+
       if (!pendingRecovery && isPortraitMobile()){
         lastPortraitStableScrollY = getScrollTop();
       }
@@ -380,24 +410,34 @@
       }
 
       pendingRecovery = {
-        restorePortraitScroll: !wasPortrait
+        restorePortraitScroll: !wasPortrait,
+        scrollY: lastPortraitStableScrollY
       };
-      settledRecovery.schedule(160);
+      clearFinishTimer();
+      if (pendingRecovery.restorePortraitScroll){
+        settledRecovery.schedule(160);
+      }
     });
 
     window.addEventListener('resize', () => {
       if (pendingRecovery){
+        clearFinishTimer();
         settledRecovery.schedule(120);
         return;
       }
       updateStableState();
     });
 
-    window.addEventListener('pageshow', updateStableState);
+    window.addEventListener('pageshow', () => {
+      pendingRecovery = null;
+      clearFinishTimer();
+      updateStableState();
+    });
 
     if (window.visualViewport){
       const syncViewportRecovery = () => {
         if (!pendingRecovery) return;
+        clearFinishTimer();
         settledRecovery.schedule(120);
       };
 
@@ -634,12 +674,12 @@
 
   function scrollToTarget(hash) {
     if (!hash || hash === "#") {
-      return;
+      return null;
     }
 
     const target = document.querySelector(hash);
     if (!target) {
-      return;
+      return null;
     }
 
     if (hash === '#hero'){
@@ -647,7 +687,7 @@
         top: 0,
         behavior: prefersReducedMotion ? "auto" : "smooth"
       });
-      return;
+      return 0;
     }
 
     const destination = Math.max(0, target.getBoundingClientRect().top + window.scrollY - getNavOffset());
@@ -656,6 +696,8 @@
       top: destination,
       behavior: prefersReducedMotion ? "auto" : "smooth"
     });
+
+    return destination;
   }
 
   function initAnchorScroll(){
@@ -792,25 +834,28 @@
     };
 
     const homeSection = document.querySelector("#hero");
-    let lastViewportHash = location.hash === "#hero" ? "" : location.hash;
+    let lockedHash = "";
+    let lockTimer = 0;
 
-    const syncUrlToSection = (section) => {
-      if (!section || !section.id) {
-        return;
+    const clearScrollLock = () => {
+      if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = 0;
       }
+      lockedHash = "";
+    };
 
-      const sectionHash = `#${section.id}`;
-      const nextHash = section === homeSection ? "" : sectionHash;
-      if (nextHash === lastViewportHash) {
-        return;
+    const releaseScrollLock = () => {
+      clearScrollLock();
+      syncFromViewport();
+    };
+
+    const scheduleScrollLockRelease = (delay = 140) => {
+      if (!lockedHash) return;
+      if (lockTimer) {
+        clearTimeout(lockTimer);
       }
-
-      const nextUrl = nextHash
-        ? `${location.pathname}${location.search}${nextHash}`
-        : `${location.pathname}${location.search}`;
-
-      history.replaceState(null, "", nextUrl);
-      lastViewportHash = nextHash;
+      lockTimer = window.setTimeout(releaseScrollLock, delay);
     };
 
     setActiveByHash(location.hash);
@@ -823,6 +868,11 @@
     map.forEach((_link, section) => sectionRatios.set(section, 0));
 
     const syncFromViewport = () => {
+      if (lockedHash) {
+        setActiveByHash(lockedHash);
+        return;
+      }
+
       const viewportFocus = window.innerHeight * 0.45;
       let currentSection = null;
       let bestScore = -Infinity;
@@ -853,7 +903,6 @@
 
       const currentHash = currentSection.id ? `#${currentSection.id}` : "";
       setActiveByHash(currentHash);
-      syncUrlToSection(currentSection);
     };
 
     const observer = new IntersectionObserver(
@@ -872,6 +921,25 @@
 
     map.forEach((_link, section) => observer.observe(section));
     requestAnimationFrame(syncFromViewport);
+
+    links.forEach((link) => {
+      link.addEventListener('click', () => {
+        const nextHash = link.getAttribute('href');
+        if (!nextHash || !nextHash.startsWith('#')) return;
+
+        clearScrollLock();
+        lockedHash = nextHash;
+        setActiveByHash(lockedHash);
+        scheduleScrollLockRelease(prefersReducedMotion ? 0 : 180);
+      });
+    });
+
+    window.addEventListener('scroll', () => {
+      scheduleScrollLockRelease(140);
+    }, { passive: true });
+
+    window.addEventListener('orientationchange', clearScrollLock);
+    window.addEventListener('resize', releaseScrollLock);
   }
 
   function initSectionDepth() {
@@ -1211,15 +1279,6 @@
     initParallax();
     initHoverTracking();
 
-    if (location.hash){
-      requestAnimationFrame(() => {
-        scrollToTarget(location.hash);
-      });
-    }else{
-      requestAnimationFrame(() => {
-        window.scrollTo({ top: 0, behavior: 'auto' });
-      });
-    }
   }
 
   if (document.readyState === "loading") {
