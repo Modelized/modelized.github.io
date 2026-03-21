@@ -722,6 +722,7 @@ a {
 
   .brand-logo {
     height: 36px;
+    transform: translateY(-1px);
   }
 
   .nav--open .brand {
