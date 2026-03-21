@@ -321,19 +321,7 @@
    let ticking = false;
    const settleTimers = [];
 
-   const isVisuallyScrolled = () => {
-     if (isPortraitMobile()) {
-       const hero = document.getElementById('hero');
-       const pageWrap = document.querySelector('.page-wrap');
-
-       if (hero && pageWrap) {
-         const heroTop = hero.getBoundingClientRect().top;
-         const pageWrapStyles = getComputedStyle(pageWrap);
-         const expectedTop = parseFloat(pageWrapStyles.paddingTop) || 0;
-         return heroTop < (expectedTop - 4);
-       }
-     }
-
+   const getScrolled = () => {
      const scrollEl = document.scrollingElement || document.documentElement || document.body;
      const y = Math.max(
        window.scrollY || 0,
@@ -343,9 +331,16 @@
      return y > 4;
    };
 
+   const resetBackdropState = () => {
+     if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
+     backdrop?.classList.remove('is-visible');
+     document.body.classList.remove('nav--scrolled');
+     last = null;
+   };
+
    const compute = () => {
      ticking = false;
-     const scrolled = isVisuallyScrolled();
+     const scrolled = getScrolled();
 
      if (scrolled !== last){
        if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
@@ -370,6 +365,7 @@
 
    const scheduleSettledChange = (baseDelay = 0) => {
      clearSettleTimers();
+     resetBackdropState();
      [baseDelay, baseDelay + 140, baseDelay + 320, baseDelay + 560].forEach((delay) => {
        settleTimers.push(window.setTimeout(onChange, delay));
      });
