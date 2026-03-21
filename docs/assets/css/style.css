@@ -562,6 +562,12 @@ a {
 
 /* Mobile portrait nav */
 @media (max-width:900px) and (orientation:portrait) {
+  .site-nav {
+    position: static;
+    inset: auto;
+    z-index: auto;
+  }
+
   .nav {
     top: calc(env(safe-area-inset-top, 0px) + 8px);
   }
