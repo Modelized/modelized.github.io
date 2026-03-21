@@ -345,19 +345,21 @@
 
   function initOrientationRecovery(){
     let lastPortrait = isPortraitMobile();
-    let lastStableScrollY = getScrollTop();
+    let lastPortraitStableScrollY = lastPortrait ? getScrollTop() : 0;
     let pendingRecovery = null;
 
     const updateStableState = () => {
       lastPortrait = isPortraitMobile();
-      lastStableScrollY = getScrollTop();
+      if (lastPortrait){
+        lastPortraitStableScrollY = getScrollTop();
+      }
     };
 
     const settledRecovery = createSettledScheduler(() => {
-      if (pendingRecovery && isPortraitMobile() && !pendingRecovery.previousPortrait){
+      if (pendingRecovery?.restorePortraitScroll && isPortraitMobile()){
         const currentY = getScrollTop();
-        if (Math.abs(currentY - pendingRecovery.scrollY) > 1){
-          window.scrollTo({ top: pendingRecovery.scrollY, behavior: 'auto' });
+        if (Math.abs(currentY - lastPortraitStableScrollY) > 1){
+          window.scrollTo({ top: lastPortraitStableScrollY, behavior: 'auto' });
         }
       }
 
@@ -366,13 +368,19 @@
     });
 
     window.addEventListener('scroll', () => {
-      lastStableScrollY = getScrollTop();
+      if (!pendingRecovery && isPortraitMobile()){
+        lastPortraitStableScrollY = getScrollTop();
+      }
     }, { passive:true });
 
     window.addEventListener('orientationchange', () => {
+      const wasPortrait = lastPortrait;
+      if (wasPortrait){
+        lastPortraitStableScrollY = getScrollTop();
+      }
+
       pendingRecovery = {
-        previousPortrait: lastPortrait,
-        scrollY: lastStableScrollY
+        restorePortraitScroll: !wasPortrait
       };
       settledRecovery.schedule(160);
     });
