@@ -562,6 +562,11 @@ a {
 
 /* Mobile portrait nav */
 @media (max-width:900px) and (orientation:portrait) {
+  :root {
+    --nav-pill-height-mobile: 52px;
+    --mobile-row-inline: clamp(58px, 13.2vw, 68px);
+  }
+
   .nav {
     top: calc(env(safe-area-inset-top, 0px) + 8px);
   }
