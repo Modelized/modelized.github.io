@@ -887,8 +887,19 @@
       });
     };
 
-    const measureLines = () => {
-      const width = Math.max(1, Math.round(title.getBoundingClientRect().width));
+    const getMeasureWidth = () => {
+      const parent = title.parentElement || title;
+      const parentWidth = Math.max(1, Math.round(parent.getBoundingClientRect().width));
+      const styles = getComputedStyle(title);
+      const maxWidthValue = styles.maxWidth;
+      const maxWidth = maxWidthValue && maxWidthValue !== "none"
+        ? Math.max(1, Math.round(parseFloat(maxWidthValue)))
+        : parentWidth;
+
+      return Math.max(1, Math.min(parentWidth, maxWidth));
+    };
+
+    const measureLines = (width) => {
       const measure = document.createElement("span");
       measure.className = "hero-title hero-title--measure";
       measure.setAttribute("aria-hidden", "true");
@@ -923,12 +934,23 @@
     };
 
     let frame = 0;
-    let settleTimer = 0;
+    const settleTimers = [];
+    const clearScheduledBuilds = () => {
+      window.cancelAnimationFrame(frame);
+      frame = 0;
+
+      while (settleTimers.length) {
+        window.clearTimeout(settleTimers.pop());
+      }
+    };
+
     const runBuild = () => new Promise((resolve) => {
+      const width = getMeasureWidth();
+
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-        const lines = measureLines();
-        const signature = lines.join("|");
+        const lines = measureLines(width);
+        const signature = `${width}:${lines.join("|")}`;
 
         if (!signature) {
           title.textContent = sourceText;
@@ -948,11 +970,19 @@
     });
 
     const scheduleBuild = (delay = 0) => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(() => {
+      clearScheduledBuilds();
+      settleTimers.push(window.setTimeout(() => {
         runBuild();
-      }, delay);
+      }, delay));
+    };
+
+    const scheduleSettledBuild = (baseDelay = 0) => {
+      clearScheduledBuilds();
+      [baseDelay, baseDelay + 140, baseDelay + 320, baseDelay + 560].forEach((delay) => {
+        settleTimers.push(window.setTimeout(() => {
+          runBuild();
+        }, delay));
+      });
     };
 
     if (document.fonts?.ready) {
@@ -968,21 +998,21 @@
     if ("ResizeObserver" in window) {
       const resizeTarget = title.parentElement || title;
       const observer = new ResizeObserver(() => {
-        scheduleBuild(80);
+        scheduleSettledBuild(80);
       });
       observer.observe(resizeTarget);
       observer.observe(title);
     }
 
     window.addEventListener("resize", () => {
-      scheduleBuild(120);
+      scheduleSettledBuild(120);
     });
     window.addEventListener("orientationchange", () => {
-      scheduleBuild(180);
+      scheduleSettledBuild(180);
     });
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", () => {
-        scheduleBuild(120);
+        scheduleSettledBuild(140);
       });
     }
   }
