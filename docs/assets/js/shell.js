@@ -887,8 +887,19 @@
       });
     };
 
-    const measureLines = () => {
-      const width = Math.max(1, Math.round(title.getBoundingClientRect().width));
+    const getMeasureWidth = () => {
+      const parent = title.parentElement || title;
+      const parentWidth = Math.max(1, Math.round(parent.getBoundingClientRect().width));
+      const styles = getComputedStyle(title);
+      const maxWidthValue = styles.maxWidth;
+      const maxWidth = maxWidthValue && maxWidthValue !== "none"
+        ? Math.max(1, Math.round(parseFloat(maxWidthValue)))
+        : parentWidth;
+
+      return Math.max(1, Math.min(parentWidth, maxWidth));
+    };
+
+    const measureLines = (width) => {
       const measure = document.createElement("span");
       measure.className = "hero-title hero-title--measure";
       measure.setAttribute("aria-hidden", "true");
@@ -923,11 +934,23 @@
     };
 
     let frame = 0;
-    const build = () => new Promise((resolve) => {
+    const settleTimers = [];
+    const clearScheduledBuilds = () => {
       window.cancelAnimationFrame(frame);
+      frame = 0;
+
+      while (settleTimers.length) {
+        window.clearTimeout(settleTimers.pop());
+      }
+    };
+
+    const runBuild = () => new Promise((resolve) => {
+      const width = getMeasureWidth();
+
       frame = window.requestAnimationFrame(() => {
-        const lines = measureLines();
-        const signature = lines.join("|");
+        frame = 0;
+        const lines = measureLines(width);
+        const signature = `${width}:${lines.join("|")}`;
 
         if (!signature) {
           title.textContent = sourceText;
@@ -946,6 +969,22 @@
       });
     });
 
+    const scheduleBuild = (delay = 0) => {
+      clearScheduledBuilds();
+      settleTimers.push(window.setTimeout(() => {
+        runBuild();
+      }, delay));
+    };
+
+    const scheduleSettledBuild = (baseDelay = 0) => {
+      clearScheduledBuilds();
+      [baseDelay, baseDelay + 140, baseDelay + 320, baseDelay + 560].forEach((delay) => {
+        settleTimers.push(window.setTimeout(() => {
+          runBuild();
+        }, delay));
+      });
+    };
+
     if (document.fonts?.ready) {
       try {
         await document.fonts.ready;
@@ -954,21 +993,28 @@
       }
     }
 
-    await build();
+    await runBuild();
 
     if ("ResizeObserver" in window) {
+      const resizeTarget = title.parentElement || title;
       const observer = new ResizeObserver(() => {
-        build();
+        scheduleSettledBuild(80);
       });
+      observer.observe(resizeTarget);
       observer.observe(title);
     }
 
     window.addEventListener("resize", () => {
-      build();
+      scheduleSettledBuild(120);
     });
     window.addEventListener("orientationchange", () => {
-      build();
+      scheduleSettledBuild(180);
     });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        scheduleSettledBuild(140);
+      });
+    }
   }
 
   function initParallax() {
