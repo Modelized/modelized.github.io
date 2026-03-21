@@ -564,11 +564,11 @@ a {
 @media (max-width:900px) and (orientation:portrait) {
   :root {
     --nav-pill-height-mobile: 52px;
-    --mobile-row-inline: clamp(16px, 4.8vw, 20px);
+    --mobile-row-inline: clamp(12px, 4.0vw, 16px);
   }
 
   .nav {
-    top: calc(env(safe-area-inset-top, 0px) + 6px);
+    top: calc(env(safe-area-inset-top, 0px) + 4px);
   }
 
   .nav-backdrop {
