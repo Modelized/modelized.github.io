@@ -726,7 +726,7 @@ a {
   }
 
   .nav--open .brand {
-    transform: translate3d(var(--mobile-brand-shift-x, 0px), var(--mobile-brand-shift-y, 0px), 0) scale(1.18);
+    transform: translate3d(var(--mobile-brand-shift-x, 0px), var(--mobile-brand-shift-y, 0px), 0) scale(1.22);
   }
 
   .nav-search,

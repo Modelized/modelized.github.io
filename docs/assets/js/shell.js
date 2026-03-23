@@ -197,7 +197,7 @@
     if (row && sheetContent){
       const rowRect = row.getBoundingClientRect();
       const sheetContentRect = sheetContent.getBoundingClientRect();
-      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.17, 114), 148));
+      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.19, 126), 162));
       const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top));
       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
     }
@@ -208,11 +208,14 @@
       const brand = nav.querySelector('.brand');
       const logo = nav.querySelector('.brand-logo');
       const firstLink = nav.querySelector('.mobile-menu a');
-      if (brand && firstLink){
+      if (brand && firstLink && row){
         const logoRect = (logo || brand).getBoundingClientRect();
         const firstLinkRect = firstLink.getBoundingClientRect();
-        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.038, 26), 34));
-        const targetTop = firstLinkRect.top - logoRect.height - gapAbove;
+        const rowRect = row.getBoundingClientRect();
+        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.028, 18), 24));
+        const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
+        const minLogoTop = Math.round(rowRect.top + 12);
+        const targetTop = Math.max(alignedTop, minLogoTop);
         const shiftX = Math.round(firstLinkRect.left - logoRect.left);
         const shiftY = Math.round(targetTop - logoRect.top);
 
