@@ -801,13 +801,16 @@ a {
     pointer-events: none;
   }
 
-  .mobile-menu {
+  .nav .mobile-menu {
     position: relative;
     z-index: 3;
     margin: 0;
     display: grid;
     gap: 0.48rem;
-    padding: var(--mobile-menu-top, 272px) 0 34px;
+    padding-top: var(--mobile-menu-top, 272px);
+    padding-right: 0;
+    padding-bottom: 34px;
+    padding-left: 0;
     background: transparent !important;
   }
 
