@@ -216,7 +216,7 @@
         const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.024, 16), 20));
         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
         const minLogoTop = Math.round(rowRect.top + 14);
-        const logoDrop = 10;
+        const logoDrop = 16;
         const targetTop = Math.max(alignedTop, minLogoTop) + logoDrop;
         const visualLeftInset = logoRect.width * (115 / 512);
         const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
