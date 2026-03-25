@@ -789,7 +789,7 @@ a {
     text-transform: uppercase;
     white-space: nowrap;
     color: transparent;
-    -webkit-text-stroke: 1px rgba(243, 242, 238, 0.18);
+    -webkit-text-stroke: 2px rgba(243, 242, 238, 0.18);
     opacity: 0;
     transform: translate3d(0.85rem, 0, 0) rotate(-90deg);
     transform-origin: right bottom;
@@ -807,7 +807,7 @@ a {
     margin: 0;
     display: grid;
     gap: 0.48rem;
-    padding-top: var(--mobile-menu-top, 272px);
+    padding-top: var(--mobile-menu-top, 128px);
     padding-right: 0;
     padding-bottom: 34px;
     padding-left: 0;
