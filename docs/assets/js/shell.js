@@ -198,7 +198,7 @@
       const rowRect = row.getBoundingClientRect();
       const sheetContentRect = sheetContent.getBoundingClientRect();
       const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.215, 138), 178));
-      const menuDrop = 14;
+      const menuDrop = 10;
       const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) + menuDrop);
       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
     }
@@ -216,7 +216,7 @@
         const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.024, 16), 20));
         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
         const minLogoTop = Math.round(rowRect.top + 14);
-        const logoDrop = 16;
+        const logoDrop = 12;
         const targetTop = Math.max(alignedTop, minLogoTop) + logoDrop;
         const visualLeftInset = logoRect.width * (115 / 512);
         const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
