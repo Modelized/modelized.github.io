@@ -193,13 +193,15 @@
     root.style.setProperty('--mobile-menu-inline', `${menuInline}px`);
 
     const row = nav.querySelector('.row');
+    const rowRect = row ? row.getBoundingClientRect() : null;
+    const compositionLift = rowRect
+      ? Math.round(Math.min(Math.max(rowRect.height * 0.15, 6), 8))
+      : 0;
     const sheetContent = nav.querySelector('.sheet-content');
-    if (row && sheetContent){
-      const rowRect = row.getBoundingClientRect();
+    if (rowRect && sheetContent){
       const sheetContentRect = sheetContent.getBoundingClientRect();
       const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.215, 138), 178));
-      const menuDrop = 10;
-      const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) + menuDrop);
+      const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) - compositionLift);
       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
     }
 
@@ -209,15 +211,13 @@
       const brand = nav.querySelector('.brand');
       const logo = nav.querySelector('.brand-logo');
       const firstLink = nav.querySelector('.mobile-menu a');
-      if (brand && firstLink && row){
+      if (brand && firstLink && rowRect){
         const logoRect = (logo || brand).getBoundingClientRect();
         const firstLinkRect = firstLink.getBoundingClientRect();
-        const rowRect = row.getBoundingClientRect();
         const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.024, 16), 20));
         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
         const minLogoTop = Math.round(rowRect.top + 14);
-        const logoDrop = 12;
-        const targetTop = Math.max(alignedTop, minLogoTop) + logoDrop;
+        const targetTop = Math.max(alignedTop, minLogoTop) - compositionLift;
         const visualLeftInset = logoRect.width * (115 / 512);
         const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
         const shiftY = Math.round(targetTop - logoRect.top);
