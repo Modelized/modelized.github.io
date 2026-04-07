@@ -607,7 +607,7 @@ a {
   body.nav-menu-open .page-wrap,
   body.nav-menu-open .site-footer {
     opacity: 1;
-    filter: blur(16px) saturate(138%);
+    filter: blur(16px) saturate(132%) brightness(0.84);
   }
 
   body.nav-menu-open .hero-title {
