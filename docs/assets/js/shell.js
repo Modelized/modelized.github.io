@@ -200,7 +200,7 @@
     const sheetContent = nav.querySelector('.sheet-content');
     if (rowRect && sheetContent){
       const sheetContentRect = sheetContent.getBoundingClientRect();
-      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.172, 106), 140));
+      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.164, 100), 134));
       const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) - compositionLift);
       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
     }
@@ -214,7 +214,7 @@
       if (brand && firstLink && rowRect){
         const logoRect = (logo || brand).getBoundingClientRect();
         const firstLinkRect = firstLink.getBoundingClientRect();
-        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.016, 9), 13));
+        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.013, 7), 11));
         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
         const minLogoTop = Math.round(rowRect.top + 8);
         const targetTop = Math.max(alignedTop, minLogoTop) - compositionLift;
