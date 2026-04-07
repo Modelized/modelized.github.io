@@ -200,7 +200,7 @@
     const sheetContent = nav.querySelector('.sheet-content');
     if (rowRect && sheetContent){
       const sheetContentRect = sheetContent.getBoundingClientRect();
-      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.2, 128), 166));
+      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.192, 122), 158));
       const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) - compositionLift);
       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
     }
@@ -216,7 +216,7 @@
         const firstLinkRect = firstLink.getBoundingClientRect();
         const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.024, 16), 20));
         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
-        const minLogoTop = Math.round(rowRect.top + 14);
+        const minLogoTop = Math.round(rowRect.top + 12);
         const targetTop = Math.max(alignedTop, minLogoTop) - compositionLift;
         const visualLeftInset = logoRect.width * (115 / 512);
         const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
@@ -307,7 +307,7 @@
       if (!open) {
         clearTransientMobileMenuState(nav);
       }
-    }, open ? 0 : 260);
+    }, open ? 0 : 380);
   }
 
   function closeMobileNav(){
@@ -945,6 +945,7 @@
     }
 
     title.dataset.heroText = sourceText;
+    title.classList.add('hero-title--pending');
     const words = sourceText.split(/\s+/).filter(Boolean);
     if (!words.length) {
       return;
@@ -1030,17 +1031,22 @@
 
         if (!signature) {
           title.textContent = sourceText;
+          title.classList.remove('hero-title--pending');
           resolve();
           return;
         }
 
         if (signature === title.dataset.lineSignature && title.querySelector(".hero-line")) {
+          title.classList.add('hero-title--built');
+          title.classList.remove('hero-title--pending');
           resolve();
           return;
         }
 
         title.dataset.lineSignature = signature;
         renderLines(lines);
+        title.classList.add('hero-title--built');
+        title.classList.remove('hero-title--pending');
         resolve();
       });
     });
@@ -1161,9 +1167,12 @@
   }
 
   async function boot() {
+    const heroTitleReady = initHeroTitle();
+
     await Promise.all([
       injectPartial('#nav-slot', 'nav.html'),
-      injectPartial('#footer-slot', 'footer.html')
+      injectPartial('#footer-slot', 'footer.html'),
+      heroTitleReady
     ]);
 
     renderProjects();
@@ -1174,7 +1183,6 @@
     initSectionSpy();
     initSectionDepth();
     initReveal();
-    await initHeroTitle();
     initHeroIntro();
     initParallax();
     initHoverTracking();
