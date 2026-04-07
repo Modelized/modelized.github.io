@@ -607,7 +607,7 @@ a {
   body.nav-menu-open .page-wrap,
   body.nav-menu-open .site-footer {
     opacity: 1;
-    filter: blur(16px) saturate(126%) brightness(0.76);
+    filter: blur(16px) saturate(120%) brightness(0.68);
   }
 
   body.nav-menu-open .hero-title {
@@ -823,10 +823,10 @@ a {
 
   .mobile-menu a {
     font-family: var(--heading-font);
-    padding: 8px 0;
+    padding: 10px 0 12px;
     border-radius: 0;
     font-size: clamp(1.7rem, 6.35vw, 1.98rem);
-    line-height: 1.05;
+    line-height: 1.12;
     font-weight: 700;
     letter-spacing: -0.022em;
     color: var(--nav-text);
