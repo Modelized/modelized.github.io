@@ -200,7 +200,7 @@
     const sheetContent = nav.querySelector('.sheet-content');
     if (rowRect && sheetContent){
       const sheetContentRect = sheetContent.getBoundingClientRect();
-      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.182, 114), 148));
+      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.172, 106), 140));
       const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) - compositionLift);
       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
     }
@@ -214,9 +214,9 @@
       if (brand && firstLink && rowRect){
         const logoRect = (logo || brand).getBoundingClientRect();
         const firstLinkRect = firstLink.getBoundingClientRect();
-        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.02, 12), 16));
+        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.016, 9), 13));
         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
-        const minLogoTop = Math.round(rowRect.top + 10);
+        const minLogoTop = Math.round(rowRect.top + 8);
         const targetTop = Math.max(alignedTop, minLogoTop) - compositionLift;
         const visualLeftInset = logoRect.width * (115 / 512);
         const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
@@ -337,12 +337,12 @@
     const items = Array.from(document.querySelectorAll('.mobile-menu li'));
     if (!items.length) return;
 
-    const fallbackDelays = [0.00, 0.03, 0.06, 0.09, 0.13, 0.17, 0.22, 0.28];
+    const fallbackDelays = [0.00, 0.04, 0.08, 0.12, 0.16, 0.20, 0.25, 0.31];
 
     items.forEach((item, index) => {
       const existing = item.style.getPropertyValue('--menu-delay').trim();
       if (existing) return;
-      const delay = fallbackDelays[index] ?? (0.28 + (index - fallbackDelays.length + 1) * 0.06);
+      const delay = fallbackDelays[index] ?? (0.31 + (index - fallbackDelays.length + 1) * 0.06);
       item.style.setProperty('--menu-delay', `${delay}s`);
     });
   }
