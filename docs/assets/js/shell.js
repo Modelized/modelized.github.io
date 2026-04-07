@@ -200,7 +200,7 @@
     const sheetContent = nav.querySelector('.sheet-content');
     if (rowRect && sheetContent){
       const sheetContentRect = sheetContent.getBoundingClientRect();
-      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.215, 138), 178));
+      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.2, 128), 166));
       const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) - compositionLift);
       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
     }

@@ -1,5 +1,3 @@
-/* ========== Modelized CSS ========== */
-
 /* Base */
 :root {
   --container: 1180px;
@@ -1448,5 +1446,3 @@ a {
     transition: none !important;
   }
 }
-
-/* ========== End ========== */
