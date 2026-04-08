@@ -830,14 +830,12 @@ a {
     font-weight: 700;
     letter-spacing: -0.022em;
     color: var(--nav-text);
-    overflow: visible;
   }
 
   .mobile-menu li {
     opacity: 0;
     transform: translate3d(0, -22px, 0);
     filter: blur(7px);
-    overflow: visible;
     transition:
       opacity .52s cubic-bezier(.16,1,.3,1),
       transform .74s cubic-bezier(.22,1,.36,1),
@@ -883,9 +881,8 @@ a {
 
   body.nav-menu-open .mobile-menu li {
     opacity: 1;
-    transform: none;
+    transform: translate3d(0, 0, 0);
     filter: none;
-    will-change: auto;
     transition-delay:
       var(--menu-delay, 0s),
       var(--menu-delay, 0s),
