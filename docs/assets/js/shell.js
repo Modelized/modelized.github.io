@@ -59,12 +59,18 @@
 
     projects.forEach((project) => {
       const fragment = template.content.cloneNode(true);
+      const card = fragment.querySelector(".project-card");
       const name = fragment.querySelector(".project-name");
       const tagline = fragment.querySelector(".project-tagline");
       const description = fragment.querySelector(".project-description");
       const icon = fragment.querySelector(".project-icon");
       const hero = fragment.querySelector(".project-media");
       const link = fragment.querySelector(".project-link");
+
+      if (card && project.name) {
+        const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        card.classList.add(`project-card--${slug}`);
+      }
 
       if (name) name.textContent = project.name;
       if (tagline) tagline.textContent = project.tagline;
@@ -901,6 +907,12 @@
             return;
           }
           entry.target.classList.add("is-visible");
+          if (entry.target.hasAttribute("data-parallax")) {
+            const rawDelay = parseFloat(entry.target.style.getPropertyValue("--reveal-delay")) || 0;
+            window.setTimeout(() => {
+              entry.target.classList.add("reveal-settled");
+            }, rawDelay + 940);
+          }
           obs.unobserve(entry.target);
         });
       },
