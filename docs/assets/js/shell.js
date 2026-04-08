@@ -1116,14 +1116,15 @@
 
     const finalIndex = words.length - 1;
     const transitionDuration = 620;
-    const holdDuration = 440;
+    const holdDuration = 400;
     const initialHold = 280;
     let activeIndex = 0;
     let started = false;
     let metrics = { height: 0, widths: [] };
     let sequenceFrame = 0;
     let nextStepAt = 0;
-    let lastStepAt = 0;
+    let lastLayoutWidth = 0;
+    let lastViewportWidth = 0;
 
     const setImmediateTransitions = (enabled) => {
       const value = enabled ? "none" : "";
@@ -1142,6 +1143,20 @@
       metrics = { height, widths };
       title.style.setProperty("--about-role-height", `${height}px`);
       return metrics;
+    };
+
+    const captureLayoutWidths = () => {
+      lastLayoutWidth = Math.round(title.getBoundingClientRect().width);
+      lastViewportWidth = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
+    };
+
+    const layoutWidthChanged = () => {
+      const currentTitleWidth = Math.round(title.getBoundingClientRect().width);
+      const currentViewportWidth = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
+      const titleDelta = Math.abs(currentTitleWidth - lastLayoutWidth);
+      const viewportDelta = Math.abs(currentViewportWidth - lastViewportWidth);
+
+      return titleDelta > 2 || viewportDelta > 2;
     };
 
     const applyIndex = (index, { immediate = false } = {}) => {
@@ -1181,13 +1196,11 @@
       }
 
       if (!nextStepAt) {
-        lastStepAt = now;
         nextStepAt = now + initialHold;
       }
 
       if (now >= nextStepAt) {
         applyIndex(activeIndex + 1);
-        lastStepAt = now;
         nextStepAt = now + transitionDuration + holdDuration;
 
         if (activeIndex >= finalIndex) {
@@ -1209,29 +1222,33 @@
       if (prefersReducedMotion) {
         updateMetrics();
         applyIndex(finalIndex, { immediate: true });
+        captureLayoutWidths();
         return;
       }
 
       updateMetrics();
       applyIndex(0, { immediate: true });
+      captureLayoutWidths();
       nextStepAt = 0;
       stopSequence();
       sequenceFrame = window.requestAnimationFrame(tickSequence);
     };
 
     const refreshLayout = () => {
+      if (!layoutWidthChanged()) {
+        return;
+      }
+
       updateMetrics();
       applyIndex(started ? activeIndex : 0, { immediate: true });
-
-      if (started && activeIndex < finalIndex && lastStepAt) {
-        nextStepAt = performance.now() + Math.max(140, transitionDuration - (performance.now() - lastStepAt));
-      }
+      captureLayoutWidths();
     };
 
     const settledRefresh = createSettledScheduler(refreshLayout);
 
     updateMetrics();
     applyIndex(prefersReducedMotion ? finalIndex : 0, { immediate: true });
+    captureLayoutWidths();
 
     if ("ResizeObserver" in window) {
       const resizeTarget = title.parentElement || title;
