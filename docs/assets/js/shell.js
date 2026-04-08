@@ -1116,19 +1116,14 @@
 
     const finalIndex = words.length - 1;
     const transitionDuration = 620;
-    const holdDuration = 520;
+    const holdDuration = 440;
     const initialHold = 280;
-    const finalGlowDelay = 180;
-    const timers = [];
     let activeIndex = 0;
     let started = false;
     let metrics = { height: 0, widths: [] };
-
-    const clearTimers = () => {
-      while (timers.length) {
-        window.clearTimeout(timers.pop());
-      }
-    };
+    let sequenceFrame = 0;
+    let nextStepAt = 0;
+    let lastStepAt = 0;
 
     const setImmediateTransitions = (enabled) => {
       const value = enabled ? "none" : "";
@@ -1174,16 +1169,34 @@
       }
     };
 
-    const triggerFinalGlow = () => {
-      const finalWord = words[finalIndex];
-      finalWord.classList.remove("about-operator-word--glow");
-      void finalWord.offsetWidth;
-      finalWord.classList.add("about-operator-word--glow");
-      timers.push(
-        window.setTimeout(() => {
-          finalWord.classList.remove("about-operator-word--glow");
-        }, 1150)
-      );
+    const stopSequence = () => {
+      window.cancelAnimationFrame(sequenceFrame);
+      sequenceFrame = 0;
+    };
+
+    const tickSequence = (now) => {
+      if (!started || activeIndex >= finalIndex) {
+        sequenceFrame = 0;
+        return;
+      }
+
+      if (!nextStepAt) {
+        lastStepAt = now;
+        nextStepAt = now + initialHold;
+      }
+
+      if (now >= nextStepAt) {
+        applyIndex(activeIndex + 1);
+        lastStepAt = now;
+        nextStepAt = now + transitionDuration + holdDuration;
+
+        if (activeIndex >= finalIndex) {
+          sequenceFrame = 0;
+          return;
+        }
+      }
+
+      sequenceFrame = window.requestAnimationFrame(tickSequence);
     };
 
     const runSequence = () => {
@@ -1201,33 +1214,18 @@
 
       updateMetrics();
       applyIndex(0, { immediate: true });
-
-      let elapsed = initialHold;
-
-      for (let index = 1; index <= finalIndex; index += 1) {
-        const currentIndex = index;
-
-        timers.push(
-          window.setTimeout(() => {
-            applyIndex(currentIndex);
-          }, elapsed)
-        );
-
-        if (currentIndex === finalIndex) {
-          timers.push(
-            window.setTimeout(() => {
-              triggerFinalGlow();
-            }, elapsed + transitionDuration + finalGlowDelay)
-          );
-        }
-
-        elapsed += transitionDuration + holdDuration;
-      }
+      nextStepAt = 0;
+      stopSequence();
+      sequenceFrame = window.requestAnimationFrame(tickSequence);
     };
 
     const refreshLayout = () => {
       updateMetrics();
       applyIndex(started ? activeIndex : 0, { immediate: true });
+
+      if (started && activeIndex < finalIndex && lastStepAt) {
+        nextStepAt = performance.now() + Math.max(140, transitionDuration - (performance.now() - lastStepAt));
+      }
     };
 
     const settledRefresh = createSettledScheduler(refreshLayout);
