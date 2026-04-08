@@ -1101,6 +1101,179 @@
     }
   }
 
+  function initAboutOperator() {
+    const title = document.querySelector(".about-operator-title");
+    if (!title) {
+      return;
+    }
+
+    const viewport = title.querySelector(".about-operator-viewport");
+    const track = title.querySelector(".about-operator-track");
+    const words = Array.from(title.querySelectorAll(".about-operator-word"));
+    if (!viewport || !track || !words.length) {
+      return;
+    }
+
+    const finalIndex = words.length - 1;
+    const transitionDuration = 620;
+    const holdDuration = 440;
+    const initialHold = 280;
+    let activeIndex = 0;
+    let started = false;
+    let metrics = { height: 0, widths: [] };
+    let sequenceFrame = 0;
+    let nextStepAt = 0;
+    let lastStepAt = 0;
+
+    const setImmediateTransitions = (enabled) => {
+      const value = enabled ? "none" : "";
+      viewport.style.transition = value;
+      track.style.transition = value;
+    };
+
+    const updateMetrics = () => {
+      const fallbackHeight = Math.ceil((parseFloat(getComputedStyle(title).fontSize) || 16) * 1.08);
+      const widths = words.map((word) => Math.ceil(word.getBoundingClientRect().width));
+      const height = Math.max(
+        fallbackHeight,
+        ...words.map((word) => Math.ceil(word.getBoundingClientRect().height))
+      );
+
+      metrics = { height, widths };
+      title.style.setProperty("--about-role-height", `${height}px`);
+      return metrics;
+    };
+
+    const applyIndex = (index, { immediate = false } = {}) => {
+      activeIndex = index;
+
+      if (!metrics.height || !metrics.widths.length) {
+        updateMetrics();
+      }
+
+      const width = metrics.widths[index] || metrics.widths[0] || 0;
+      const shift = metrics.height * index;
+
+      if (immediate) {
+        setImmediateTransitions(true);
+      }
+
+      title.style.setProperty("--about-role-width", `${width}px`);
+      title.style.setProperty("--about-role-shift", `${shift}px`);
+
+      if (immediate) {
+        void title.offsetHeight;
+        requestAnimationFrame(() => {
+          setImmediateTransitions(false);
+        });
+      }
+    };
+
+    const stopSequence = () => {
+      window.cancelAnimationFrame(sequenceFrame);
+      sequenceFrame = 0;
+    };
+
+    const tickSequence = (now) => {
+      if (!started || activeIndex >= finalIndex) {
+        sequenceFrame = 0;
+        return;
+      }
+
+      if (!nextStepAt) {
+        lastStepAt = now;
+        nextStepAt = now + initialHold;
+      }
+
+      if (now >= nextStepAt) {
+        applyIndex(activeIndex + 1);
+        lastStepAt = now;
+        nextStepAt = now + transitionDuration + holdDuration;
+
+        if (activeIndex >= finalIndex) {
+          sequenceFrame = 0;
+          return;
+        }
+      }
+
+      sequenceFrame = window.requestAnimationFrame(tickSequence);
+    };
+
+    const runSequence = () => {
+      if (started) {
+        return;
+      }
+
+      started = true;
+
+      if (prefersReducedMotion) {
+        updateMetrics();
+        applyIndex(finalIndex, { immediate: true });
+        return;
+      }
+
+      updateMetrics();
+      applyIndex(0, { immediate: true });
+      nextStepAt = 0;
+      stopSequence();
+      sequenceFrame = window.requestAnimationFrame(tickSequence);
+    };
+
+    const refreshLayout = () => {
+      updateMetrics();
+      applyIndex(started ? activeIndex : 0, { immediate: true });
+
+      if (started && activeIndex < finalIndex && lastStepAt) {
+        nextStepAt = performance.now() + Math.max(140, transitionDuration - (performance.now() - lastStepAt));
+      }
+    };
+
+    const settledRefresh = createSettledScheduler(refreshLayout);
+
+    updateMetrics();
+    applyIndex(prefersReducedMotion ? finalIndex : 0, { immediate: true });
+
+    if ("ResizeObserver" in window) {
+      const resizeTarget = title.parentElement || title;
+      const observer = new ResizeObserver(() => {
+        settledRefresh.schedule(80);
+      });
+      observer.observe(resizeTarget);
+    }
+
+    window.addEventListener("resize", () => {
+      settledRefresh.schedule(120);
+    });
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(refreshLayout).catch(refreshLayout);
+    }
+
+    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+      runSequence();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+
+          runSequence();
+          obs.unobserve(entry.target);
+        });
+      },
+      {
+        rootMargin: "0px 0px -16% 0px",
+        threshold: 0.36
+      }
+    );
+
+    observer.observe(title);
+  }
+
   function initParallax() {
     if (prefersReducedMotion) {
       return;
@@ -1197,6 +1370,7 @@
     initSectionDepth();
     initReveal();
     initHeroIntro();
+    initAboutOperator();
     initParallax();
     initHoverTracking();
 
