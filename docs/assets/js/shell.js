@@ -1101,6 +1101,181 @@
     }
   }
 
+  function initAboutOperator() {
+    const title = document.querySelector(".about-operator-title");
+    if (!title) {
+      return;
+    }
+
+    const viewport = title.querySelector(".about-operator-viewport");
+    const track = title.querySelector(".about-operator-track");
+    const words = Array.from(title.querySelectorAll(".about-operator-word"));
+    if (!viewport || !track || !words.length) {
+      return;
+    }
+
+    const finalIndex = words.length - 1;
+    const transitionDuration = 620;
+    const holdDuration = 520;
+    const initialHold = 280;
+    const finalGlowDelay = 180;
+    const timers = [];
+    let activeIndex = 0;
+    let started = false;
+    let metrics = { height: 0, widths: [] };
+
+    const clearTimers = () => {
+      while (timers.length) {
+        window.clearTimeout(timers.pop());
+      }
+    };
+
+    const setImmediateTransitions = (enabled) => {
+      const value = enabled ? "none" : "";
+      viewport.style.transition = value;
+      track.style.transition = value;
+    };
+
+    const updateMetrics = () => {
+      const fallbackHeight = Math.ceil((parseFloat(getComputedStyle(title).fontSize) || 16) * 1.08);
+      const widths = words.map((word) => Math.ceil(word.getBoundingClientRect().width));
+      const height = Math.max(
+        fallbackHeight,
+        ...words.map((word) => Math.ceil(word.getBoundingClientRect().height))
+      );
+
+      metrics = { height, widths };
+      title.style.setProperty("--about-role-height", `${height}px`);
+      return metrics;
+    };
+
+    const applyIndex = (index, { immediate = false } = {}) => {
+      activeIndex = index;
+
+      if (!metrics.height || !metrics.widths.length) {
+        updateMetrics();
+      }
+
+      const width = metrics.widths[index] || metrics.widths[0] || 0;
+      const shift = metrics.height * index;
+
+      if (immediate) {
+        setImmediateTransitions(true);
+      }
+
+      title.style.setProperty("--about-role-width", `${width}px`);
+      title.style.setProperty("--about-role-shift", `${shift}px`);
+
+      if (immediate) {
+        void title.offsetHeight;
+        requestAnimationFrame(() => {
+          setImmediateTransitions(false);
+        });
+      }
+    };
+
+    const triggerFinalGlow = () => {
+      const finalWord = words[finalIndex];
+      finalWord.classList.remove("about-operator-word--glow");
+      void finalWord.offsetWidth;
+      finalWord.classList.add("about-operator-word--glow");
+      timers.push(
+        window.setTimeout(() => {
+          finalWord.classList.remove("about-operator-word--glow");
+        }, 1150)
+      );
+    };
+
+    const runSequence = () => {
+      if (started) {
+        return;
+      }
+
+      started = true;
+
+      if (prefersReducedMotion) {
+        updateMetrics();
+        applyIndex(finalIndex, { immediate: true });
+        return;
+      }
+
+      updateMetrics();
+      applyIndex(0, { immediate: true });
+
+      let elapsed = initialHold;
+
+      for (let index = 1; index <= finalIndex; index += 1) {
+        const currentIndex = index;
+
+        timers.push(
+          window.setTimeout(() => {
+            applyIndex(currentIndex);
+          }, elapsed)
+        );
+
+        if (currentIndex === finalIndex) {
+          timers.push(
+            window.setTimeout(() => {
+              triggerFinalGlow();
+            }, elapsed + transitionDuration + finalGlowDelay)
+          );
+        }
+
+        elapsed += transitionDuration + holdDuration;
+      }
+    };
+
+    const refreshLayout = () => {
+      updateMetrics();
+      applyIndex(started ? activeIndex : 0, { immediate: true });
+    };
+
+    const settledRefresh = createSettledScheduler(refreshLayout);
+
+    updateMetrics();
+    applyIndex(prefersReducedMotion ? finalIndex : 0, { immediate: true });
+
+    if ("ResizeObserver" in window) {
+      const resizeTarget = title.parentElement || title;
+      const observer = new ResizeObserver(() => {
+        settledRefresh.schedule(80);
+      });
+      observer.observe(resizeTarget);
+    }
+
+    window.addEventListener("resize", () => {
+      settledRefresh.schedule(120);
+    });
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(refreshLayout).catch(refreshLayout);
+    }
+
+    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+      runSequence();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+
+          runSequence();
+          obs.unobserve(entry.target);
+        });
+      },
+      {
+        rootMargin: "0px 0px -16% 0px",
+        threshold: 0.36
+      }
+    );
+
+    observer.observe(title);
+  }
+
   function initParallax() {
     if (prefersReducedMotion) {
       return;
@@ -1197,6 +1372,7 @@
     initSectionDepth();
     initReveal();
     initHeroIntro();
+    initAboutOperator();
     initParallax();
     initHoverTracking();
 

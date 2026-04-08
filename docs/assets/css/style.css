@@ -1085,23 +1085,23 @@ a {
   color: rgba(255, 255, 255, 0.92);
   filter: blur(10px);
   text-shadow:
-    0 0 20px rgba(255, 157, 77, 0.42),
-    0 0 16px rgba(89, 109, 255, 0.28);
+    0 0 22px rgba(255, 157, 77, 0.46),
+    0 0 18px rgba(89, 109, 255, 0.32);
 }
 
 .js body.hero-ready .hero-text--outline {
-  animation: hero-outline-intro 260ms cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
-  animation-delay: calc(var(--line-index, 0) * 36ms + 30ms);
+  animation: hero-outline-intro 250ms cubic-bezier(0.24, 0.9, 0.32, 1) forwards;
+  animation-delay: calc(var(--line-index, 0) * 38ms + 24ms);
 }
 
 .js body.hero-ready .hero-text--fill {
-  animation: hero-fill-reveal 980ms cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
-  animation-delay: calc(var(--line-index, 0) * 180ms + 220ms);
+  animation: hero-fill-reveal 900ms cubic-bezier(0.17, 0.92, 0.24, 1) forwards;
+  animation-delay: calc(var(--line-index, 0) * 200ms + 188ms);
 }
 
 .js body.hero-ready .hero-text--glow {
-  animation: hero-glow-sweep 1100ms cubic-bezier(0.2, 0.88, 0.24, 1) forwards;
-  animation-delay: calc(var(--line-index, 0) * 180ms + 260ms);
+  animation: hero-glow-sweep 1040ms cubic-bezier(0.18, 0.9, 0.26, 1) forwards;
+  animation-delay: calc(var(--line-index, 0) * 200ms + 236ms);
 }
 
 @keyframes hero-outline-intro {
@@ -1122,6 +1122,16 @@ a {
     opacity: 1;
   }
 
+  32% {
+    width: 58%;
+    opacity: 1;
+  }
+
+  68% {
+    width: 88%;
+    opacity: 1;
+  }
+
   100% {
     width: 100%;
     opacity: 1;
@@ -1135,20 +1145,22 @@ a {
     filter: blur(12px);
   }
 
-  18% {
-    opacity: 0.34;
+  22% {
+    width: 44%;
+    opacity: 0.4;
+    filter: blur(11px);
   }
 
-  70% {
+  72% {
     width: 100%;
-    opacity: 0.18;
-    filter: blur(4px);
+    opacity: 0.17;
+    filter: blur(5px);
   }
 
   100% {
     width: 100%;
     opacity: 0;
-    filter: blur(0);
+    filter: blur(1px);
   }
 }
 
@@ -1218,6 +1230,112 @@ a {
   color: var(--muted);
   font-size: clamp(1.04rem, 2vw, 1.28rem);
   line-height: 1.82;
+}
+
+.about-operator-title {
+  --about-role-width: 8.6ch;
+  --about-role-height: 1.08em;
+  --about-role-shift: 0px;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.08em 0.2em;
+  max-width: 100%;
+}
+
+.about-operator-prefix,
+.about-operator-suffix,
+.about-operator-roller {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.about-operator-prefix,
+.about-operator-suffix {
+  white-space: nowrap;
+}
+
+.about-operator-roller {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.about-operator-viewport {
+  position: relative;
+  display: block;
+  width: var(--about-role-width);
+  height: var(--about-role-height);
+  overflow: hidden;
+  transition: width 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.about-operator-track {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: max-content;
+  transform: translate3d(0, calc(-1 * var(--about-role-shift)), 0);
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.about-operator-word {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  height: var(--about-role-height);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.about-operator-word::after {
+  content: none;
+}
+
+.about-operator-word--glow::after {
+  content: attr(data-word);
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  width: 0;
+  overflow: hidden;
+  color: var(--hero-fill-color);
+  white-space: nowrap;
+  opacity: 0;
+  filter: blur(10px);
+  text-shadow:
+    0 0 22px rgba(255, 157, 77, 0.46),
+    0 0 18px rgba(89, 109, 255, 0.32);
+  pointer-events: none;
+  animation: about-operator-glow 1040ms cubic-bezier(0.18, 0.9, 0.26, 1) forwards;
+}
+
+@keyframes about-operator-glow {
+  0% {
+    width: 0;
+    opacity: 0;
+    filter: blur(12px);
+  }
+
+  22% {
+    width: 46%;
+    opacity: 0.4;
+    filter: blur(11px);
+  }
+
+  72% {
+    width: 100%;
+    opacity: 0.17;
+    filter: blur(5px);
+  }
+
+  100% {
+    width: 100%;
+    opacity: 0;
+    filter: blur(1px);
+  }
 }
 
 .discipline-grid {
