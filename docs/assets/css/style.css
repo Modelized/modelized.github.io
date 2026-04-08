@@ -1074,6 +1074,8 @@ a {
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .hero-text--fill {
@@ -1266,6 +1268,8 @@ a {
   transform: translate3d(0, calc(-1 * var(--about-role-shift)), 0);
   transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .about-operator-word {
@@ -1276,6 +1280,13 @@ a {
   height: var(--about-role-height);
   white-space: nowrap;
   line-height: 1;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.about-operator-word.is-active {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .discipline-grid {

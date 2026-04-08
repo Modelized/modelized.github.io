@@ -1161,6 +1161,9 @@
 
     const applyIndex = (index, { immediate = false } = {}) => {
       activeIndex = index;
+      words.forEach((word, wordIndex) => {
+        word.classList.toggle("is-active", wordIndex === index);
+      });
 
       if (!metrics.height || !metrics.widths.length) {
         updateMetrics();
