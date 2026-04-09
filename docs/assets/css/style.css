@@ -149,13 +149,13 @@ a {
 }
 
 .container {
-  width: min(var(--container), calc(100% - 3rem));
+  width: min(var(--container), calc(100% - 3.25rem));
   margin: 0 auto;
 }
 
 .section:not(.hero) .container,
 .projects-shell {
-  width: min(var(--container), calc(100% - 4.25rem));
+  width: min(var(--container), calc(100% - 4.5rem));
 }
 
 .section {
@@ -1001,7 +1001,7 @@ a {
   letter-spacing: 0.005em;
   line-height: 0.92;
   text-transform: uppercase;
-  transform: translate3d(0, var(--parallax-y), 0);
+  transform: translateY(var(--parallax-y));
   filter: drop-shadow(0 0 34px rgba(255, 157, 77, 0.08)) drop-shadow(0 0 24px rgba(89, 109, 255, 0.08));
   will-change: transform, filter;
 }
@@ -1169,6 +1169,13 @@ a {
   line-height: 1.6;
 }
 
+.hero-subtitle[data-parallax] {
+  --parallax-y: 0px;
+  display: block;
+  transform: translateY(var(--parallax-y));
+  will-change: transform;
+}
+
 .button {
   position: relative;
   display: inline-flex;
@@ -1186,7 +1193,15 @@ a {
   text-transform: uppercase;
   overflow: hidden;
   isolation: isolate;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: transform 220ms ease, filter 220ms ease, border-color 220ms ease;
+}
+
+.hero-actions,
+.project-actions {
+  position: relative;
+  z-index: 2;
 }
 
 .button.primary {
@@ -1294,7 +1309,7 @@ a {
   flex-direction: column;
   align-items: flex-start;
   width: max-content;
-  transform: translate3d(0, calc(-1 * var(--about-role-shift)), 0);
+  transform: translateY(calc(-1 * var(--about-role-shift)));
   transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
   -webkit-user-select: none;
@@ -1512,21 +1527,33 @@ a {
   --reveal-delay: 0ms;
   --reveal-distance: 20px;
   opacity: 1;
-  transform: translate3d(0, var(--parallax-y), 0);
+  transform: none;
+}
+
+.reveal[data-parallax] {
+  transform: translateY(var(--parallax-y));
 }
 
 .js .reveal {
   opacity: 0;
-  transform: translate3d(0, calc(var(--reveal-distance) + var(--parallax-y)), 0);
+  transform: translateY(var(--reveal-distance));
   transition:
     opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
   transition-delay: var(--reveal-delay);
 }
 
+.js .reveal[data-parallax] {
+  transform: translateY(calc(var(--reveal-distance) + var(--parallax-y)));
+}
+
 .js .reveal.is-visible {
   opacity: 1;
-  transform: translate3d(0, var(--parallax-y), 0);
+  transform: none;
+}
+
+.js .reveal[data-parallax].is-visible {
+  transform: translateY(var(--parallax-y));
 }
 
 .js .reveal[data-parallax].is-visible.reveal-settled {
@@ -1581,11 +1608,6 @@ a {
 
 /* Mobile portrait nav */
 @media (max-width: 980px) and (orientation: portrait) {
-  .button {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
   .nav {
     top: calc(env(safe-area-inset-top, 0px) + 6px);
   }
@@ -1613,33 +1635,6 @@ a {
   .hero-bottom {
     margin-top: 0.32rem;
   }
-
-  .hero-title {
-    -webkit-transform: translateY(var(--parallax-y));
-    transform: translateY(var(--parallax-y));
-    will-change: auto;
-  }
-
-  .reveal {
-    -webkit-transform: translateY(var(--parallax-y));
-    transform: translateY(var(--parallax-y));
-  }
-
-  .js .reveal {
-    -webkit-transform: translateY(calc(var(--reveal-distance) + var(--parallax-y)));
-    transform: translateY(calc(var(--reveal-distance) + var(--parallax-y)));
-  }
-
-  .js .reveal.is-visible {
-    -webkit-transform: translateY(var(--parallax-y));
-    transform: translateY(var(--parallax-y));
-  }
-
-  .about-operator-track {
-    -webkit-transform: translateY(calc(-1 * var(--about-role-shift)));
-    transform: translateY(calc(-1 * var(--about-role-shift)));
-    will-change: auto;
-  }
 }
 
 @media (max-width: 980px) and (orientation: landscape) {
@@ -1655,13 +1650,12 @@ a {
 @media (max-width: 680px) {
   .section:not(.hero) .container,
   .projects-shell {
-    width: calc(100% - 2.2rem);
+    width: calc(100% - 2.35rem);
   }
 
   .hero .container {
-    width: calc(100% - 1.9rem);
+    width: calc(100% - 2.05rem);
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {
