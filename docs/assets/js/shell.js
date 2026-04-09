@@ -1124,15 +1124,15 @@
     }
   }
 
-  function initAboutOperator() {
-    const title = document.querySelector(".about-operator-title");
+  function initAboutCreator() {
+    const title = document.querySelector(".about-creator-title");
     if (!title) {
       return;
     }
 
-    const viewport = title.querySelector(".about-operator-viewport");
-    const track = title.querySelector(".about-operator-track");
-    const words = Array.from(title.querySelectorAll(".about-operator-word"));
+    const viewport = title.querySelector(".about-creator-viewport");
+    const track = title.querySelector(".about-creator-track");
+    const words = Array.from(title.querySelectorAll(".about-creator-word"));
     if (!viewport || !track || !words.length) {
       return;
     }
@@ -1168,7 +1168,7 @@
       );
 
       metrics = { height, widths };
-      title.style.setProperty("--about-role-height", `${height}px`);
+      title.style.setProperty("--about-creator-height", `${height}px`);
       return metrics;
     };
 
@@ -1203,8 +1203,8 @@
         setImmediateTransitions(true);
       }
 
-      title.style.setProperty("--about-role-width", `${width}px`);
-      title.style.setProperty("--about-role-shift", `${shift}px`);
+      title.style.setProperty("--about-creator-width", `${width}px`);
+      title.style.setProperty("--about-creator-shift", `${shift}px`);
 
       if (immediate) {
         void title.offsetHeight;
@@ -1442,7 +1442,7 @@
     initSectionDepth();
     initReveal();
     initHeroIntro();
-    initAboutOperator();
+    initAboutCreator();
     initParallax();
     initHoverTracking();
 
