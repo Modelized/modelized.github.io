@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260409l';
+  const assetVersion = '20260409p';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
 
@@ -19,6 +19,63 @@
     }
 
     // Duplicate this object block to add another project card.
+  ];
+
+  const disciplines = [
+    {
+      slug: "development",
+      tone: "development",
+      title: "Development",
+      text:
+        "Building native applications and computational systems. From developing macOS and iOS software to building intelligent models in Python, I focus on translating complex logic into functional code.",
+      arsenalKind: "development",
+      arsenal: [
+        { icon: "C", label: "C" },
+        { icon: "++", label: "C++" },
+        { icon: "Py", label: "Python" },
+        { icon: "Sw", label: "Swift" },
+        { icon: "Kt", label: "Kotlin" },
+        { icon: "JS", label: "JavaScript" },
+        { icon: "<>", label: "HTML" },
+        { icon: "$>", label: "Bash" },
+        { icon: "Mk", label: "Makefile" }
+      ]
+    },
+    {
+      slug: "engineering",
+      tone: "engineering",
+      title: "Engineering",
+      text:
+        "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
+      arsenalKind: "engineering",
+      arsenal: [
+        { icon: "OS", label: "Custom ROM Building" },
+        { icon: "Sec", label: "iOS Security Analysis" },
+        { icon: "RE", label: "Reverse Engineering" },
+        { icon: "VM", label: "System Virtualization" }
+      ]
+    },
+    {
+      slug: "design",
+      tone: "design",
+      title: "Design",
+      text:
+        "Designing the visual layer of the software I build. I treat UI/UX as the final phase of development — bringing aesthetics into the software environment to create visually compelling and intuitive interfaces."
+    },
+    {
+      slug: "music",
+      tone: "music",
+      title: "Music",
+      text:
+        "Translating emotions and invisible moods into sound. It is a process of taking the unspoken feelings we experience in life and arranging them into a sonic space."
+    },
+    {
+      slug: "research",
+      tone: "research",
+      title: "Research",
+      text:
+        "Exploring the intersection of biological systems and computer science. My research interests span across neuroscience, stem cells, and genetics. By leveraging bioinformatics, my focus is on decoding the complex patterns of neural cells and biological data, analyzing the fundamental mechanics of living systems."
+    }
   ];
 
   function getPartialUrl(file) {
@@ -92,6 +149,63 @@
       }
 
       track.appendChild(fragment);
+    });
+  }
+
+  function renderDisciplines() {
+    const stack = document.getElementById("discipline-stack");
+    const template = document.getElementById("discipline-card-template");
+
+    if (!stack || !template) {
+      return;
+    }
+
+    stack.innerHTML = "";
+
+    disciplines.forEach((discipline, index) => {
+      const fragment = template.content.cloneNode(true);
+      const card = fragment.querySelector(".discipline-stack-card");
+      const title = fragment.querySelector(".discipline-stack-card__title");
+      const bodyText = fragment.querySelector(".discipline-stack-card__body");
+      const arsenal = fragment.querySelector(".discipline-stack-card__arsenal");
+
+      if (card) {
+        card.dataset.index = String(index);
+        card.dataset.slug = discipline.slug;
+        card.dataset.tone = discipline.tone;
+        card.classList.add(`discipline-stack-card--${discipline.slug}`);
+      }
+
+      if (title) title.textContent = discipline.title;
+      if (bodyText) bodyText.textContent = discipline.text;
+
+      if (arsenal) {
+        if (discipline.arsenal?.length) {
+          arsenal.hidden = false;
+          arsenal.dataset.arsenalKind = discipline.arsenalKind || "";
+
+          discipline.arsenal.forEach((item) => {
+            const pill = document.createElement("span");
+            pill.className = "discipline-pill";
+
+            const icon = document.createElement("span");
+            icon.className = "discipline-pill__icon";
+            icon.setAttribute("aria-hidden", "true");
+            icon.textContent = item.icon;
+
+            const label = document.createElement("span");
+            label.className = "discipline-pill__label";
+            label.textContent = item.label;
+
+            pill.append(icon, label);
+            arsenal.appendChild(pill);
+          });
+        } else {
+          arsenal.remove();
+        }
+      }
+
+      stack.appendChild(fragment);
     });
   }
 
@@ -1434,6 +1548,118 @@
     observer.observe(title);
   }
 
+  function initDisciplineStack() {
+    const stack = document.getElementById("discipline-stack");
+    const prevButton = document.querySelector(".discipline-nav--prev");
+    const nextButton = document.querySelector(".discipline-nav--next");
+    const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
+
+    if (!stack || !cards.length) {
+      return;
+    }
+
+    const total = cards.length;
+    const portraitQuery = window.matchMedia("(max-width: 980px) and (orientation: portrait)");
+    let activeIndex = 0;
+    let pointerState = null;
+
+    const getStackPosition = (index) => (index - activeIndex + total) % total;
+
+    const syncLabels = () => {
+      const active = disciplines[activeIndex];
+      const previous = disciplines[(activeIndex - 1 + total) % total];
+      const next = disciplines[(activeIndex + 1) % total];
+
+      stack.setAttribute("aria-label", `Core disciplines cards. ${active.title} is in focus.`);
+      prevButton?.setAttribute("aria-label", `Show previous discipline, ${previous.title}`);
+      nextButton?.setAttribute("aria-label", `Show next discipline, ${next.title}`);
+      stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
+    };
+
+    const applyState = () => {
+      cards.forEach((card, index) => {
+        const position = getStackPosition(index);
+        card.dataset.stackPos = String(position);
+        card.classList.toggle("is-active", position === 0);
+        card.setAttribute("aria-hidden", position === 0 ? "false" : "true");
+      });
+
+      syncLabels();
+    };
+
+    const rotate = (direction) => {
+      activeIndex = (activeIndex + direction + total) % total;
+      applyState();
+    };
+
+    const onPointerDown = (event) => {
+      if (!portraitQuery.matches || !event.isPrimary) {
+        return;
+      }
+
+      pointerState = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY
+      };
+    };
+
+    const clearPointer = () => {
+      pointerState = null;
+    };
+
+    const onPointerUp = (event) => {
+      if (!portraitQuery.matches || !pointerState || pointerState.id !== event.pointerId) {
+        return;
+      }
+
+      const deltaX = event.clientX - pointerState.x;
+      const deltaY = event.clientY - pointerState.y;
+      clearPointer();
+
+      if (Math.abs(deltaX) < 42 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) {
+        return;
+      }
+
+      rotate(deltaX < 0 ? 1 : -1);
+    };
+
+    const syncWithoutAnimation = () => {
+      stack.classList.add("discipline-stack-viewport--static");
+      applyState();
+      requestAnimationFrame(() => {
+        stack.classList.remove("discipline-stack-viewport--static");
+      });
+    };
+
+    prevButton?.addEventListener("click", () => rotate(-1));
+    nextButton?.addEventListener("click", () => rotate(1));
+
+    stack.addEventListener("pointerdown", onPointerDown);
+    stack.addEventListener("pointerup", onPointerUp);
+    stack.addEventListener("pointercancel", clearPointer);
+    stack.addEventListener("pointerleave", clearPointer);
+    stack.addEventListener("keydown", (event) => {
+      if (portraitQuery.matches) {
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        rotate(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        rotate(1);
+      }
+    });
+
+    stack.tabIndex = 0;
+    applyState();
+
+    window.addEventListener("resize", syncWithoutAnimation);
+    window.addEventListener("orientationchange", syncWithoutAnimation);
+  }
+
   function initParallax() {
     if (prefersReducedMotion) {
       return;
@@ -1506,7 +1732,7 @@
       return;
     }
 
-    const cards = Array.from(document.querySelectorAll(".discipline-card, .project-card"));
+    const cards = Array.from(document.querySelectorAll(".discipline-stack-card, .project-card"));
 
     cards.forEach((card) => {
       card.addEventListener("pointermove", (event) => {
@@ -1535,6 +1761,7 @@
     ]);
 
     renderProjects();
+    renderDisciplines();
     initYear();
     initNav();
     syncMobileNavState();
@@ -1545,6 +1772,7 @@
     initHeroIntro();
     initRockSaltSafeAreas();
     initAboutCreator();
+    initDisciplineStack();
     initParallax();
     initHoverTracking();
 

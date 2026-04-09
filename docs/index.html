@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260409n">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260409p">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -99,22 +99,31 @@
           <h2><span class="tagline-script">Smooth Operator</span> Across The Entire Stack</h2>
         </div>
 
-        <div class="discipline-grid">
-          <article class="discipline-card reveal" data-reveal>
-            <h3>Code</h3>
-            <p>Architecting intelligent systems and fluid digital experiences through precise logic.</p>
-          </article>
-          <article class="discipline-card reveal" data-reveal>
-            <h3>Canvas</h3>
-            <p>Sculpting immersive, futuristic visual identities that challenge the ordinary.</p>
-          </article>
-          <article class="discipline-card reveal" data-reveal>
-            <h3>Chords</h3>
-            <p>Composing atmospheric soundscapes where emotion meets technical precision.</p>
-          </article>
+        <div class="discipline-stack-shell reveal" data-reveal>
+          <div class="discipline-stack-stage">
+            <button class="discipline-nav discipline-nav--prev" type="button" aria-label="Show previous discipline">
+              <span aria-hidden="true">&#8249;</span>
+            </button>
+            <div id="discipline-stack" class="discipline-stack-viewport" aria-live="polite" aria-label="Core disciplines cards"></div>
+            <button class="discipline-nav discipline-nav--next" type="button" aria-label="Show next discipline">
+              <span aria-hidden="true">&#8250;</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
+
+    <template id="discipline-card-template">
+      <article class="discipline-stack-card" aria-hidden="true">
+        <div class="discipline-stack-card__surface">
+          <div class="discipline-stack-card__header">
+            <h3 class="discipline-stack-card__title"></h3>
+          </div>
+          <p class="discipline-stack-card__body"></p>
+          <div class="discipline-stack-card__arsenal" hidden></div>
+        </div>
+      </article>
+    </template>
 
     <section id="projects" class="section projects" data-section="projects">
       <div class="container projects-shell">
@@ -163,6 +172,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260409l" defer></script>
+  <script src="assets/js/shell.js?v=20260409p" defer></script>
 </body>
 </html>
