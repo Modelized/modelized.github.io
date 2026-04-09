@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410a';
+  const assetVersion = '20260410b';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
 
@@ -1563,8 +1563,52 @@
     const portraitQuery = window.matchMedia("(max-width: 980px) and (orientation: portrait)");
     let activeIndex = 0;
     let pointerState = null;
+    let layouts = null;
 
     const getStackPosition = (index) => (index - activeIndex + total) % total;
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+    const measureLayouts = () => {
+      const firstCard = cards[0];
+      const cardRect = firstCard?.getBoundingClientRect();
+      const cardWidth = cardRect?.width || stack.clientWidth || window.innerWidth;
+      const cardHeight = cardRect?.height || Math.max(stack.clientHeight * 0.78, 1);
+
+      if (portraitQuery.matches) {
+        return [
+          { x: 0, y: 0, scale: 1, rotate: -1.35, opacity: 1 },
+          { x: cardWidth * 0.08, y: cardHeight * 0.09, scale: 0.95, rotate: 4, opacity: 0.94 },
+          { x: -cardWidth * 0.07, y: cardHeight * 0.18, scale: 0.88, rotate: -4.9, opacity: 0.8 },
+          { x: cardWidth * 0.09, y: cardHeight * 0.26, scale: 0.81, rotate: 5.8, opacity: 0.58 },
+          { x: -cardWidth * 0.1, y: cardHeight * 0.33, scale: 0.74, rotate: -4.4, opacity: 0.38 }
+        ];
+      }
+
+      return [
+        { x: 0, y: 0, scale: 1, rotate: -0.8, opacity: 1 },
+        { x: cardWidth * 0.1, y: cardHeight * 0.09, scale: 0.95, rotate: 2.6, opacity: 0.94 },
+        { x: -cardWidth * 0.09, y: cardHeight * 0.17, scale: 0.89, rotate: -3.2, opacity: 0.8 },
+        { x: cardWidth * 0.11, y: cardHeight * 0.24, scale: 0.82, rotate: 4.4, opacity: 0.58 },
+        { x: -cardWidth * 0.11, y: cardHeight * 0.3, scale: 0.76, rotate: -4.6, opacity: 0.38 }
+      ];
+    };
+
+    const getLayouts = () => {
+      if (!layouts) {
+        layouts = measureLayouts();
+      }
+
+      return layouts;
+    };
+
+    const interpolateLayout = (from, to, t) => ({
+      x: from.x + (to.x - from.x) * t,
+      y: from.y + (to.y - from.y) * t,
+      scale: from.scale + (to.scale - from.scale) * t,
+      rotate: from.rotate + (to.rotate - from.rotate) * t,
+      opacity: from.opacity + (to.opacity - from.opacity) * t
+    });
 
     const syncLabels = () => {
       const active = disciplines[activeIndex];
@@ -1582,12 +1626,28 @@
       }
     };
 
-    const applyState = () => {
+    const applyState = ({ dragProgress = 0 } = {}) => {
+      const currentLayouts = getLayouts();
+      const isDragging = portraitQuery.matches && Math.abs(dragProgress) > 0.001;
+
+      stack.classList.toggle("is-dragging", isDragging);
+
       cards.forEach((card, index) => {
         const position = getStackPosition(index);
+        let visual = currentLayouts[position];
+
+        if (isDragging) {
+          const targetPosition = (position + (dragProgress < 0 ? -1 : 1) + total) % total;
+          const target = currentLayouts[targetPosition];
+          visual = interpolateLayout(visual, target, Math.abs(dragProgress));
+        }
+
         card.dataset.stackPos = String(position);
-        card.classList.toggle("is-active", position === 0);
+        card.classList.toggle("is-active", position === 0 && !isDragging);
         card.setAttribute("aria-hidden", position === 0 ? "false" : "true");
+        card.style.zIndex = String(total - position);
+        card.style.opacity = visual.opacity.toFixed(3);
+        card.style.transform = `translate(calc(-50% + ${visual.x.toFixed(2)}px), ${visual.y.toFixed(2)}px) scale(${visual.scale.toFixed(4)}) rotate(${visual.rotate.toFixed(2)}deg)`;
       });
 
       stack.dataset.stackReady = "true";
@@ -1604,15 +1664,52 @@
         return;
       }
 
+      layouts = measureLayouts();
+      stack.setPointerCapture?.(event.pointerId);
       pointerState = {
         id: event.pointerId,
         x: event.clientX,
-        y: event.clientY
+        y: event.clientY,
+        progress: 0,
+        intent: null
       };
     };
 
-    const clearPointer = () => {
+    const clearPointer = (event, { snap = false } = {}) => {
+      if (snap) {
+        applyState();
+      }
+
+      if (event && pointerState?.id === event.pointerId) {
+        stack.releasePointerCapture?.(event.pointerId);
+      }
+
       pointerState = null;
+    };
+
+    const onPointerMove = (event) => {
+      if (!portraitQuery.matches || !pointerState || pointerState.id !== event.pointerId) {
+        return;
+      }
+
+      const deltaX = event.clientX - pointerState.x;
+      const deltaY = event.clientY - pointerState.y;
+
+      if (!pointerState.intent) {
+        if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
+          return;
+        }
+        pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
+      }
+
+      if (pointerState.intent !== "x") {
+        return;
+      }
+
+      const width = Math.max(stack.clientWidth, 1);
+      const progress = clamp(deltaX / (width * 0.42), -1, 1);
+      pointerState.progress = progress;
+      applyState({ dragProgress: progress });
     };
 
     const onPointerUp = (event) => {
@@ -1622,16 +1719,24 @@
 
       const deltaX = event.clientX - pointerState.x;
       const deltaY = event.clientY - pointerState.y;
-      clearPointer();
+      const progress = pointerState.progress || 0;
+      const intent = pointerState.intent;
+      clearPointer(event);
 
-      if (Math.abs(deltaX) < 42 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) {
+      if (intent !== "x") {
+        applyState();
         return;
       }
 
-      rotate(deltaX < 0 ? 1 : -1);
+      if (Math.abs(progress) >= 0.16 && Math.abs(deltaX) > Math.abs(deltaY) * 1.05) {
+        rotate(progress < 0 ? 1 : -1);
+      } else {
+        applyState();
+      }
     };
 
     const syncWithoutAnimation = () => {
+      layouts = measureLayouts();
       stack.classList.add("discipline-stack-viewport--static");
       applyState();
       requestAnimationFrame(() => {
@@ -1643,9 +1748,10 @@
     nextButton?.addEventListener("click", () => rotate(1));
 
     stack.addEventListener("pointerdown", onPointerDown);
+    stack.addEventListener("pointermove", onPointerMove);
     stack.addEventListener("pointerup", onPointerUp);
-    stack.addEventListener("pointercancel", clearPointer);
-    stack.addEventListener("pointerleave", clearPointer);
+    stack.addEventListener("pointercancel", (event) => clearPointer(event, { snap: true }));
+    stack.addEventListener("pointerleave", (event) => clearPointer(event, { snap: true }));
     stack.addEventListener("keydown", (event) => {
       if (portraitQuery.matches) {
         return;
@@ -1660,7 +1766,12 @@
       }
     });
 
+    stack.classList.add("discipline-stack-viewport--static");
+    layouts = measureLayouts();
     applyState();
+    requestAnimationFrame(() => {
+      stack.classList.remove("discipline-stack-viewport--static");
+    });
 
     window.addEventListener("resize", syncWithoutAnimation);
     window.addEventListener("orientationchange", syncWithoutAnimation);

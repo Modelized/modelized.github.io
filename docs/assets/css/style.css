@@ -1419,6 +1419,24 @@ a {
   margin-top: 1.75rem;
 }
 
+.discipline-stack-shell.reveal {
+  --reveal-distance: 0px;
+}
+
+.js .discipline-stack-shell.reveal {
+  opacity: 0;
+  transform: translateY(26px) scale(0.972);
+  transform-origin: center top;
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 760ms cubic-bezier(0.2, 0.92, 0.24, 1);
+}
+
+.js .discipline-stack-shell.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
 .discipline-stack-stage {
   position: relative;
   display: grid;
@@ -1432,9 +1450,11 @@ a {
   --discipline-card-height: clamp(22rem, 39vw, 28rem);
   position: relative;
   min-height: calc(var(--discipline-card-height) + 6.2rem);
-  overflow: visible;
+  overflow: hidden;
+  overflow: clip;
   touch-action: pan-y;
   isolation: isolate;
+  contain: layout paint;
 }
 
 .discipline-stack-viewport:not([data-stack-ready="true"]) .discipline-stack-card {
@@ -1462,7 +1482,7 @@ a {
   transform-origin: center center;
   pointer-events: none;
   transition:
-    transform 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 560ms cubic-bezier(0.2, 0.92, 0.24, 1),
     opacity 420ms ease,
     box-shadow 420ms ease;
 }
@@ -1676,6 +1696,10 @@ a {
 }
 
 .discipline-stack-viewport--static .discipline-stack-card {
+  transition: none !important;
+}
+
+.discipline-stack-viewport.is-dragging .discipline-stack-card {
   transition: none !important;
 }
 
