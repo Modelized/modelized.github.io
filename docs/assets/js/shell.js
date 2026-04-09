@@ -3,9 +3,11 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410c';
+  const assetVersion = '20260410f';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
+  const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
+  const iconSvg = (path) => `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">${path}</svg>`;
 
   const projects = [
     {
@@ -30,15 +32,15 @@
         "Building native applications and computational systems. From developing macOS and iOS software to building intelligent models in Python, I focus on translating complex logic into functional code.",
       arsenalKind: "development",
       arsenal: [
-        { icon: "C", label: "C" },
-        { icon: "++", label: "C++" },
-        { icon: "Py", label: "Python" },
-        { icon: "Sw", label: "Swift" },
-        { icon: "Kt", label: "Kotlin" },
-        { icon: "JS", label: "JavaScript" },
-        { icon: "<>", label: "HTML" },
-        { icon: "$>", label: "Bash" },
-        { icon: "Mk", label: "Makefile" }
+        { iconUrl: simpleIcon("c"), label: "C" },
+        { iconUrl: simpleIcon("cplusplus"), label: "C++" },
+        { iconUrl: simpleIcon("python"), label: "Python" },
+        { iconUrl: simpleIcon("swift"), label: "Swift" },
+        { iconUrl: simpleIcon("kotlin"), label: "Kotlin" },
+        { iconUrl: simpleIcon("javascript"), label: "JavaScript" },
+        { iconUrl: simpleIcon("html5"), label: "HTML" },
+        { iconUrl: simpleIcon("gnubash"), label: "Bash" },
+        { iconSvg: iconSvg('<path d="M4.2 5.2h5.2M4.2 9.8h7.8M4.2 14.4h11.6"/><path d="m12.2 4.3 3.6 3.6-3.6 3.6"/>'), label: "Makefile" }
       ]
     },
     {
@@ -49,10 +51,10 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { icon: "OS", label: "Custom ROM Building" },
-        { icon: "Sec", label: "iOS Security Analysis" },
-        { icon: "RE", label: "Reverse Engineering" },
-        { icon: "VM", label: "System Virtualization" }
+        { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
+        { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
+        { iconSvg: iconSvg('<rect x="4.2" y="4.2" width="6.2" height="6.2" rx="1.3"/><rect x="9.6" y="9.6" width="6.2" height="6.2" rx="1.3"/><path d="M9.6 7.4h2.1M10.7 6.3v2.2"/>'), label: "System Virtualization" }
       ]
     },
     {
@@ -192,7 +194,18 @@
             const icon = document.createElement("span");
             icon.className = "discipline-pill__icon";
             icon.setAttribute("aria-hidden", "true");
-            icon.textContent = item.icon;
+
+            if (item.iconUrl) {
+              const image = document.createElement("img");
+              image.src = item.iconUrl;
+              image.alt = "";
+              image.loading = "lazy";
+              image.decoding = "async";
+              image.referrerPolicy = "no-referrer";
+              icon.appendChild(image);
+            } else if (item.iconSvg) {
+              icon.innerHTML = item.iconSvg;
+            }
 
             const label = document.createElement("span");
             label.className = "discipline-pill__label";
@@ -1551,9 +1564,8 @@
 
   function initDisciplineStack() {
     const stack = document.getElementById("discipline-stack");
+    const shell = stack?.closest(".discipline-stack-shell");
     const stage = stack?.closest(".discipline-stack-stage");
-    const prevButton = document.querySelector(".discipline-nav--prev");
-    const nextButton = document.querySelector(".discipline-nav--next");
     const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
 
     if (!stack || !cards.length) {
@@ -1565,39 +1577,65 @@
     let activeIndex = 0;
     let pointerState = null;
     let metrics = null;
-
-    const mod = (value, base) => ((value % base) + base) % base;
+    let activeAnimation = null;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
+    const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
 
-    const createLayout = (x, y, scale, rotate, opacity = 1) => ({ x, y, scale, rotate, opacity });
+    const buildLayouts = (cardWidth) => {
+      const steps = portraitQuery.matches
+        ? [
+            { x: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.19, scale: 0.912, rotate: 4.2 },
+            { x: cardWidth * 0.302, scale: 0.828, rotate: 6.2 },
+            { x: cardWidth * 0.378, scale: 0.752, rotate: 7.5 },
+            { x: cardWidth * 0.428, scale: 0.688, rotate: 8.4 }
+          ]
+        : [
+            { x: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.214, scale: 0.924, rotate: 3.7 },
+            { x: cardWidth * 0.338, scale: 0.846, rotate: 5.1 },
+            { x: cardWidth * 0.424, scale: 0.772, rotate: 6.2 },
+            { x: cardWidth * 0.482, scale: 0.71, rotate: 7.0 }
+          ];
 
-    const buildLayouts = (cardWidth, cardHeight) => {
-      if (portraitQuery.matches) {
-        return {
-          0: createLayout(0, 0, 1, -1.2, 1),
-          1: createLayout(cardWidth * 0.15, cardHeight * 0.085, 0.952, 6.4, 0.996),
-          2: createLayout(cardWidth * 0.26, cardHeight * 0.156, 0.906, 8.2, 0.992),
-          3: createLayout(cardWidth * 0.34, cardHeight * 0.216, 0.864, 9.7, 0.988),
-          4: createLayout(cardWidth * 0.39, cardHeight * 0.272, 0.826, 11.1, 0.984),
-          "-1": createLayout(-cardWidth * 0.14, cardHeight * 0.092, 0.944, -6.8, 0.996),
-          "-2": createLayout(-cardWidth * 0.245, cardHeight * 0.164, 0.898, -8.9, 0.992),
-          "-3": createLayout(-cardWidth * 0.322, cardHeight * 0.222, 0.854, -10.4, 0.988),
-          "-4": createLayout(-cardWidth * 0.372, cardHeight * 0.278, 0.818, -11.6, 0.984)
-        };
+      return steps.reduce((layouts, step, depth) => {
+        const base = createLayout(step.x, 0, step.scale, step.rotate);
+        if (depth === 0) {
+          layouts[0] = base;
+          return layouts;
+        }
+
+        layouts[depth] = base;
+        layouts[-depth] = createLayout(-step.x, 0, step.scale, -step.rotate);
+        return layouts;
+      }, {});
+    };
+
+    const formatTransform = (layout) =>
+      `translate(calc(-50% + ${layout.x.toFixed(2)}px), ${layout.y.toFixed(2)}px) scale(${layout.scale.toFixed(4)}) rotate(${layout.rotate.toFixed(2)}deg)`;
+
+    const interpolateLayout = (from, to, t) => ({
+      x: from.x + (to.x - from.x) * t,
+      y: from.y + (to.y - from.y) * t,
+      scale: from.scale + (to.scale - from.scale) * t,
+      rotate: from.rotate + (to.rotate - from.rotate) * t
+    });
+
+    const getDepthAppearance = (offset) => {
+      const depth = Math.min(Math.abs(offset), total - 1);
+      const dim = [0.028, 0.11, 0.18, 0.24, 0.29][depth] || 0.29;
+      const lift = [0.026, 0.018, 0.012, 0.008, 0.004][depth] || 0.004;
+      return { dim, lift };
+    };
+
+    const getZIndex = (offset) => {
+      if (offset === 0) {
+        return 200;
       }
 
-      return {
-        0: createLayout(0, 0, 1, -0.4, 1),
-        1: createLayout(cardWidth * 0.18, cardHeight * 0.062, 0.954, 4.4, 0.996),
-        2: createLayout(cardWidth * 0.31, cardHeight * 0.108, 0.91, 6.2, 0.992),
-        3: createLayout(cardWidth * 0.405, cardHeight * 0.148, 0.87, 7.3, 0.988),
-        4: createLayout(cardWidth * 0.472, cardHeight * 0.182, 0.834, 8.2, 0.984),
-        "-1": createLayout(-cardWidth * 0.18, cardHeight * 0.066, 0.948, -4.8, 0.996),
-        "-2": createLayout(-cardWidth * 0.305, cardHeight * 0.11, 0.904, -6.6, 0.992),
-        "-3": createLayout(-cardWidth * 0.398, cardHeight * 0.148, 0.864, -7.6, 0.988),
-        "-4": createLayout(-cardWidth * 0.462, cardHeight * 0.182, 0.828, -8.6, 0.984)
-      };
+      return 200 - Math.abs(offset) * 14;
     };
 
     const measureMetrics = () => {
@@ -1610,77 +1648,50 @@
         maxContentHeight = Math.max(maxContentHeight, contentHeight);
       });
 
-      const currentHeight = firstCard?.offsetHeight || stack.clientHeight || 0;
-      const cardHeight = Math.ceil(Math.max(currentHeight, maxContentHeight));
-      stack.style.setProperty("--discipline-card-height", `${cardHeight}px`);
-
       const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
-      const layouts = buildLayouts(cardWidth, cardHeight);
-      const layoutValues = Object.values(layouts);
-      const maxBottom = Math.max(...layoutValues.map((layout) => layout.y + cardHeight * layout.scale));
-      const topPad = Math.ceil(cardHeight * 0.035 + 14);
-      const bottomPad = Math.ceil(Math.max(56, maxBottom - cardHeight + cardHeight * 0.1 + 18));
+      const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
+      const currentHeight = firstCard?.offsetHeight || stack.clientHeight || 0;
+      const cardHeight = Math.ceil(Math.max(currentHeight, maxContentHeight + breathingRoom));
+      const pad = Math.ceil(Math.max(28, cardHeight * 0.08));
 
-      stage?.style.setProperty("--discipline-stack-pad-top", `${topPad}px`);
-      stage?.style.setProperty("--discipline-stack-pad-bottom", `${bottomPad}px`);
+      shell?.style.setProperty("--discipline-card-width-resolved", `${cardWidth}px`);
+      shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
+      stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
+      stage?.style.setProperty("--discipline-stack-pad-bottom", `${pad}px`);
 
-      return { cardWidth, cardHeight, layouts };
+      return {
+        cardWidth,
+        cardHeight,
+        layouts: buildLayouts(cardWidth)
+      };
     };
 
     const getMetrics = () => {
       if (!metrics) {
         metrics = measureMetrics();
       }
-
       return metrics;
     };
 
-    const interpolateLayout = (from, to, t) => ({
-      x: from.x + (to.x - from.x) * t,
-      y: from.y + (to.y - from.y) * t,
-      scale: from.scale + (to.scale - from.scale) * t,
-      rotate: from.rotate + (to.rotate - from.rotate) * t,
-      opacity: from.opacity + (to.opacity - from.opacity) * t
-    });
-
     const getLayoutForOffset = (offset) => {
       const currentMetrics = getMetrics();
-      const layouts = currentMetrics.layouts;
-      const normalized = offset === 0 ? 0 : Math.sign(offset) * Math.min(Math.abs(offset), total - 1);
-      const base = layouts[normalized] || layouts[0];
-      const extra = Math.max(0, Math.abs(offset) - (total - 1));
-
-      if (!extra) {
-        return base;
-      }
-
-      return createLayout(
-        base.x + Math.sign(offset) * currentMetrics.cardWidth * 0.11 * extra,
-        base.y + currentMetrics.cardHeight * 0.055 * extra,
-        Math.max(0.72, base.scale - 0.05 * extra),
-        base.rotate + Math.sign(offset) * 1.8 * extra,
-        base.opacity
-      );
+      const normalized = offset === 0 ? 0 : clamp(offset, -(total - 1), total - 1);
+      return currentMetrics.layouts[normalized] || currentMetrics.layouts[0];
     };
 
-    const getRelativeOffset = (index, baseIndex = activeIndex) => index - mod(baseIndex, total);
-
-    const getZIndex = (offset) => {
-      if (offset === 0) {
-        return 200;
-      }
-
-      return 200 - Math.abs(offset) * 10 - (offset < 0 ? 1 : 0);
+    const cancelActiveMotion = () => {
+      activeAnimation?.cancel?.();
+      activeAnimation = null;
+      cards.forEach((card) => {
+        card.classList.remove("is-slipping-left", "is-slipping-right");
+        card.style.removeProperty("transition");
+        card.getAnimations?.().forEach((animation) => animation.cancel());
+      });
     };
 
     const syncLabels = () => {
-      const active = disciplines[mod(activeIndex, total)];
-      const previous = disciplines[mod(activeIndex - 1, total)];
-      const next = disciplines[mod(activeIndex + 1, total)];
-
+      const active = disciplines[activeIndex];
       stack.setAttribute("aria-label", `Core disciplines cards. ${active.title} is in focus.`);
-      prevButton?.setAttribute("aria-label", `Show previous discipline, ${previous.title}`);
-      nextButton?.setAttribute("aria-label", `Show next discipline, ${next.title}`);
       stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
       if (portraitQuery.matches) {
         stack.removeAttribute("tabindex");
@@ -1691,36 +1702,114 @@
 
     const applyState = ({ dragProgress = 0 } = {}) => {
       const isDragging = portraitQuery.matches && Math.abs(dragProgress) > 0.001;
-      const direction = dragProgress === 0 ? 0 : dragProgress > 0 ? 1 : -1;
+      const travel = dragProgress === 0 ? 0 : dragProgress < 0 ? 1 : -1;
 
       stack.classList.toggle("is-dragging", isDragging);
 
       cards.forEach((card, index) => {
-        const offset = getRelativeOffset(index);
+        const offset = index - activeIndex;
         let visual = getLayoutForOffset(offset);
 
-        if (isDragging) {
-          const target = getLayoutForOffset(offset + direction);
+        if (isDragging && travel !== 0) {
+          const target = getLayoutForOffset(offset + travel);
           visual = interpolateLayout(visual, target, Math.abs(dragProgress));
         }
 
+        const appearance = getDepthAppearance(offset);
+        const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
+
         card.dataset.stackPos = String(offset);
         card.dataset.stackDepth = String(Math.abs(offset));
-        card.dataset.stackSide = offset === 0 ? "front" : offset < 0 ? "left" : "right";
+        card.dataset.stackSide = getSide(offset);
         card.classList.toggle("is-active", offset === 0);
+        card.classList.toggle("is-neighbor", isNeighbor);
         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
         card.style.zIndex = String(getZIndex(offset));
-        card.style.opacity = visual.opacity.toFixed(3);
-        card.style.transform = `translate(calc(-50% + ${visual.x.toFixed(2)}px), ${visual.y.toFixed(2)}px) scale(${visual.scale.toFixed(4)}) rotate(${visual.rotate.toFixed(2)}deg)`;
+        card.style.transform = formatTransform(visual);
+        card.style.setProperty("--discipline-depth-dim", appearance.dim.toFixed(3));
+        card.style.setProperty("--discipline-surface-lift", appearance.lift.toFixed(3));
       });
 
       stack.dataset.stackReady = "true";
       syncLabels();
     };
 
+    const animateOutgoingCard = (card, direction, startLayout) => {
+      if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
+        return;
+      }
+
+      const currentMetrics = getMetrics();
+      const throwSign = direction > 0 ? -1 : 1;
+      const finalLayout = getLayoutForOffset(direction > 0 ? -1 : 1);
+      const midLayout = createLayout(
+        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.34 : 0.3),
+        0,
+        0.972,
+        throwSign * (portraitQuery.matches ? 9.8 : 8.2)
+      );
+      const tuckLayout = createLayout(
+        finalLayout.x * 1.12,
+        0,
+        Math.min(0.985, finalLayout.scale * 1.01),
+        finalLayout.rotate + throwSign * 1.1
+      );
+
+      card.style.transition = "none";
+      const animation = card.animate(
+        [
+          { transform: formatTransform(startLayout) },
+          { transform: formatTransform(midLayout), offset: 0.5 },
+          { transform: formatTransform(tuckLayout), offset: 0.82 },
+          { transform: formatTransform(finalLayout) }
+        ],
+        {
+          duration: portraitQuery.matches ? 860 : 740,
+          easing: "cubic-bezier(0.2, 0.82, 0.22, 1)",
+          fill: "both"
+        }
+      );
+
+      activeAnimation = animation;
+      animation.finished.finally(() => {
+        if (activeAnimation === animation) {
+          activeAnimation = null;
+        }
+        card.style.removeProperty("transition");
+      });
+    };
+
     const rotate = (direction) => {
-      activeIndex = mod(activeIndex + direction, total);
+      if (!direction) {
+        return false;
+      }
+
+      const targetIndex = clamp(activeIndex + direction, 0, total - 1);
+      if (targetIndex === activeIndex) {
+        applyState();
+        return false;
+      }
+
+      const outgoingIndex = activeIndex;
+      const outgoingCard = cards[outgoingIndex];
+      const outgoingStart = getLayoutForOffset(0);
+
+      cancelActiveMotion();
+      activeIndex = targetIndex;
       applyState();
+      animateOutgoingCard(outgoingCard, direction, outgoingStart);
+      return true;
+    };
+
+    const syncWithoutAnimation = () => {
+      cancelActiveMotion();
+      pointerState = null;
+      metrics = measureMetrics();
+      stack.classList.add("discipline-stack-viewport--static");
+      applyState();
+      requestAnimationFrame(() => {
+        stack.classList.remove("discipline-stack-viewport--static");
+      });
     };
 
     const onPointerDown = (event) => {
@@ -1728,6 +1817,7 @@
         return;
       }
 
+      cancelActiveMotion();
       metrics = measureMetrics();
       stack.setPointerCapture?.(event.pointerId);
       pointerState = {
@@ -1763,6 +1853,7 @@
         if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
           return;
         }
+
         pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
       }
 
@@ -1772,9 +1863,12 @@
 
       event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
-      const raw = deltaX / (width * 0.24);
-      const limited = 0.74 * (1 - Math.exp(-Math.abs(raw) * 1.45));
-      const progress = clamp(Math.sign(raw || 0) * limited, -0.74, 0.74);
+      const raw = deltaX / (width * 0.28);
+      const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
+      const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
+      const limit = outOfBounds ? 0.18 : 0.74;
+      const resistance = outOfBounds ? 2.2 : 1.08;
+      const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
     };
@@ -1795,25 +1889,35 @@
         return;
       }
 
-      if ((Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.05) {
-        rotate(progress < 0 ? 1 : -1);
+      const direction = progress < 0 ? 1 : -1;
+      const targetIndex = clamp(activeIndex + direction, 0, total - 1);
+      const hasTarget = targetIndex !== activeIndex;
+      if (hasTarget && (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.04) {
+        rotate(direction);
       } else {
         applyState();
       }
     };
 
-    const syncWithoutAnimation = () => {
-      metrics = measureMetrics();
-      stack.classList.add("discipline-stack-viewport--static");
-      applyState();
-      requestAnimationFrame(() => {
-        stack.classList.remove("discipline-stack-viewport--static");
-      });
+    const onStackClick = (event) => {
+      if (portraitQuery.matches) {
+        return;
+      }
+
+      const card = event.target.closest(".discipline-stack-card");
+      if (!card) {
+        return;
+      }
+
+      const offset = Number(card.dataset.stackPos || 0);
+      if (offset === -1) {
+        rotate(-1);
+      } else if (offset === 1) {
+        rotate(1);
+      }
     };
 
-    prevButton?.addEventListener("click", () => rotate(-1));
-    nextButton?.addEventListener("click", () => rotate(1));
-
+    stack.addEventListener("click", onStackClick);
     stack.addEventListener("pointerdown", onPointerDown);
     stack.addEventListener("pointermove", onPointerMove);
     stack.addEventListener("pointerup", onPointerUp);
@@ -1833,8 +1937,8 @@
       }
     });
 
-    stack.classList.add("discipline-stack-viewport--static");
     metrics = measureMetrics();
+    stack.classList.add("discipline-stack-viewport--static");
     applyState();
     requestAnimationFrame(() => {
       stack.classList.remove("discipline-stack-viewport--static");
@@ -1842,6 +1946,7 @@
 
     window.addEventListener("resize", syncWithoutAnimation);
     window.addEventListener("orientationchange", syncWithoutAnimation);
+    window.addEventListener("pageshow", syncWithoutAnimation);
   }
 
   function initParallax() {
