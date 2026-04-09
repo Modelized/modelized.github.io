@@ -1135,8 +1135,12 @@
     let metrics = { height: 0, widths: [] };
     let sequenceFrame = 0;
     let nextStepAt = 0;
+    let pendingRefresh = false;
     let lastLayoutWidth = 0;
     let lastViewportWidth = 0;
+
+    const measureLayoutWidth = () => Math.round(title.offsetWidth || title.clientWidth || title.getBoundingClientRect().width);
+    const measureViewportWidth = () => Math.round(document.documentElement.clientWidth || window.innerWidth || 0);
 
     const setImmediateTransitions = (enabled) => {
       const value = enabled ? "none" : "";
@@ -1158,13 +1162,13 @@
     };
 
     const captureLayoutWidths = () => {
-      lastLayoutWidth = Math.round(title.getBoundingClientRect().width);
-      lastViewportWidth = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
+      lastLayoutWidth = measureLayoutWidth();
+      lastViewportWidth = measureViewportWidth();
     };
 
     const layoutWidthChanged = () => {
-      const currentTitleWidth = Math.round(title.getBoundingClientRect().width);
-      const currentViewportWidth = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
+      const currentTitleWidth = measureLayoutWidth();
+      const currentViewportWidth = measureViewportWidth();
       const titleDelta = Math.abs(currentTitleWidth - lastLayoutWidth);
       const viewportDelta = Math.abs(currentViewportWidth - lastViewportWidth);
 
@@ -1219,6 +1223,12 @@
         nextStepAt = now + transitionDuration + holdDuration;
 
         if (activeIndex >= finalIndex) {
+          if (pendingRefresh) {
+            pendingRefresh = false;
+            updateMetrics();
+            applyIndex(finalIndex, { immediate: true });
+            captureLayoutWidths();
+          }
           sequenceFrame = 0;
           return;
         }
@@ -1233,6 +1243,7 @@
       }
 
       started = true;
+      pendingRefresh = false;
 
       if (prefersReducedMotion) {
         updateMetrics();
@@ -1251,6 +1262,11 @@
 
     const refreshLayout = () => {
       if (!layoutWidthChanged()) {
+        return;
+      }
+
+      if (started && activeIndex < finalIndex) {
+        pendingRefresh = true;
         return;
       }
 
@@ -1316,17 +1332,30 @@
       return;
     }
 
+    const entries = layers.map((layer) => ({
+      layer,
+      speed: Number(layer.getAttribute("data-parallax")) || 0.02,
+      section: layer.closest(".section")
+    }));
+
     let raf = 0;
 
     const render = () => {
       raf = 0;
       const viewportCenter = window.innerHeight * 0.5;
+      const sectionDistances = new Map();
 
-      layers.forEach((layer) => {
-        const speed = Number(layer.getAttribute("data-parallax")) || 0.02;
-        const rect = layer.getBoundingClientRect();
-        const distance = rect.top + rect.height * 0.5 - viewportCenter;
-        const shift = Math.max(-34, Math.min(34, -distance * speed));
+      entries.forEach(({ section, layer, speed }) => {
+        const key = section || layer;
+
+        if (!sectionDistances.has(key)) {
+          const rect = key.getBoundingClientRect();
+          const distance = rect.top + rect.height * 0.5 - viewportCenter;
+          sectionDistances.set(key, distance);
+        }
+
+        const distance = sectionDistances.get(key) || 0;
+        const shift = Math.max(-28, Math.min(28, -distance * speed));
 
         layer.style.setProperty("--parallax-y", `${shift.toFixed(2)}px`);
       });
