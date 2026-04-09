@@ -266,10 +266,16 @@
 
   function clearTransientMobileMenuState(nav){
     if (isNavMenuOpen(nav)) return;
+    const sheet = nav?.querySelector('#mobile-sheet');
     nav?.classList.remove('nav--opening');
     body.classList.remove('nav-menu-open');
     body.classList.remove('nav-menu-closing');
     body.classList.remove('no-scroll');
+    if (sheet){
+      sheet.setAttribute('aria-hidden', 'true');
+      sheet.setAttribute('inert', '');
+      sheet.hidden = true;
+    }
     clearPortraitMenuLayoutVars();
   }
 
@@ -282,6 +288,11 @@
     window.clearTimeout(setNavOpenState._stateTimer);
 
     if (open){
+      if (sheet){
+        sheet.hidden = false;
+        sheet.removeAttribute('inert');
+        sheet.setAttribute('aria-hidden', 'false');
+      }
       nav.classList.add('nav--open');
       nav.classList.add('nav--opening');
       body.classList.remove('nav-menu-closing');
@@ -300,14 +311,14 @@
       body.classList.remove('nav-menu-open');
       body.classList.add('nav-menu-closing');
       body.classList.remove('no-scroll');
+      if (sheet){
+        sheet.setAttribute('aria-hidden', 'true');
+        sheet.setAttribute('inert', '');
+      }
     }
 
     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-
-    if (sheet){
-      sheet.setAttribute('aria-hidden', open ? 'false' : 'true');
-    }
 
     setNavOpenState._stateTimer = window.setTimeout(() => {
       if (!open) {
