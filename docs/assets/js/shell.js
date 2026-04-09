@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410b';
+  const assetVersion = '20260410c';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
 
@@ -1551,6 +1551,7 @@
 
   function initDisciplineStack() {
     const stack = document.getElementById("discipline-stack");
+    const stage = stack?.closest(".discipline-stack-stage");
     const prevButton = document.querySelector(".discipline-nav--prev");
     const nextButton = document.querySelector(".discipline-nav--next");
     const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
@@ -1563,43 +1564,75 @@
     const portraitQuery = window.matchMedia("(max-width: 980px) and (orientation: portrait)");
     let activeIndex = 0;
     let pointerState = null;
-    let layouts = null;
+    let metrics = null;
 
-    const getStackPosition = (index) => (index - activeIndex + total) % total;
+    const mod = (value, base) => ((value % base) + base) % base;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-    const measureLayouts = () => {
-      const firstCard = cards[0];
-      const cardRect = firstCard?.getBoundingClientRect();
-      const cardWidth = cardRect?.width || stack.clientWidth || window.innerWidth;
-      const cardHeight = cardRect?.height || Math.max(stack.clientHeight * 0.78, 1);
+    const createLayout = (x, y, scale, rotate, opacity = 1) => ({ x, y, scale, rotate, opacity });
 
+    const buildLayouts = (cardWidth, cardHeight) => {
       if (portraitQuery.matches) {
-        return [
-          { x: 0, y: 0, scale: 1, rotate: -1.35, opacity: 1 },
-          { x: cardWidth * 0.08, y: cardHeight * 0.09, scale: 0.95, rotate: 4, opacity: 0.94 },
-          { x: -cardWidth * 0.07, y: cardHeight * 0.18, scale: 0.88, rotate: -4.9, opacity: 0.8 },
-          { x: cardWidth * 0.09, y: cardHeight * 0.26, scale: 0.81, rotate: 5.8, opacity: 0.58 },
-          { x: -cardWidth * 0.1, y: cardHeight * 0.33, scale: 0.74, rotate: -4.4, opacity: 0.38 }
-        ];
+        return {
+          0: createLayout(0, 0, 1, -1.2, 1),
+          1: createLayout(cardWidth * 0.15, cardHeight * 0.085, 0.952, 6.4, 0.996),
+          2: createLayout(cardWidth * 0.26, cardHeight * 0.156, 0.906, 8.2, 0.992),
+          3: createLayout(cardWidth * 0.34, cardHeight * 0.216, 0.864, 9.7, 0.988),
+          4: createLayout(cardWidth * 0.39, cardHeight * 0.272, 0.826, 11.1, 0.984),
+          "-1": createLayout(-cardWidth * 0.14, cardHeight * 0.092, 0.944, -6.8, 0.996),
+          "-2": createLayout(-cardWidth * 0.245, cardHeight * 0.164, 0.898, -8.9, 0.992),
+          "-3": createLayout(-cardWidth * 0.322, cardHeight * 0.222, 0.854, -10.4, 0.988),
+          "-4": createLayout(-cardWidth * 0.372, cardHeight * 0.278, 0.818, -11.6, 0.984)
+        };
       }
 
-      return [
-        { x: 0, y: 0, scale: 1, rotate: -0.8, opacity: 1 },
-        { x: cardWidth * 0.1, y: cardHeight * 0.09, scale: 0.95, rotate: 2.6, opacity: 0.94 },
-        { x: -cardWidth * 0.09, y: cardHeight * 0.17, scale: 0.89, rotate: -3.2, opacity: 0.8 },
-        { x: cardWidth * 0.11, y: cardHeight * 0.24, scale: 0.82, rotate: 4.4, opacity: 0.58 },
-        { x: -cardWidth * 0.11, y: cardHeight * 0.3, scale: 0.76, rotate: -4.6, opacity: 0.38 }
-      ];
+      return {
+        0: createLayout(0, 0, 1, -0.4, 1),
+        1: createLayout(cardWidth * 0.18, cardHeight * 0.062, 0.954, 4.4, 0.996),
+        2: createLayout(cardWidth * 0.31, cardHeight * 0.108, 0.91, 6.2, 0.992),
+        3: createLayout(cardWidth * 0.405, cardHeight * 0.148, 0.87, 7.3, 0.988),
+        4: createLayout(cardWidth * 0.472, cardHeight * 0.182, 0.834, 8.2, 0.984),
+        "-1": createLayout(-cardWidth * 0.18, cardHeight * 0.066, 0.948, -4.8, 0.996),
+        "-2": createLayout(-cardWidth * 0.305, cardHeight * 0.11, 0.904, -6.6, 0.992),
+        "-3": createLayout(-cardWidth * 0.398, cardHeight * 0.148, 0.864, -7.6, 0.988),
+        "-4": createLayout(-cardWidth * 0.462, cardHeight * 0.182, 0.828, -8.6, 0.984)
+      };
     };
 
-    const getLayouts = () => {
-      if (!layouts) {
-        layouts = measureLayouts();
+    const measureMetrics = () => {
+      const firstCard = cards[0];
+      let maxContentHeight = 0;
+
+      cards.forEach((card) => {
+        const surface = card.querySelector(".discipline-stack-card__surface");
+        const contentHeight = surface?.scrollHeight || card.scrollHeight || 0;
+        maxContentHeight = Math.max(maxContentHeight, contentHeight);
+      });
+
+      const currentHeight = firstCard?.offsetHeight || stack.clientHeight || 0;
+      const cardHeight = Math.ceil(Math.max(currentHeight, maxContentHeight));
+      stack.style.setProperty("--discipline-card-height", `${cardHeight}px`);
+
+      const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
+      const layouts = buildLayouts(cardWidth, cardHeight);
+      const layoutValues = Object.values(layouts);
+      const maxBottom = Math.max(...layoutValues.map((layout) => layout.y + cardHeight * layout.scale));
+      const topPad = Math.ceil(cardHeight * 0.035 + 14);
+      const bottomPad = Math.ceil(Math.max(56, maxBottom - cardHeight + cardHeight * 0.1 + 18));
+
+      stage?.style.setProperty("--discipline-stack-pad-top", `${topPad}px`);
+      stage?.style.setProperty("--discipline-stack-pad-bottom", `${bottomPad}px`);
+
+      return { cardWidth, cardHeight, layouts };
+    };
+
+    const getMetrics = () => {
+      if (!metrics) {
+        metrics = measureMetrics();
       }
 
-      return layouts;
+      return metrics;
     };
 
     const interpolateLayout = (from, to, t) => ({
@@ -1610,10 +1643,40 @@
       opacity: from.opacity + (to.opacity - from.opacity) * t
     });
 
+    const getLayoutForOffset = (offset) => {
+      const currentMetrics = getMetrics();
+      const layouts = currentMetrics.layouts;
+      const normalized = offset === 0 ? 0 : Math.sign(offset) * Math.min(Math.abs(offset), total - 1);
+      const base = layouts[normalized] || layouts[0];
+      const extra = Math.max(0, Math.abs(offset) - (total - 1));
+
+      if (!extra) {
+        return base;
+      }
+
+      return createLayout(
+        base.x + Math.sign(offset) * currentMetrics.cardWidth * 0.11 * extra,
+        base.y + currentMetrics.cardHeight * 0.055 * extra,
+        Math.max(0.72, base.scale - 0.05 * extra),
+        base.rotate + Math.sign(offset) * 1.8 * extra,
+        base.opacity
+      );
+    };
+
+    const getRelativeOffset = (index, baseIndex = activeIndex) => index - mod(baseIndex, total);
+
+    const getZIndex = (offset) => {
+      if (offset === 0) {
+        return 200;
+      }
+
+      return 200 - Math.abs(offset) * 10 - (offset < 0 ? 1 : 0);
+    };
+
     const syncLabels = () => {
-      const active = disciplines[activeIndex];
-      const previous = disciplines[(activeIndex - 1 + total) % total];
-      const next = disciplines[(activeIndex + 1) % total];
+      const active = disciplines[mod(activeIndex, total)];
+      const previous = disciplines[mod(activeIndex - 1, total)];
+      const next = disciplines[mod(activeIndex + 1, total)];
 
       stack.setAttribute("aria-label", `Core disciplines cards. ${active.title} is in focus.`);
       prevButton?.setAttribute("aria-label", `Show previous discipline, ${previous.title}`);
@@ -1627,25 +1690,26 @@
     };
 
     const applyState = ({ dragProgress = 0 } = {}) => {
-      const currentLayouts = getLayouts();
       const isDragging = portraitQuery.matches && Math.abs(dragProgress) > 0.001;
+      const direction = dragProgress === 0 ? 0 : dragProgress > 0 ? 1 : -1;
 
       stack.classList.toggle("is-dragging", isDragging);
 
       cards.forEach((card, index) => {
-        const position = getStackPosition(index);
-        let visual = currentLayouts[position];
+        const offset = getRelativeOffset(index);
+        let visual = getLayoutForOffset(offset);
 
         if (isDragging) {
-          const targetPosition = (position + (dragProgress < 0 ? -1 : 1) + total) % total;
-          const target = currentLayouts[targetPosition];
+          const target = getLayoutForOffset(offset + direction);
           visual = interpolateLayout(visual, target, Math.abs(dragProgress));
         }
 
-        card.dataset.stackPos = String(position);
-        card.classList.toggle("is-active", position === 0 && !isDragging);
-        card.setAttribute("aria-hidden", position === 0 ? "false" : "true");
-        card.style.zIndex = String(total - position);
+        card.dataset.stackPos = String(offset);
+        card.dataset.stackDepth = String(Math.abs(offset));
+        card.dataset.stackSide = offset === 0 ? "front" : offset < 0 ? "left" : "right";
+        card.classList.toggle("is-active", offset === 0);
+        card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
+        card.style.zIndex = String(getZIndex(offset));
         card.style.opacity = visual.opacity.toFixed(3);
         card.style.transform = `translate(calc(-50% + ${visual.x.toFixed(2)}px), ${visual.y.toFixed(2)}px) scale(${visual.scale.toFixed(4)}) rotate(${visual.rotate.toFixed(2)}deg)`;
       });
@@ -1655,7 +1719,7 @@
     };
 
     const rotate = (direction) => {
-      activeIndex = (activeIndex + direction + total) % total;
+      activeIndex = mod(activeIndex + direction, total);
       applyState();
     };
 
@@ -1664,7 +1728,7 @@
         return;
       }
 
-      layouts = measureLayouts();
+      metrics = measureMetrics();
       stack.setPointerCapture?.(event.pointerId);
       pointerState = {
         id: event.pointerId,
@@ -1706,8 +1770,11 @@
         return;
       }
 
+      event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
-      const progress = clamp(deltaX / (width * 0.42), -1, 1);
+      const raw = deltaX / (width * 0.24);
+      const limited = 0.74 * (1 - Math.exp(-Math.abs(raw) * 1.45));
+      const progress = clamp(Math.sign(raw || 0) * limited, -0.74, 0.74);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
     };
@@ -1728,7 +1795,7 @@
         return;
       }
 
-      if (Math.abs(progress) >= 0.16 && Math.abs(deltaX) > Math.abs(deltaY) * 1.05) {
+      if ((Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.05) {
         rotate(progress < 0 ? 1 : -1);
       } else {
         applyState();
@@ -1736,7 +1803,7 @@
     };
 
     const syncWithoutAnimation = () => {
-      layouts = measureLayouts();
+      metrics = measureMetrics();
       stack.classList.add("discipline-stack-viewport--static");
       applyState();
       requestAnimationFrame(() => {
@@ -1767,7 +1834,7 @@
     });
 
     stack.classList.add("discipline-stack-viewport--static");
-    layouts = measureLayouts();
+    metrics = measureMetrics();
     applyState();
     requestAnimationFrame(() => {
       stack.classList.remove("discipline-stack-viewport--static");
@@ -1849,7 +1916,7 @@
       return;
     }
 
-    const cards = Array.from(document.querySelectorAll(".discipline-stack-card, .project-card"));
+    const cards = Array.from(document.querySelectorAll(".project-card"));
 
     cards.forEach((card) => {
       card.addEventListener("pointermove", (event) => {
@@ -1891,7 +1958,6 @@
     initAboutCreator();
     initDisciplineStack();
     initParallax();
-    initHoverTracking();
 
   }
 
