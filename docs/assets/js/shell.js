@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410f';
+  const assetVersion = '20260410g';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -51,10 +51,10 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M6.1 7.2h7.8"/><path d="M7.3 5.1v2.1M12.7 5.1v2.1"/><path d="M6.8 7.2 5.7 12h8.6l-1.1-4.8"/><path d="M7.6 12v2.2M12.4 12v2.2"/><path d="M6.2 14.2h1.7M12.1 14.2h1.7"/>'), label: "Custom ROM Building" },
         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
         { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
-        { iconSvg: iconSvg('<rect x="4.2" y="4.2" width="6.2" height="6.2" rx="1.3"/><rect x="9.6" y="9.6" width="6.2" height="6.2" rx="1.3"/><path d="M9.6 7.4h2.1M10.7 6.3v2.2"/>'), label: "System Virtualization" }
+        { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "System Virtualization" }
       ]
     },
     {
@@ -190,6 +190,9 @@
           discipline.arsenal.forEach((item) => {
             const pill = document.createElement("span");
             pill.className = "discipline-pill";
+            if (item.label) {
+              pill.classList.add(`discipline-pill--${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
+            }
 
             const icon = document.createElement("span");
             icon.className = "discipline-pill__icon";
@@ -202,6 +205,7 @@
               image.loading = "lazy";
               image.decoding = "async";
               image.referrerPolicy = "no-referrer";
+              image.draggable = false;
               icon.appendChild(image);
             } else if (item.iconSvg) {
               icon.innerHTML = item.iconSvg;
@@ -1582,22 +1586,38 @@
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
     const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
+    const getBaseCardHeight = () => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      if (portraitQuery.matches) {
+        return clamp(window.innerWidth * 0.84, 25.8 * rem, 30.4 * rem);
+      }
+
+      if (window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches) {
+        return clamp(window.innerWidth * 0.33, 18.8 * rem, 22.8 * rem);
+      }
+
+      if (window.innerWidth <= 980) {
+        return clamp(window.innerWidth * 0.4, 20 * rem, 24 * rem);
+      }
+
+      return clamp(window.innerWidth * 0.39, 22 * rem, 28 * rem);
+    };
 
     const buildLayouts = (cardWidth) => {
       const steps = portraitQuery.matches
         ? [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.19, scale: 0.912, rotate: 4.2 },
-            { x: cardWidth * 0.302, scale: 0.828, rotate: 6.2 },
-            { x: cardWidth * 0.378, scale: 0.752, rotate: 7.5 },
-            { x: cardWidth * 0.428, scale: 0.688, rotate: 8.4 }
+            { x: cardWidth * 0.21, scale: 0.892, rotate: 4.9 },
+            { x: cardWidth * 0.334, scale: 0.786, rotate: 7.8 },
+            { x: cardWidth * 0.418, scale: 0.692, rotate: 10.2 },
+            { x: cardWidth * 0.474, scale: 0.614, rotate: 12.2 }
           ]
         : [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.214, scale: 0.924, rotate: 3.7 },
-            { x: cardWidth * 0.338, scale: 0.846, rotate: 5.1 },
-            { x: cardWidth * 0.424, scale: 0.772, rotate: 6.2 },
-            { x: cardWidth * 0.482, scale: 0.71, rotate: 7.0 }
+            { x: cardWidth * 0.224, scale: 0.904, rotate: 4.4 },
+            { x: cardWidth * 0.356, scale: 0.8, rotate: 6.8 },
+            { x: cardWidth * 0.446, scale: 0.706, rotate: 8.9 },
+            { x: cardWidth * 0.506, scale: 0.626, rotate: 10.5 }
           ];
 
       return steps.reduce((layouts, step, depth) => {
@@ -1615,13 +1635,6 @@
 
     const formatTransform = (layout) =>
       `translate(calc(-50% + ${layout.x.toFixed(2)}px), ${layout.y.toFixed(2)}px) scale(${layout.scale.toFixed(4)}) rotate(${layout.rotate.toFixed(2)}deg)`;
-
-    const interpolateLayout = (from, to, t) => ({
-      x: from.x + (to.x - from.x) * t,
-      y: from.y + (to.y - from.y) * t,
-      scale: from.scale + (to.scale - from.scale) * t,
-      rotate: from.rotate + (to.rotate - from.rotate) * t
-    });
 
     const getDepthAppearance = (offset) => {
       const depth = Math.min(Math.abs(offset), total - 1);
@@ -1644,14 +1657,27 @@
 
       cards.forEach((card) => {
         const surface = card.querySelector(".discipline-stack-card__surface");
-        const contentHeight = surface?.scrollHeight || card.scrollHeight || 0;
+        const header = surface?.querySelector(".discipline-stack-card__header");
+        const body = surface?.querySelector(".discipline-stack-card__body");
+        const arsenal = surface?.querySelector(".discipline-stack-card__arsenal:not([hidden])");
+        const styles = surface ? getComputedStyle(surface) : null;
+        const gap = styles ? parseFloat(styles.rowGap || styles.gap) || 0 : 0;
+        const paddingTop = styles ? parseFloat(styles.paddingTop) || 0 : 0;
+        const paddingBottom = styles ? parseFloat(styles.paddingBottom) || 0 : 0;
+        const parts = [header, body, arsenal].filter(Boolean);
+        const contentHeight = Math.ceil(
+          paddingTop +
+          paddingBottom +
+          parts.reduce((sum, part) => sum + (part.scrollHeight || part.getBoundingClientRect().height || 0), 0) +
+          gap * Math.max(0, parts.length - 1)
+        );
         maxContentHeight = Math.max(maxContentHeight, contentHeight);
       });
 
       const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
       const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
-      const currentHeight = firstCard?.offsetHeight || stack.clientHeight || 0;
-      const cardHeight = Math.ceil(Math.max(currentHeight, maxContentHeight + breathingRoom));
+      const baseHeight = Math.ceil(getBaseCardHeight());
+      const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom));
       const pad = Math.ceil(Math.max(28, cardHeight * 0.08));
 
       shell?.style.setProperty("--discipline-card-width-resolved", `${cardWidth}px`);
@@ -1702,7 +1728,9 @@
 
     const applyState = ({ dragProgress = 0 } = {}) => {
       const isDragging = portraitQuery.matches && Math.abs(dragProgress) > 0.001;
-      const travel = dragProgress === 0 ? 0 : dragProgress < 0 ? 1 : -1;
+      const dragSign = dragProgress === 0 ? 0 : Math.sign(dragProgress);
+      const currentMetrics = getMetrics();
+      const dragMagnitude = Math.abs(dragProgress);
 
       stack.classList.toggle("is-dragging", isDragging);
 
@@ -1710,9 +1738,13 @@
         const offset = index - activeIndex;
         let visual = getLayoutForOffset(offset);
 
-        if (isDragging && travel !== 0) {
-          const target = getLayoutForOffset(offset + travel);
-          visual = interpolateLayout(visual, target, Math.abs(dragProgress));
+        if (isDragging && offset === 0 && dragSign !== 0) {
+          visual = createLayout(
+            currentMetrics.cardWidth * 0.66 * dragMagnitude * dragSign,
+            0,
+            1 - dragMagnitude * 0.028,
+            dragSign * 10.5 * dragMagnitude
+          );
         }
 
         const appearance = getDepthAppearance(offset);
@@ -1743,16 +1775,16 @@
       const throwSign = direction > 0 ? -1 : 1;
       const finalLayout = getLayoutForOffset(direction > 0 ? -1 : 1);
       const midLayout = createLayout(
-        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.34 : 0.3),
+        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.56 : 0.52),
         0,
-        0.972,
-        throwSign * (portraitQuery.matches ? 9.8 : 8.2)
+        0.968,
+        throwSign * (portraitQuery.matches ? 12.8 : 10.4)
       );
       const tuckLayout = createLayout(
-        finalLayout.x * 1.12,
+        finalLayout.x * 1.18,
         0,
-        Math.min(0.985, finalLayout.scale * 1.01),
-        finalLayout.rotate + throwSign * 1.1
+        Math.min(0.982, finalLayout.scale * 1.012),
+        finalLayout.rotate + throwSign * 1.35
       );
 
       card.style.transition = "none";
@@ -1764,8 +1796,8 @@
           { transform: formatTransform(finalLayout) }
         ],
         {
-          duration: portraitQuery.matches ? 860 : 740,
-          easing: "cubic-bezier(0.2, 0.82, 0.22, 1)",
+          duration: portraitQuery.matches ? 920 : 820,
+          easing: "cubic-bezier(0.18, 0.86, 0.22, 1)",
           fill: "both"
         }
       );
@@ -1863,11 +1895,11 @@
 
       event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
-      const raw = deltaX / (width * 0.28);
+      const raw = deltaX / (width * 0.2);
       const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
       const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
-      const limit = outOfBounds ? 0.18 : 0.74;
-      const resistance = outOfBounds ? 2.2 : 1.08;
+      const limit = outOfBounds ? 0.2 : 0.92;
+      const resistance = outOfBounds ? 2.05 : 0.88;
       const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
