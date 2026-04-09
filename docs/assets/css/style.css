@@ -254,7 +254,7 @@ a {
   white-space: nowrap;
   color: var(--accent-script-color);
   -webkit-text-fill-color: var(--accent-script-color);
-  -webkit-text-stroke: 0.36px var(--accent-script-color);
+  -webkit-text-stroke: 0.48px var(--accent-script-color);
   top: var(--script-visual-shift-y);
   overflow: visible;
   vertical-align: baseline;
@@ -1434,6 +1434,12 @@ a {
   min-height: calc(var(--discipline-card-height) + 6.2rem);
   overflow: visible;
   touch-action: pan-y;
+  isolation: isolate;
+}
+
+.discipline-stack-viewport:not([data-stack-ready="true"]) .discipline-stack-card {
+  opacity: 0 !important;
+  transition: none !important;
 }
 
 .discipline-stack-card,
@@ -1458,9 +1464,7 @@ a {
   transition:
     transform 680ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 420ms ease,
-    filter 680ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 420ms ease;
-  will-change: transform, opacity, filter;
 }
 
 .discipline-stack-card.is-active {
@@ -1644,36 +1648,31 @@ a {
 .discipline-stack-card[data-stack-pos="0"] {
   z-index: 5;
   opacity: 1;
-  filter: none;
-  transform: translate3d(-50%, 0, 0) scale(1) rotate(-0.8deg);
+  transform: translate(-50%, 0) scale(1) rotate(-0.8deg);
 }
 
 .discipline-stack-card[data-stack-pos="1"] {
   z-index: 4;
   opacity: 0.94;
-  filter: saturate(0.92) brightness(0.94);
-  transform: translate3d(calc(-50% + 10%), 9%, 0) scale(0.95) rotate(2.6deg);
+  transform: translate(calc(-50% + 10%), 9%) scale(0.95) rotate(2.6deg);
 }
 
 .discipline-stack-card[data-stack-pos="2"] {
   z-index: 3;
   opacity: 0.8;
-  filter: saturate(0.84) brightness(0.88);
-  transform: translate3d(calc(-50% - 9%), 17%, 0) scale(0.89) rotate(-3.2deg);
+  transform: translate(calc(-50% - 9%), 17%) scale(0.89) rotate(-3.2deg);
 }
 
 .discipline-stack-card[data-stack-pos="3"] {
   z-index: 2;
   opacity: 0.58;
-  filter: saturate(0.74) brightness(0.8);
-  transform: translate3d(calc(-50% + 11%), 24%, 0) scale(0.82) rotate(4.4deg);
+  transform: translate(calc(-50% + 11%), 24%) scale(0.82) rotate(4.4deg);
 }
 
 .discipline-stack-card[data-stack-pos="4"] {
   z-index: 1;
   opacity: 0.38;
-  filter: saturate(0.62) brightness(0.72);
-  transform: translate3d(calc(-50% - 11%), 30%, 0) scale(0.76) rotate(-4.6deg);
+  transform: translate(calc(-50% - 11%), 30%) scale(0.76) rotate(-4.6deg);
 }
 
 .discipline-stack-viewport--static .discipline-stack-card {
@@ -1967,23 +1966,23 @@ a {
   }
 
   .discipline-stack-card[data-stack-pos="0"] {
-    transform: translate3d(-50%, 0, 0) scale(1) rotate(-1.35deg);
+    transform: translate(-50%, 0) scale(1) rotate(-1.35deg);
   }
 
   .discipline-stack-card[data-stack-pos="1"] {
-    transform: translate3d(calc(-50% + 7%), 8%, 0) scale(0.95) rotate(4deg);
+    transform: translate(calc(-50% + 7%), 8%) scale(0.95) rotate(4deg);
   }
 
   .discipline-stack-card[data-stack-pos="2"] {
-    transform: translate3d(calc(-50% - 6%), 17%, 0) scale(0.88) rotate(-4.9deg);
+    transform: translate(calc(-50% - 6%), 17%) scale(0.88) rotate(-4.9deg);
   }
 
   .discipline-stack-card[data-stack-pos="3"] {
-    transform: translate3d(calc(-50% + 8%), 25%, 0) scale(0.81) rotate(5.8deg);
+    transform: translate(calc(-50% + 8%), 25%) scale(0.81) rotate(5.8deg);
   }
 
   .discipline-stack-card[data-stack-pos="4"] {
-    transform: translate3d(calc(-50% - 9%), 31%, 0) scale(0.74) rotate(-4.4deg);
+    transform: translate(calc(-50% - 9%), 31%) scale(0.74) rotate(-4.4deg);
   }
 }
 

@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260409p';
+  const assetVersion = '20260410a';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
 
@@ -161,6 +161,7 @@
     }
 
     stack.innerHTML = "";
+    delete stack.dataset.stackReady;
 
     disciplines.forEach((discipline, index) => {
       const fragment = template.content.cloneNode(true);
@@ -1574,6 +1575,11 @@
       prevButton?.setAttribute("aria-label", `Show previous discipline, ${previous.title}`);
       nextButton?.setAttribute("aria-label", `Show next discipline, ${next.title}`);
       stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
+      if (portraitQuery.matches) {
+        stack.removeAttribute("tabindex");
+      } else {
+        stack.tabIndex = 0;
+      }
     };
 
     const applyState = () => {
@@ -1584,6 +1590,7 @@
         card.setAttribute("aria-hidden", position === 0 ? "false" : "true");
       });
 
+      stack.dataset.stackReady = "true";
       syncLabels();
     };
 
@@ -1653,7 +1660,6 @@
       }
     });
 
-    stack.tabIndex = 0;
     applyState();
 
     window.addEventListener("resize", syncWithoutAnimation);
