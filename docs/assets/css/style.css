@@ -222,7 +222,7 @@ a {
 }
 
 .tagline-script {
-  --script-visual-shift-y: -0.055em;
+  --script-visual-shift-y: -0.072em;
   --script-safe-top: 0px;
   --script-safe-right: 0px;
   --script-safe-bottom: 0px;
@@ -253,9 +253,9 @@ a {
   text-transform: uppercase;
   white-space: nowrap;
   color: var(--accent-script-color);
-  -webkit-text-stroke: 0.36px rgba(223, 141, 93, 0.32);
-  transform: translateY(var(--script-visual-shift-y));
-  transform-origin: center;
+  -webkit-text-fill-color: var(--accent-script-color);
+  -webkit-text-stroke: 0.22px var(--accent-script-color);
+  top: var(--script-visual-shift-y);
   overflow: visible;
   vertical-align: baseline;
 }
