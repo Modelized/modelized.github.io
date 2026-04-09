@@ -3,9 +3,11 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410c';
+  const assetVersion = '20260410d';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
+  const devicon = (family, file = `${family}-original.svg`) => `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${family}/${file}`;
+  const iconSvg = (path) => `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">${path}</svg>`;
 
   const projects = [
     {
@@ -30,15 +32,15 @@
         "Building native applications and computational systems. From developing macOS and iOS software to building intelligent models in Python, I focus on translating complex logic into functional code.",
       arsenalKind: "development",
       arsenal: [
-        { icon: "C", label: "C" },
-        { icon: "++", label: "C++" },
-        { icon: "Py", label: "Python" },
-        { icon: "Sw", label: "Swift" },
-        { icon: "Kt", label: "Kotlin" },
-        { icon: "JS", label: "JavaScript" },
-        { icon: "<>", label: "HTML" },
-        { icon: "$>", label: "Bash" },
-        { icon: "Mk", label: "Makefile" }
+        { iconUrl: devicon("c"), label: "C" },
+        { iconUrl: devicon("cplusplus"), label: "C++" },
+        { iconUrl: devicon("python"), label: "Python" },
+        { iconUrl: devicon("swift"), label: "Swift" },
+        { iconUrl: devicon("kotlin"), label: "Kotlin" },
+        { iconUrl: devicon("javascript"), label: "JavaScript" },
+        { iconUrl: devicon("html5"), label: "HTML" },
+        { iconUrl: devicon("bash"), label: "Bash" },
+        { iconSvg: iconSvg('<path d="M4.2 5.2h5.2M4.2 9.8h7.8M4.2 14.4h11.6"/><path d="m12.2 4.3 3.6 3.6-3.6 3.6"/>'), label: "Makefile" }
       ]
     },
     {
@@ -49,10 +51,10 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { icon: "OS", label: "Custom ROM Building" },
-        { icon: "Sec", label: "iOS Security Analysis" },
-        { icon: "RE", label: "Reverse Engineering" },
-        { icon: "VM", label: "System Virtualization" }
+        { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
+        { iconSvg: iconSvg('<path d="M6 6.2h8M6 10h5.4M6 13.8h8"/><path d="m11.4 4.5 4.1 4.1-4.1 4.1"/><path d="m8.6 15.5-4.1-4.1 4.1-4.1"/>'), label: "Reverse Engineering" },
+        { iconSvg: iconSvg('<rect x="4.2" y="4.2" width="6.2" height="6.2" rx="1.3"/><rect x="9.6" y="9.6" width="6.2" height="6.2" rx="1.3"/><path d="M9.6 7.4h2.1M10.7 6.3v2.2"/>'), label: "System Virtualization" }
       ]
     },
     {
@@ -192,7 +194,18 @@
             const icon = document.createElement("span");
             icon.className = "discipline-pill__icon";
             icon.setAttribute("aria-hidden", "true");
-            icon.textContent = item.icon;
+
+            if (item.iconUrl) {
+              const image = document.createElement("img");
+              image.src = item.iconUrl;
+              image.alt = "";
+              image.loading = "lazy";
+              image.decoding = "async";
+              image.referrerPolicy = "no-referrer";
+              icon.appendChild(image);
+            } else if (item.iconSvg) {
+              icon.innerHTML = item.iconSvg;
+            }
 
             const label = document.createElement("span");
             label.className = "discipline-pill__label";
@@ -1575,28 +1588,28 @@
     const buildLayouts = (cardWidth, cardHeight) => {
       if (portraitQuery.matches) {
         return {
-          0: createLayout(0, 0, 1, -1.2, 1),
-          1: createLayout(cardWidth * 0.15, cardHeight * 0.085, 0.952, 6.4, 0.996),
-          2: createLayout(cardWidth * 0.26, cardHeight * 0.156, 0.906, 8.2, 0.992),
-          3: createLayout(cardWidth * 0.34, cardHeight * 0.216, 0.864, 9.7, 0.988),
-          4: createLayout(cardWidth * 0.39, cardHeight * 0.272, 0.826, 11.1, 0.984),
-          "-1": createLayout(-cardWidth * 0.14, cardHeight * 0.092, 0.944, -6.8, 0.996),
-          "-2": createLayout(-cardWidth * 0.245, cardHeight * 0.164, 0.898, -8.9, 0.992),
-          "-3": createLayout(-cardWidth * 0.322, cardHeight * 0.222, 0.854, -10.4, 0.988),
-          "-4": createLayout(-cardWidth * 0.372, cardHeight * 0.278, 0.818, -11.6, 0.984)
+          0: createLayout(0, 0, 1, 0, 1),
+          1: createLayout(cardWidth * 0.175, cardHeight * 0.034, 0.942, 4.8, 1),
+          2: createLayout(cardWidth * 0.292, cardHeight * 0.061, 0.878, 7.2, 1),
+          3: createLayout(cardWidth * 0.372, cardHeight * 0.084, 0.812, 9.1, 1),
+          4: createLayout(cardWidth * 0.428, cardHeight * 0.104, 0.752, 10.4, 1),
+          "-1": createLayout(-cardWidth * 0.175, cardHeight * 0.034, 0.942, -4.8, 1),
+          "-2": createLayout(-cardWidth * 0.292, cardHeight * 0.061, 0.878, -7.2, 1),
+          "-3": createLayout(-cardWidth * 0.372, cardHeight * 0.084, 0.812, -9.1, 1),
+          "-4": createLayout(-cardWidth * 0.428, cardHeight * 0.104, 0.752, -10.4, 1)
         };
       }
 
       return {
-        0: createLayout(0, 0, 1, -0.4, 1),
-        1: createLayout(cardWidth * 0.18, cardHeight * 0.062, 0.954, 4.4, 0.996),
-        2: createLayout(cardWidth * 0.31, cardHeight * 0.108, 0.91, 6.2, 0.992),
-        3: createLayout(cardWidth * 0.405, cardHeight * 0.148, 0.87, 7.3, 0.988),
-        4: createLayout(cardWidth * 0.472, cardHeight * 0.182, 0.834, 8.2, 0.984),
-        "-1": createLayout(-cardWidth * 0.18, cardHeight * 0.066, 0.948, -4.8, 0.996),
-        "-2": createLayout(-cardWidth * 0.305, cardHeight * 0.11, 0.904, -6.6, 0.992),
-        "-3": createLayout(-cardWidth * 0.398, cardHeight * 0.148, 0.864, -7.6, 0.988),
-        "-4": createLayout(-cardWidth * 0.462, cardHeight * 0.182, 0.828, -8.6, 0.984)
+        0: createLayout(0, 0, 1, 0, 1),
+        1: createLayout(cardWidth * 0.195, cardHeight * 0.018, 0.946, 3.8, 1),
+        2: createLayout(cardWidth * 0.332, cardHeight * 0.034, 0.888, 5.8, 1),
+        3: createLayout(cardWidth * 0.432, cardHeight * 0.046, 0.83, 7.0, 1),
+        4: createLayout(cardWidth * 0.504, cardHeight * 0.056, 0.776, 8.0, 1),
+        "-1": createLayout(-cardWidth * 0.195, cardHeight * 0.018, 0.946, -3.8, 1),
+        "-2": createLayout(-cardWidth * 0.332, cardHeight * 0.034, 0.888, -5.8, 1),
+        "-3": createLayout(-cardWidth * 0.432, cardHeight * 0.046, 0.83, -7.0, 1),
+        "-4": createLayout(-cardWidth * 0.504, cardHeight * 0.056, 0.776, -8.0, 1)
       };
     };
 
@@ -1643,6 +1656,9 @@
       opacity: from.opacity + (to.opacity - from.opacity) * t
     });
 
+    const formatTransform = (layout) =>
+      `translate(calc(-50% + ${layout.x.toFixed(2)}px), ${layout.y.toFixed(2)}px) scale(${layout.scale.toFixed(4)}) rotate(${layout.rotate.toFixed(2)}deg)`;
+
     const getLayoutForOffset = (offset) => {
       const currentMetrics = getMetrics();
       const layouts = currentMetrics.layouts;
@@ -1671,6 +1687,13 @@
       }
 
       return 200 - Math.abs(offset) * 10 - (offset < 0 ? 1 : 0);
+    };
+
+    const getDepthAppearance = (offset) => {
+      const depth = Math.min(Math.abs(offset), total - 1);
+      const dim = [0, 0.035, 0.07, 0.105, 0.135][depth] || 0;
+      const lift = [0.05, 0.042, 0.034, 0.028, 0.022][depth] || 0.022;
+      return { dim, lift };
     };
 
     const syncLabels = () => {
@@ -1711,7 +1734,11 @@
         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
         card.style.zIndex = String(getZIndex(offset));
         card.style.opacity = visual.opacity.toFixed(3);
-        card.style.transform = `translate(calc(-50% + ${visual.x.toFixed(2)}px), ${visual.y.toFixed(2)}px) scale(${visual.scale.toFixed(4)}) rotate(${visual.rotate.toFixed(2)}deg)`;
+        card.style.transform = formatTransform(visual);
+
+        const appearance = getDepthAppearance(offset);
+        card.style.setProperty("--discipline-depth-dim", appearance.dim.toFixed(3));
+        card.style.setProperty("--discipline-surface-lift", appearance.lift.toFixed(3));
       });
 
       stack.dataset.stackReady = "true";
@@ -1719,8 +1746,47 @@
     };
 
     const rotate = (direction) => {
+      const outgoingIndex = activeIndex;
+      const outgoingCard = cards.find((card) => Number(card.dataset.index) === outgoingIndex);
+      const outgoingStart = getLayoutForOffset(0);
       activeIndex = mod(activeIndex + direction, total);
       applyState();
+
+      if (!outgoingCard || typeof outgoingCard.animate !== "function") {
+        return;
+      }
+
+      const finalOffset = getRelativeOffset(outgoingIndex);
+      const finalLayout = getLayoutForOffset(finalOffset);
+      const throwSign = direction > 0 ? -1 : 1;
+      const currentMetrics = getMetrics();
+      const midLayout = createLayout(
+        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.255 : 0.285),
+        currentMetrics.cardHeight * (portraitQuery.matches ? 0.022 : 0.016),
+        0.968,
+        throwSign * (portraitQuery.matches ? 8.4 : 6.4),
+        1
+      );
+
+      outgoingCard.getAnimations?.().forEach((animation) => animation.cancel());
+      outgoingCard.style.transition = "none";
+      outgoingCard.animate(
+        [
+          { transform: formatTransform(outgoingStart) },
+          { transform: formatTransform(midLayout), offset: 0.42 },
+          { transform: formatTransform(finalLayout) }
+        ],
+        {
+          duration: portraitQuery.matches ? 720 : 760,
+          easing: "cubic-bezier(0.16, 0.94, 0.22, 1)",
+          fill: "both"
+        }
+      ).finished.finally(() => {
+        outgoingCard.style.removeProperty("transition");
+        applyState();
+      }).catch(() => {
+        outgoingCard.style.removeProperty("transition");
+      });
     };
 
     const onPointerDown = (event) => {
@@ -1803,6 +1869,9 @@
     };
 
     const syncWithoutAnimation = () => {
+      cards.forEach((card) => {
+        card.getAnimations?.().forEach((animation) => animation.cancel());
+      });
       metrics = measureMetrics();
       stack.classList.add("discipline-stack-viewport--static");
       applyState();
