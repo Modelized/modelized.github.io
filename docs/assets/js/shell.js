@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260320h';
+  const assetVersion = '20260409l';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
 
@@ -96,10 +96,10 @@
   }
 
   function initYear() {
-    const year = document.getElementById("year");
-    if (year) {
-      year.textContent = new Date().getFullYear();
-    }
+    const year = String(new Date().getFullYear());
+    document.querySelectorAll("[data-year]").forEach((node) => {
+      node.textContent = year;
+    });
   }
 
   function getScrollTop() {
@@ -1210,7 +1210,8 @@
     const viewport = title.querySelector(".about-creator-viewport");
     const track = title.querySelector(".about-creator-track");
     const words = Array.from(title.querySelectorAll(".about-creator-word"));
-    if (!prefix || !suffix || !viewport || !track || !words.length) {
+    const glyphs = words.map((word) => word.querySelector(".about-creator-glyph"));
+    if (!prefix || !suffix || !viewport || !track || !words.length || glyphs.some((glyph) => !glyph)) {
       return;
     }
 
@@ -1258,11 +1259,11 @@
     const updateMetrics = () => {
       syncRockSaltSafeAreas(title);
 
-      const fallbackHeight = Math.ceil((parseFloat(getComputedStyle(title).fontSize) || 16) * 1.08);
-      const widths = words.map((word) => Math.ceil(word.getBoundingClientRect().width));
+      const fallbackHeight = Math.ceil((parseFloat(getComputedStyle(title).fontSize) || 16) * 1.18);
+      const widths = glyphs.map((glyph) => Math.ceil(glyph.getBoundingClientRect().width));
       const height = Math.max(
         fallbackHeight,
-        ...words.map((word) => Math.ceil(word.getBoundingClientRect().height))
+        ...glyphs.map((glyph) => Math.ceil(glyph.getBoundingClientRect().height))
       );
       const longestWidth = Math.max(...widths);
 
