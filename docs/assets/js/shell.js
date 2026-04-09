@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410d';
+  const assetVersion = '20260410e';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const devicon = (family, file = `${family}-original.svg`) => `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${family}/${file}`;
@@ -1564,9 +1564,10 @@
 
   function initDisciplineStack() {
     const stack = document.getElementById("discipline-stack");
+    const shell = stack?.closest(".discipline-stack-shell");
     const stage = stack?.closest(".discipline-stack-stage");
-    const prevButton = document.querySelector(".discipline-nav--prev");
-    const nextButton = document.querySelector(".discipline-nav--next");
+    const prevButton = stage?.querySelector(".discipline-nav--prev");
+    const nextButton = stage?.querySelector(".discipline-nav--next");
     const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
 
     if (!stack || !cards.length) {
@@ -1578,39 +1579,40 @@
     let activeIndex = 0;
     let pointerState = null;
     let metrics = null;
-
-    const mod = (value, base) => ((value % base) + base) % base;
+    let navigationLocked = false;
+    let activeAnimation = null;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
     const createLayout = (x, y, scale, rotate, opacity = 1) => ({ x, y, scale, rotate, opacity });
 
     const buildLayouts = (cardWidth, cardHeight) => {
-      if (portraitQuery.matches) {
-        return {
-          0: createLayout(0, 0, 1, 0, 1),
-          1: createLayout(cardWidth * 0.175, cardHeight * 0.034, 0.942, 4.8, 1),
-          2: createLayout(cardWidth * 0.292, cardHeight * 0.061, 0.878, 7.2, 1),
-          3: createLayout(cardWidth * 0.372, cardHeight * 0.084, 0.812, 9.1, 1),
-          4: createLayout(cardWidth * 0.428, cardHeight * 0.104, 0.752, 10.4, 1),
-          "-1": createLayout(-cardWidth * 0.175, cardHeight * 0.034, 0.942, -4.8, 1),
-          "-2": createLayout(-cardWidth * 0.292, cardHeight * 0.061, 0.878, -7.2, 1),
-          "-3": createLayout(-cardWidth * 0.372, cardHeight * 0.084, 0.812, -9.1, 1),
-          "-4": createLayout(-cardWidth * 0.428, cardHeight * 0.104, 0.752, -10.4, 1)
-        };
-      }
+      const steps = portraitQuery.matches
+        ? [
+            { x: 0, y: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.184, y: cardHeight * 0.016, scale: 0.934, rotate: 4.9 },
+            { x: cardWidth * 0.294, y: cardHeight * 0.03, scale: 0.864, rotate: 6.9 },
+            { x: cardWidth * 0.37, y: cardHeight * 0.044, scale: 0.796, rotate: 8.3 },
+            { x: cardWidth * 0.422, y: cardHeight * 0.055, scale: 0.736, rotate: 9.2 }
+          ]
+        : [
+            { x: 0, y: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.206, y: cardHeight * 0.012, scale: 0.94, rotate: 4.1 },
+            { x: cardWidth * 0.328, y: cardHeight * 0.022, scale: 0.874, rotate: 5.8 },
+            { x: cardWidth * 0.414, y: cardHeight * 0.031, scale: 0.81, rotate: 6.9 },
+            { x: cardWidth * 0.47, y: cardHeight * 0.038, scale: 0.754, rotate: 7.6 }
+          ];
 
-      return {
-        0: createLayout(0, 0, 1, 0, 1),
-        1: createLayout(cardWidth * 0.195, cardHeight * 0.018, 0.946, 3.8, 1),
-        2: createLayout(cardWidth * 0.332, cardHeight * 0.034, 0.888, 5.8, 1),
-        3: createLayout(cardWidth * 0.432, cardHeight * 0.046, 0.83, 7.0, 1),
-        4: createLayout(cardWidth * 0.504, cardHeight * 0.056, 0.776, 8.0, 1),
-        "-1": createLayout(-cardWidth * 0.195, cardHeight * 0.018, 0.946, -3.8, 1),
-        "-2": createLayout(-cardWidth * 0.332, cardHeight * 0.034, 0.888, -5.8, 1),
-        "-3": createLayout(-cardWidth * 0.432, cardHeight * 0.046, 0.83, -7.0, 1),
-        "-4": createLayout(-cardWidth * 0.504, cardHeight * 0.056, 0.776, -8.0, 1)
-      };
+      return steps.reduce((layouts, step, depth) => {
+        if (depth === 0) {
+          layouts[0] = createLayout(step.x, step.y, step.scale, step.rotate, 1);
+          return layouts;
+        }
+
+        layouts[depth] = createLayout(step.x, step.y, step.scale, step.rotate, 1);
+        layouts[-depth] = createLayout(-step.x, step.y, step.scale, -step.rotate, 1);
+        return layouts;
+      }, {});
     };
 
     const measureMetrics = () => {
@@ -1625,14 +1627,16 @@
 
       const currentHeight = firstCard?.offsetHeight || stack.clientHeight || 0;
       const cardHeight = Math.ceil(Math.max(currentHeight, maxContentHeight));
-      stack.style.setProperty("--discipline-card-height", `${cardHeight}px`);
-
       const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
+      shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
+      shell?.style.setProperty("--discipline-card-width-resolved", `${cardWidth}px`);
+
       const layouts = buildLayouts(cardWidth, cardHeight);
       const layoutValues = Object.values(layouts);
+      const minTop = Math.min(...layoutValues.map((layout) => layout.y));
       const maxBottom = Math.max(...layoutValues.map((layout) => layout.y + cardHeight * layout.scale));
-      const topPad = Math.ceil(cardHeight * 0.035 + 14);
-      const bottomPad = Math.ceil(Math.max(56, maxBottom - cardHeight + cardHeight * 0.1 + 18));
+      const topPad = Math.ceil(Math.max(16, -minTop + cardHeight * 0.018 + 10));
+      const bottomPad = Math.ceil(Math.max(28, maxBottom - cardHeight + cardHeight * 0.045 + 14));
 
       stage?.style.setProperty("--discipline-stack-pad-top", `${topPad}px`);
       stage?.style.setProperty("--discipline-stack-pad-bottom", `${bottomPad}px`);
@@ -1661,49 +1665,41 @@
 
     const getLayoutForOffset = (offset) => {
       const currentMetrics = getMetrics();
-      const layouts = currentMetrics.layouts;
-      const normalized = offset === 0 ? 0 : Math.sign(offset) * Math.min(Math.abs(offset), total - 1);
-      const base = layouts[normalized] || layouts[0];
-      const extra = Math.max(0, Math.abs(offset) - (total - 1));
-
-      if (!extra) {
-        return base;
-      }
-
-      return createLayout(
-        base.x + Math.sign(offset) * currentMetrics.cardWidth * 0.11 * extra,
-        base.y + currentMetrics.cardHeight * 0.055 * extra,
-        Math.max(0.72, base.scale - 0.05 * extra),
-        base.rotate + Math.sign(offset) * 1.8 * extra,
-        base.opacity
-      );
+      const normalized = offset === 0 ? 0 : clamp(offset, -(total - 1), total - 1);
+      return currentMetrics.layouts[normalized] || currentMetrics.layouts[0];
     };
 
-    const getRelativeOffset = (index, baseIndex = activeIndex) => index - mod(baseIndex, total);
+    const getRelativeOffset = (index, baseIndex = activeIndex) => index - baseIndex;
 
     const getZIndex = (offset) => {
       if (offset === 0) {
         return 200;
       }
 
-      return 200 - Math.abs(offset) * 10 - (offset < 0 ? 1 : 0);
+      return 200 - Math.abs(offset) * 12;
     };
 
     const getDepthAppearance = (offset) => {
       const depth = Math.min(Math.abs(offset), total - 1);
-      const dim = [0, 0.035, 0.07, 0.105, 0.135][depth] || 0;
-      const lift = [0.05, 0.042, 0.034, 0.028, 0.022][depth] || 0.022;
+      const dim = [0, 0.052, 0.096, 0.138, 0.176][depth] || 0.176;
+      const lift = [0.052, 0.039, 0.028, 0.02, 0.014][depth] || 0.014;
       return { dim, lift };
     };
 
     const syncLabels = () => {
-      const active = disciplines[mod(activeIndex, total)];
-      const previous = disciplines[mod(activeIndex - 1, total)];
-      const next = disciplines[mod(activeIndex + 1, total)];
+      const active = disciplines[activeIndex];
+      const previous = activeIndex > 0 ? disciplines[activeIndex - 1] : null;
+      const next = activeIndex < total - 1 ? disciplines[activeIndex + 1] : null;
 
       stack.setAttribute("aria-label", `Core disciplines cards. ${active.title} is in focus.`);
-      prevButton?.setAttribute("aria-label", `Show previous discipline, ${previous.title}`);
-      nextButton?.setAttribute("aria-label", `Show next discipline, ${next.title}`);
+      if (prevButton) {
+        prevButton.disabled = navigationLocked || activeIndex === 0;
+        prevButton.setAttribute("aria-label", previous ? `Show previous discipline, ${previous.title}` : "No previous discipline");
+      }
+      if (nextButton) {
+        nextButton.disabled = navigationLocked || activeIndex === total - 1;
+        nextButton.setAttribute("aria-label", next ? `Show next discipline, ${next.title}` : "No next discipline");
+      }
       stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
       if (portraitQuery.matches) {
         stack.removeAttribute("tabindex");
@@ -1745,52 +1741,101 @@
       syncLabels();
     };
 
+    const cancelAnimations = () => {
+      activeAnimation?.cancel?.();
+      activeAnimation = null;
+      cards.forEach((card) => {
+        card.getAnimations?.().forEach((animation) => animation.cancel());
+        card.style.removeProperty("transition");
+      });
+    };
+
     const rotate = (direction) => {
+      if (!direction || navigationLocked) {
+        return false;
+      }
+
+      const targetIndex = clamp(activeIndex + direction, 0, total - 1);
+      if (targetIndex === activeIndex) {
+        applyState();
+        return false;
+      }
+
+      cancelAnimations();
+      navigationLocked = true;
+      syncLabels();
+
       const outgoingIndex = activeIndex;
-      const outgoingCard = cards.find((card) => Number(card.dataset.index) === outgoingIndex);
+      const outgoingCard = cards[outgoingIndex];
       const outgoingStart = getLayoutForOffset(0);
-      activeIndex = mod(activeIndex + direction, total);
+      const currentMetrics = getMetrics();
+      const throwSign = direction > 0 ? -1 : 1;
+
+      activeIndex = targetIndex;
       applyState();
 
-      if (!outgoingCard || typeof outgoingCard.animate !== "function") {
-        return;
+      if (!outgoingCard || typeof outgoingCard.animate !== "function" || prefersReducedMotion) {
+        navigationLocked = false;
+        applyState();
+        return true;
       }
 
       const finalOffset = getRelativeOffset(outgoingIndex);
       const finalLayout = getLayoutForOffset(finalOffset);
-      const throwSign = direction > 0 ? -1 : 1;
-      const currentMetrics = getMetrics();
       const midLayout = createLayout(
-        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.255 : 0.285),
-        currentMetrics.cardHeight * (portraitQuery.matches ? 0.022 : 0.016),
-        0.968,
-        throwSign * (portraitQuery.matches ? 8.4 : 6.4),
+        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.41 : 0.36),
+        currentMetrics.cardHeight * (portraitQuery.matches ? 0.01 : 0.008),
+        0.976,
+        throwSign * (portraitQuery.matches ? 11.8 : 9.2),
+        1
+      );
+      const tuckLayout = createLayout(
+        finalLayout.x * 1.06,
+        Math.max(0, finalLayout.y - currentMetrics.cardHeight * 0.01),
+        Math.min(0.99, finalLayout.scale * 0.996),
+        finalLayout.rotate + throwSign * 1.15,
         1
       );
 
-      outgoingCard.getAnimations?.().forEach((animation) => animation.cancel());
       outgoingCard.style.transition = "none";
-      outgoingCard.animate(
+      const animation = outgoingCard.animate(
         [
           { transform: formatTransform(outgoingStart) },
           { transform: formatTransform(midLayout), offset: 0.42 },
+          { transform: formatTransform(tuckLayout), offset: 0.76 },
           { transform: formatTransform(finalLayout) }
         ],
         {
-          duration: portraitQuery.matches ? 720 : 760,
-          easing: "cubic-bezier(0.16, 0.94, 0.22, 1)",
+          duration: portraitQuery.matches ? 820 : 780,
+          easing: "cubic-bezier(0.18, 0.92, 0.22, 1)",
           fill: "both"
         }
-      ).finished.finally(() => {
+      );
+
+      activeAnimation = animation;
+      animation.finished.then(() => {
+        if (activeAnimation !== animation) {
+          return;
+        }
+
+        activeAnimation = null;
         outgoingCard.style.removeProperty("transition");
+        navigationLocked = false;
         applyState();
       }).catch(() => {
-        outgoingCard.style.removeProperty("transition");
+        if (activeAnimation === animation) {
+          activeAnimation = null;
+          outgoingCard.style.removeProperty("transition");
+          navigationLocked = false;
+          applyState();
+        }
       });
+
+      return true;
     };
 
     const onPointerDown = (event) => {
-      if (!portraitQuery.matches || !event.isPrimary) {
+      if (!portraitQuery.matches || !event.isPrimary || navigationLocked) {
         return;
       }
 
@@ -1839,8 +1884,11 @@
       event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
       const raw = deltaX / (width * 0.24);
-      const limited = 0.74 * (1 - Math.exp(-Math.abs(raw) * 1.45));
-      const progress = clamp(Math.sign(raw || 0) * limited, -0.74, 0.74);
+      const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
+      const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
+      const limit = outOfBounds ? 0.16 : 0.58;
+      const resistance = outOfBounds ? 2.35 : 1.55;
+      const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
     };
@@ -1861,17 +1909,20 @@
         return;
       }
 
-      if ((Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.05) {
-        rotate(progress < 0 ? 1 : -1);
+      const direction = progress < 0 ? 1 : -1;
+      const targetIndex = clamp(activeIndex + direction, 0, total - 1);
+      const hasTarget = targetIndex !== activeIndex;
+      if (hasTarget && (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.24) && Math.abs(deltaX) > Math.abs(deltaY) * 1.05) {
+        rotate(direction);
       } else {
         applyState();
       }
     };
 
     const syncWithoutAnimation = () => {
-      cards.forEach((card) => {
-        card.getAnimations?.().forEach((animation) => animation.cancel());
-      });
+      cancelAnimations();
+      navigationLocked = false;
+      pointerState = null;
       metrics = measureMetrics();
       stack.classList.add("discipline-stack-viewport--static");
       applyState();
@@ -1911,6 +1962,7 @@
 
     window.addEventListener("resize", syncWithoutAnimation);
     window.addEventListener("orientationchange", syncWithoutAnimation);
+    window.addEventListener("pageshow", syncWithoutAnimation);
   }
 
   function initParallax() {

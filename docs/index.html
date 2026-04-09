@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260410d">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260410e">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -100,18 +100,20 @@
         </div>
 
         <div class="discipline-stack-shell reveal" data-reveal>
-          <div class="discipline-stack-stage">
-            <button class="discipline-nav discipline-nav--prev" type="button" aria-label="Show previous discipline">
-              <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                <path d="M11.8 4.8 6.6 10l5.2 5.2"/>
-              </svg>
-            </button>
-            <div id="discipline-stack" class="discipline-stack-viewport" aria-live="polite" aria-label="Core disciplines cards"></div>
-            <button class="discipline-nav discipline-nav--next" type="button" aria-label="Show next discipline">
-              <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                <path d="m8.2 4.8 5.2 5.2-5.2 5.2"/>
-              </svg>
-            </button>
+          <div class="discipline-stack-bleed">
+            <div class="discipline-stack-stage">
+              <button class="discipline-nav discipline-nav--prev" type="button" aria-label="Show previous discipline">
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M11.8 4.8 6.6 10l5.2 5.2"/>
+                </svg>
+              </button>
+              <div id="discipline-stack" class="discipline-stack-viewport" aria-live="polite" aria-label="Core disciplines cards"></div>
+              <button class="discipline-nav discipline-nav--next" type="button" aria-label="Show next discipline">
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="m8.2 4.8 5.2 5.2-5.2 5.2"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -176,6 +178,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260410d" defer></script>
+  <script src="assets/js/shell.js?v=20260410e" defer></script>
 </body>
 </html>
