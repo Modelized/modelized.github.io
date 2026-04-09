@@ -1124,16 +1124,93 @@
     }
   }
 
+  const rockSaltCanvas = document.createElement("canvas");
+  const rockSaltContext = rockSaltCanvas.getContext("2d");
+
+  function applyRockSaltSafeArea(element, safe) {
+    element.style.setProperty("--script-safe-top", `${safe.top}px`);
+    element.style.setProperty("--script-safe-right", `${safe.right}px`);
+    element.style.setProperty("--script-safe-bottom", `${safe.bottom}px`);
+    element.style.setProperty("--script-safe-left", `${safe.left}px`);
+    element.style.setProperty("--script-safe-top-neg", `${-safe.top}px`);
+    element.style.setProperty("--script-safe-right-neg", `${-safe.right}px`);
+    element.style.setProperty("--script-safe-bottom-neg", `${-safe.bottom}px`);
+    element.style.setProperty("--script-safe-left-neg", `${-safe.left}px`);
+  }
+
+  function measureRockSaltSafeArea(element) {
+    if (!rockSaltContext) {
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+
+    const computed = getComputedStyle(element);
+    const text = (element.textContent || "").trim().toUpperCase();
+    if (!text) {
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+
+    const fontSize = parseFloat(computed.fontSize) || 16;
+    const lineHeightValue = parseFloat(computed.lineHeight);
+    const lineHeight = Number.isFinite(lineHeightValue) ? lineHeightValue : fontSize;
+
+    rockSaltContext.font = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
+
+    const metrics = rockSaltContext.measureText(text);
+    const advanceWidth = metrics.width || 0;
+    const bboxRight = metrics.actualBoundingBoxRight || advanceWidth;
+    const bboxLeft = metrics.actualBoundingBoxLeft || 0;
+    const bboxHeight = (metrics.actualBoundingBoxAscent || fontSize * 0.8) + (metrics.actualBoundingBoxDescent || fontSize * 0.2);
+    const extraHeight = Math.max(0, bboxHeight - lineHeight);
+    const ascentRatio = bboxHeight > 0 ? (metrics.actualBoundingBoxAscent || bboxHeight * 0.8) / bboxHeight : 0.8;
+
+    return {
+      top: Math.max(1, Math.ceil(extraHeight * ascentRatio + 1)),
+      right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + 1)),
+      bottom: Math.max(1, Math.ceil(extraHeight * (1 - ascentRatio) + 1)),
+      left: Math.max(1, Math.ceil(bboxLeft + 1))
+    };
+  }
+
+  function syncRockSaltSafeAreas(scope = document) {
+    const elements = Array.from(scope.querySelectorAll?.(".tagline-script") || []);
+    elements.forEach((element) => {
+      applyRockSaltSafeArea(element, measureRockSaltSafeArea(element));
+    });
+  }
+
+  function initRockSaltSafeAreas() {
+    const syncAll = () => syncRockSaltSafeAreas(document);
+    const settledSync = createSettledScheduler(syncAll);
+
+    syncAll();
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(syncAll).catch(syncAll);
+    }
+
+    window.addEventListener("resize", () => {
+      settledSync.schedule(90);
+    });
+    window.addEventListener("orientationchange", () => {
+      settledSync.schedule(140);
+    });
+    window.addEventListener("pageshow", () => {
+      settledSync.schedule(80);
+    });
+  }
+
   function initAboutCreator() {
     const title = document.querySelector(".about-creator-title");
     if (!title) {
       return;
     }
 
+    const prefix = title.querySelector(".about-creator-prefix");
+    const suffix = title.querySelector(".about-creator-suffix");
     const viewport = title.querySelector(".about-creator-viewport");
     const track = title.querySelector(".about-creator-track");
     const words = Array.from(title.querySelectorAll(".about-creator-word"));
-    if (!viewport || !track || !words.length) {
+    if (!prefix || !suffix || !viewport || !track || !words.length) {
       return;
     }
 
@@ -1159,16 +1236,39 @@
       track.style.transition = value;
     };
 
+    const updateLineBreaks = (longestWidth) => {
+      const availableWidth = Math.round(title.clientWidth || title.getBoundingClientRect().width || 0);
+      if (!availableWidth) {
+        return;
+      }
+
+      const columnGap = parseFloat(getComputedStyle(title).columnGap) || 0;
+      const prefixWidth = Math.ceil(prefix.getBoundingClientRect().width);
+      const suffixWidth = Math.ceil(suffix.getBoundingClientRect().width);
+
+      const breakBeforeWord = prefixWidth + columnGap + longestWidth > availableWidth;
+      const breakBeforeBehind = (breakBeforeWord
+        ? longestWidth + columnGap + suffixWidth
+        : prefixWidth + columnGap + longestWidth + columnGap + suffixWidth) > availableWidth;
+
+      title.classList.toggle("about-creator-break-before-word", breakBeforeWord);
+      title.classList.toggle("about-creator-break-before-behind", breakBeforeBehind);
+    };
+
     const updateMetrics = () => {
+      syncRockSaltSafeAreas(title);
+
       const fallbackHeight = Math.ceil((parseFloat(getComputedStyle(title).fontSize) || 16) * 1.08);
       const widths = words.map((word) => Math.ceil(word.getBoundingClientRect().width));
       const height = Math.max(
         fallbackHeight,
         ...words.map((word) => Math.ceil(word.getBoundingClientRect().height))
       );
+      const longestWidth = Math.max(...widths);
 
       metrics = { height, widths };
       title.style.setProperty("--about-creator-height", `${height}px`);
+      updateLineBreaks(longestWidth);
       return metrics;
     };
 
@@ -1442,6 +1542,7 @@
     initSectionDepth();
     initReveal();
     initHeroIntro();
+    initRockSaltSafeAreas();
     initAboutCreator();
     initParallax();
     initHoverTracking();
