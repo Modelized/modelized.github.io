@@ -3,10 +3,10 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410e';
+  const assetVersion = '20260410f';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
-  const devicon = (family, file = `${family}-original.svg`) => `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${family}/${file}`;
+  const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
   const iconSvg = (path) => `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">${path}</svg>`;
 
   const projects = [
@@ -32,14 +32,14 @@
         "Building native applications and computational systems. From developing macOS and iOS software to building intelligent models in Python, I focus on translating complex logic into functional code.",
       arsenalKind: "development",
       arsenal: [
-        { iconUrl: devicon("c"), label: "C" },
-        { iconUrl: devicon("cplusplus"), label: "C++" },
-        { iconUrl: devicon("python"), label: "Python" },
-        { iconUrl: devicon("swift"), label: "Swift" },
-        { iconUrl: devicon("kotlin"), label: "Kotlin" },
-        { iconUrl: devicon("javascript"), label: "JavaScript" },
-        { iconUrl: devicon("html5"), label: "HTML" },
-        { iconUrl: devicon("bash"), label: "Bash" },
+        { iconUrl: simpleIcon("c"), label: "C" },
+        { iconUrl: simpleIcon("cplusplus"), label: "C++" },
+        { iconUrl: simpleIcon("python"), label: "Python" },
+        { iconUrl: simpleIcon("swift"), label: "Swift" },
+        { iconUrl: simpleIcon("kotlin"), label: "Kotlin" },
+        { iconUrl: simpleIcon("javascript"), label: "JavaScript" },
+        { iconUrl: simpleIcon("html5"), label: "HTML" },
+        { iconUrl: simpleIcon("gnubash"), label: "Bash" },
         { iconSvg: iconSvg('<path d="M4.2 5.2h5.2M4.2 9.8h7.8M4.2 14.4h11.6"/><path d="m12.2 4.3 3.6 3.6-3.6 3.6"/>'), label: "Makefile" }
       ]
     },
@@ -53,7 +53,7 @@
       arsenal: [
         { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "Custom ROM Building" },
         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
-        { iconSvg: iconSvg('<path d="M6 6.2h8M6 10h5.4M6 13.8h8"/><path d="m11.4 4.5 4.1 4.1-4.1 4.1"/><path d="m8.6 15.5-4.1-4.1 4.1-4.1"/>'), label: "Reverse Engineering" },
+        { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
         { iconSvg: iconSvg('<rect x="4.2" y="4.2" width="6.2" height="6.2" rx="1.3"/><rect x="9.6" y="9.6" width="6.2" height="6.2" rx="1.3"/><path d="M9.6 7.4h2.1M10.7 6.3v2.2"/>'), label: "System Virtualization" }
       ]
     },
@@ -1566,8 +1566,6 @@
     const stack = document.getElementById("discipline-stack");
     const shell = stack?.closest(".discipline-stack-shell");
     const stage = stack?.closest(".discipline-stack-stage");
-    const prevButton = stage?.querySelector(".discipline-nav--prev");
-    const nextButton = stage?.querySelector(".discipline-nav--next");
     const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
 
     if (!stack || !cards.length) {
@@ -1579,40 +1577,65 @@
     let activeIndex = 0;
     let pointerState = null;
     let metrics = null;
-    let navigationLocked = false;
     let activeAnimation = null;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
+    const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
 
-    const createLayout = (x, y, scale, rotate, opacity = 1) => ({ x, y, scale, rotate, opacity });
-
-    const buildLayouts = (cardWidth, cardHeight) => {
+    const buildLayouts = (cardWidth) => {
       const steps = portraitQuery.matches
         ? [
-            { x: 0, y: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.184, y: cardHeight * 0.016, scale: 0.934, rotate: 4.9 },
-            { x: cardWidth * 0.294, y: cardHeight * 0.03, scale: 0.864, rotate: 6.9 },
-            { x: cardWidth * 0.37, y: cardHeight * 0.044, scale: 0.796, rotate: 8.3 },
-            { x: cardWidth * 0.422, y: cardHeight * 0.055, scale: 0.736, rotate: 9.2 }
+            { x: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.19, scale: 0.912, rotate: 4.2 },
+            { x: cardWidth * 0.302, scale: 0.828, rotate: 6.2 },
+            { x: cardWidth * 0.378, scale: 0.752, rotate: 7.5 },
+            { x: cardWidth * 0.428, scale: 0.688, rotate: 8.4 }
           ]
         : [
-            { x: 0, y: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.206, y: cardHeight * 0.012, scale: 0.94, rotate: 4.1 },
-            { x: cardWidth * 0.328, y: cardHeight * 0.022, scale: 0.874, rotate: 5.8 },
-            { x: cardWidth * 0.414, y: cardHeight * 0.031, scale: 0.81, rotate: 6.9 },
-            { x: cardWidth * 0.47, y: cardHeight * 0.038, scale: 0.754, rotate: 7.6 }
+            { x: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.214, scale: 0.924, rotate: 3.7 },
+            { x: cardWidth * 0.338, scale: 0.846, rotate: 5.1 },
+            { x: cardWidth * 0.424, scale: 0.772, rotate: 6.2 },
+            { x: cardWidth * 0.482, scale: 0.71, rotate: 7.0 }
           ];
 
       return steps.reduce((layouts, step, depth) => {
+        const base = createLayout(step.x, 0, step.scale, step.rotate);
         if (depth === 0) {
-          layouts[0] = createLayout(step.x, step.y, step.scale, step.rotate, 1);
+          layouts[0] = base;
           return layouts;
         }
 
-        layouts[depth] = createLayout(step.x, step.y, step.scale, step.rotate, 1);
-        layouts[-depth] = createLayout(-step.x, step.y, step.scale, -step.rotate, 1);
+        layouts[depth] = base;
+        layouts[-depth] = createLayout(-step.x, 0, step.scale, -step.rotate);
         return layouts;
       }, {});
+    };
+
+    const formatTransform = (layout) =>
+      `translate(calc(-50% + ${layout.x.toFixed(2)}px), ${layout.y.toFixed(2)}px) scale(${layout.scale.toFixed(4)}) rotate(${layout.rotate.toFixed(2)}deg)`;
+
+    const interpolateLayout = (from, to, t) => ({
+      x: from.x + (to.x - from.x) * t,
+      y: from.y + (to.y - from.y) * t,
+      scale: from.scale + (to.scale - from.scale) * t,
+      rotate: from.rotate + (to.rotate - from.rotate) * t
+    });
+
+    const getDepthAppearance = (offset) => {
+      const depth = Math.min(Math.abs(offset), total - 1);
+      const dim = [0.028, 0.11, 0.18, 0.24, 0.29][depth] || 0.29;
+      const lift = [0.026, 0.018, 0.012, 0.008, 0.004][depth] || 0.004;
+      return { dim, lift };
+    };
+
+    const getZIndex = (offset) => {
+      if (offset === 0) {
+        return 200;
+      }
+
+      return 200 - Math.abs(offset) * 14;
     };
 
     const measureMetrics = () => {
@@ -1625,43 +1648,30 @@
         maxContentHeight = Math.max(maxContentHeight, contentHeight);
       });
 
-      const currentHeight = firstCard?.offsetHeight || stack.clientHeight || 0;
-      const cardHeight = Math.ceil(Math.max(currentHeight, maxContentHeight));
       const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
-      shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
+      const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
+      const currentHeight = firstCard?.offsetHeight || stack.clientHeight || 0;
+      const cardHeight = Math.ceil(Math.max(currentHeight, maxContentHeight + breathingRoom));
+      const pad = Math.ceil(Math.max(28, cardHeight * 0.08));
+
       shell?.style.setProperty("--discipline-card-width-resolved", `${cardWidth}px`);
+      shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
+      stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
+      stage?.style.setProperty("--discipline-stack-pad-bottom", `${pad}px`);
 
-      const layouts = buildLayouts(cardWidth, cardHeight);
-      const layoutValues = Object.values(layouts);
-      const minTop = Math.min(...layoutValues.map((layout) => layout.y));
-      const maxBottom = Math.max(...layoutValues.map((layout) => layout.y + cardHeight * layout.scale));
-      const topPad = Math.ceil(Math.max(16, -minTop + cardHeight * 0.018 + 10));
-      const bottomPad = Math.ceil(Math.max(28, maxBottom - cardHeight + cardHeight * 0.045 + 14));
-
-      stage?.style.setProperty("--discipline-stack-pad-top", `${topPad}px`);
-      stage?.style.setProperty("--discipline-stack-pad-bottom", `${bottomPad}px`);
-
-      return { cardWidth, cardHeight, layouts };
+      return {
+        cardWidth,
+        cardHeight,
+        layouts: buildLayouts(cardWidth)
+      };
     };
 
     const getMetrics = () => {
       if (!metrics) {
         metrics = measureMetrics();
       }
-
       return metrics;
     };
-
-    const interpolateLayout = (from, to, t) => ({
-      x: from.x + (to.x - from.x) * t,
-      y: from.y + (to.y - from.y) * t,
-      scale: from.scale + (to.scale - from.scale) * t,
-      rotate: from.rotate + (to.rotate - from.rotate) * t,
-      opacity: from.opacity + (to.opacity - from.opacity) * t
-    });
-
-    const formatTransform = (layout) =>
-      `translate(calc(-50% + ${layout.x.toFixed(2)}px), ${layout.y.toFixed(2)}px) scale(${layout.scale.toFixed(4)}) rotate(${layout.rotate.toFixed(2)}deg)`;
 
     const getLayoutForOffset = (offset) => {
       const currentMetrics = getMetrics();
@@ -1669,37 +1679,19 @@
       return currentMetrics.layouts[normalized] || currentMetrics.layouts[0];
     };
 
-    const getRelativeOffset = (index, baseIndex = activeIndex) => index - baseIndex;
-
-    const getZIndex = (offset) => {
-      if (offset === 0) {
-        return 200;
-      }
-
-      return 200 - Math.abs(offset) * 12;
-    };
-
-    const getDepthAppearance = (offset) => {
-      const depth = Math.min(Math.abs(offset), total - 1);
-      const dim = [0, 0.052, 0.096, 0.138, 0.176][depth] || 0.176;
-      const lift = [0.052, 0.039, 0.028, 0.02, 0.014][depth] || 0.014;
-      return { dim, lift };
+    const cancelActiveMotion = () => {
+      activeAnimation?.cancel?.();
+      activeAnimation = null;
+      cards.forEach((card) => {
+        card.classList.remove("is-slipping-left", "is-slipping-right");
+        card.style.removeProperty("transition");
+        card.getAnimations?.().forEach((animation) => animation.cancel());
+      });
     };
 
     const syncLabels = () => {
       const active = disciplines[activeIndex];
-      const previous = activeIndex > 0 ? disciplines[activeIndex - 1] : null;
-      const next = activeIndex < total - 1 ? disciplines[activeIndex + 1] : null;
-
       stack.setAttribute("aria-label", `Core disciplines cards. ${active.title} is in focus.`);
-      if (prevButton) {
-        prevButton.disabled = navigationLocked || activeIndex === 0;
-        prevButton.setAttribute("aria-label", previous ? `Show previous discipline, ${previous.title}` : "No previous discipline");
-      }
-      if (nextButton) {
-        nextButton.disabled = navigationLocked || activeIndex === total - 1;
-        nextButton.setAttribute("aria-label", next ? `Show next discipline, ${next.title}` : "No next discipline");
-      }
       stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
       if (portraitQuery.matches) {
         stack.removeAttribute("tabindex");
@@ -1710,29 +1702,30 @@
 
     const applyState = ({ dragProgress = 0 } = {}) => {
       const isDragging = portraitQuery.matches && Math.abs(dragProgress) > 0.001;
-      const direction = dragProgress === 0 ? 0 : dragProgress > 0 ? 1 : -1;
+      const travel = dragProgress === 0 ? 0 : dragProgress < 0 ? 1 : -1;
 
       stack.classList.toggle("is-dragging", isDragging);
 
       cards.forEach((card, index) => {
-        const offset = getRelativeOffset(index);
+        const offset = index - activeIndex;
         let visual = getLayoutForOffset(offset);
 
-        if (isDragging) {
-          const target = getLayoutForOffset(offset + direction);
+        if (isDragging && travel !== 0) {
+          const target = getLayoutForOffset(offset + travel);
           visual = interpolateLayout(visual, target, Math.abs(dragProgress));
         }
 
+        const appearance = getDepthAppearance(offset);
+        const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
+
         card.dataset.stackPos = String(offset);
         card.dataset.stackDepth = String(Math.abs(offset));
-        card.dataset.stackSide = offset === 0 ? "front" : offset < 0 ? "left" : "right";
+        card.dataset.stackSide = getSide(offset);
         card.classList.toggle("is-active", offset === 0);
+        card.classList.toggle("is-neighbor", isNeighbor);
         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
         card.style.zIndex = String(getZIndex(offset));
-        card.style.opacity = visual.opacity.toFixed(3);
         card.style.transform = formatTransform(visual);
-
-        const appearance = getDepthAppearance(offset);
         card.style.setProperty("--discipline-depth-dim", appearance.dim.toFixed(3));
         card.style.setProperty("--discipline-surface-lift", appearance.lift.toFixed(3));
       });
@@ -1741,17 +1734,53 @@
       syncLabels();
     };
 
-    const cancelAnimations = () => {
-      activeAnimation?.cancel?.();
-      activeAnimation = null;
-      cards.forEach((card) => {
-        card.getAnimations?.().forEach((animation) => animation.cancel());
+    const animateOutgoingCard = (card, direction, startLayout) => {
+      if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
+        return;
+      }
+
+      const currentMetrics = getMetrics();
+      const throwSign = direction > 0 ? -1 : 1;
+      const finalLayout = getLayoutForOffset(direction > 0 ? -1 : 1);
+      const midLayout = createLayout(
+        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.34 : 0.3),
+        0,
+        0.972,
+        throwSign * (portraitQuery.matches ? 9.8 : 8.2)
+      );
+      const tuckLayout = createLayout(
+        finalLayout.x * 1.12,
+        0,
+        Math.min(0.985, finalLayout.scale * 1.01),
+        finalLayout.rotate + throwSign * 1.1
+      );
+
+      card.style.transition = "none";
+      const animation = card.animate(
+        [
+          { transform: formatTransform(startLayout) },
+          { transform: formatTransform(midLayout), offset: 0.5 },
+          { transform: formatTransform(tuckLayout), offset: 0.82 },
+          { transform: formatTransform(finalLayout) }
+        ],
+        {
+          duration: portraitQuery.matches ? 860 : 740,
+          easing: "cubic-bezier(0.2, 0.82, 0.22, 1)",
+          fill: "both"
+        }
+      );
+
+      activeAnimation = animation;
+      animation.finished.finally(() => {
+        if (activeAnimation === animation) {
+          activeAnimation = null;
+        }
         card.style.removeProperty("transition");
       });
     };
 
     const rotate = (direction) => {
-      if (!direction || navigationLocked) {
+      if (!direction) {
         return false;
       }
 
@@ -1761,84 +1790,34 @@
         return false;
       }
 
-      cancelAnimations();
-      navigationLocked = true;
-      syncLabels();
-
       const outgoingIndex = activeIndex;
       const outgoingCard = cards[outgoingIndex];
       const outgoingStart = getLayoutForOffset(0);
-      const currentMetrics = getMetrics();
-      const throwSign = direction > 0 ? -1 : 1;
 
+      cancelActiveMotion();
       activeIndex = targetIndex;
       applyState();
-
-      if (!outgoingCard || typeof outgoingCard.animate !== "function" || prefersReducedMotion) {
-        navigationLocked = false;
-        applyState();
-        return true;
-      }
-
-      const finalOffset = getRelativeOffset(outgoingIndex);
-      const finalLayout = getLayoutForOffset(finalOffset);
-      const midLayout = createLayout(
-        throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.41 : 0.36),
-        currentMetrics.cardHeight * (portraitQuery.matches ? 0.01 : 0.008),
-        0.976,
-        throwSign * (portraitQuery.matches ? 11.8 : 9.2),
-        1
-      );
-      const tuckLayout = createLayout(
-        finalLayout.x * 1.06,
-        Math.max(0, finalLayout.y - currentMetrics.cardHeight * 0.01),
-        Math.min(0.99, finalLayout.scale * 0.996),
-        finalLayout.rotate + throwSign * 1.15,
-        1
-      );
-
-      outgoingCard.style.transition = "none";
-      const animation = outgoingCard.animate(
-        [
-          { transform: formatTransform(outgoingStart) },
-          { transform: formatTransform(midLayout), offset: 0.42 },
-          { transform: formatTransform(tuckLayout), offset: 0.76 },
-          { transform: formatTransform(finalLayout) }
-        ],
-        {
-          duration: portraitQuery.matches ? 820 : 780,
-          easing: "cubic-bezier(0.18, 0.92, 0.22, 1)",
-          fill: "both"
-        }
-      );
-
-      activeAnimation = animation;
-      animation.finished.then(() => {
-        if (activeAnimation !== animation) {
-          return;
-        }
-
-        activeAnimation = null;
-        outgoingCard.style.removeProperty("transition");
-        navigationLocked = false;
-        applyState();
-      }).catch(() => {
-        if (activeAnimation === animation) {
-          activeAnimation = null;
-          outgoingCard.style.removeProperty("transition");
-          navigationLocked = false;
-          applyState();
-        }
-      });
-
+      animateOutgoingCard(outgoingCard, direction, outgoingStart);
       return true;
     };
 
+    const syncWithoutAnimation = () => {
+      cancelActiveMotion();
+      pointerState = null;
+      metrics = measureMetrics();
+      stack.classList.add("discipline-stack-viewport--static");
+      applyState();
+      requestAnimationFrame(() => {
+        stack.classList.remove("discipline-stack-viewport--static");
+      });
+    };
+
     const onPointerDown = (event) => {
-      if (!portraitQuery.matches || !event.isPrimary || navigationLocked) {
+      if (!portraitQuery.matches || !event.isPrimary) {
         return;
       }
 
+      cancelActiveMotion();
       metrics = measureMetrics();
       stack.setPointerCapture?.(event.pointerId);
       pointerState = {
@@ -1874,6 +1853,7 @@
         if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
           return;
         }
+
         pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
       }
 
@@ -1883,11 +1863,11 @@
 
       event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
-      const raw = deltaX / (width * 0.24);
+      const raw = deltaX / (width * 0.28);
       const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
       const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
-      const limit = outOfBounds ? 0.16 : 0.58;
-      const resistance = outOfBounds ? 2.35 : 1.55;
+      const limit = outOfBounds ? 0.18 : 0.74;
+      const resistance = outOfBounds ? 2.2 : 1.08;
       const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
@@ -1912,28 +1892,32 @@
       const direction = progress < 0 ? 1 : -1;
       const targetIndex = clamp(activeIndex + direction, 0, total - 1);
       const hasTarget = targetIndex !== activeIndex;
-      if (hasTarget && (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.24) && Math.abs(deltaX) > Math.abs(deltaY) * 1.05) {
+      if (hasTarget && (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.04) {
         rotate(direction);
       } else {
         applyState();
       }
     };
 
-    const syncWithoutAnimation = () => {
-      cancelAnimations();
-      navigationLocked = false;
-      pointerState = null;
-      metrics = measureMetrics();
-      stack.classList.add("discipline-stack-viewport--static");
-      applyState();
-      requestAnimationFrame(() => {
-        stack.classList.remove("discipline-stack-viewport--static");
-      });
+    const onStackClick = (event) => {
+      if (portraitQuery.matches) {
+        return;
+      }
+
+      const card = event.target.closest(".discipline-stack-card");
+      if (!card) {
+        return;
+      }
+
+      const offset = Number(card.dataset.stackPos || 0);
+      if (offset === -1) {
+        rotate(-1);
+      } else if (offset === 1) {
+        rotate(1);
+      }
     };
 
-    prevButton?.addEventListener("click", () => rotate(-1));
-    nextButton?.addEventListener("click", () => rotate(1));
-
+    stack.addEventListener("click", onStackClick);
     stack.addEventListener("pointerdown", onPointerDown);
     stack.addEventListener("pointermove", onPointerMove);
     stack.addEventListener("pointerup", onPointerUp);
@@ -1953,8 +1937,8 @@
       }
     });
 
-    stack.classList.add("discipline-stack-viewport--static");
     metrics = measureMetrics();
+    stack.classList.add("discipline-stack-viewport--static");
     applyState();
     requestAnimationFrame(() => {
       stack.classList.remove("discipline-stack-viewport--static");
