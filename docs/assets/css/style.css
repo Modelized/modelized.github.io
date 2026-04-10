@@ -2072,10 +2072,11 @@ a {
 
   .discipline-stack-stage {
     display: block;
+    width: calc(100% - 2.35rem);
   }
 
   .discipline-stack-shell {
-    --discipline-card-width: min(calc(100% - 2.35rem), 24.1rem);
+    --discipline-card-width: 100%;
     --discipline-card-height: clamp(25.8rem, 84vw, 30.4rem);
   }
 
