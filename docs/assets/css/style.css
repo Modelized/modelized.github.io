@@ -67,7 +67,7 @@ body {
   background:
     radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.11), rgba(255, 157, 77, 0) 70%),
     radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.1), rgba(82, 104, 255, 0) 72%),
-    radial-gradient(78% 66% at 56% 100%, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 72%),
+    radial-gradient(78% 66% at 56% 100%, rgba(255, 255, 255, 0.012), rgba(255, 255, 255, 0) 72%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
   overflow-x: hidden;
   background-color: var(--bg);
@@ -189,6 +189,10 @@ a {
 
 .section-head {
   margin-bottom: clamp(1.8rem, 3vw, 3rem);
+}
+
+.section-head__motion {
+  display: block;
 }
 
 .section-head h2 {
@@ -1606,9 +1610,9 @@ a {
 }
 
 .discipline-stack-card__surface {
-  --discipline-bg-1: #0c1018;
-  --discipline-bg-2: #04070c;
-  --discipline-edge: rgba(127, 149, 255, 0.14);
+  --discipline-bg-1: #120d0b;
+  --discipline-bg-2: #060505;
+  --discipline-edge: rgba(127, 149, 255, 0.42);
   --discipline-shadow: rgba(8, 11, 18, 0.16);
   --discipline-sheen: rgba(255, 255, 255, 0.008);
   --discipline-depth-dim: 0;
@@ -1651,41 +1655,41 @@ a {
 }
 
 .discipline-stack-card[data-tone="development"] .discipline-stack-card__surface {
-  --discipline-bg-1: #0b1220;
-  --discipline-bg-2: #04070d;
-  --discipline-edge: rgba(112, 138, 255, 0.13);
+  --discipline-bg-1: #121621;
+  --discipline-bg-2: #060509;
+  --discipline-edge: rgba(112, 138, 255, 0.42);
   --discipline-shadow: rgba(24, 41, 92, 0.15);
   --discipline-sheen: rgba(110, 139, 255, 0.014);
 }
 
 .discipline-stack-card[data-tone="engineering"] .discipline-stack-card__surface {
-  --discipline-bg-1: #130e0d;
-  --discipline-bg-2: #060506;
-  --discipline-edge: rgba(223, 141, 93, 0.14);
+  --discipline-bg-1: #120d0b;
+  --discipline-bg-2: #060505;
+  --discipline-edge: rgba(223, 141, 93, 0.42);
   --discipline-shadow: rgba(84, 50, 35, 0.15);
   --discipline-sheen: rgba(223, 141, 93, 0.014);
 }
 
 .discipline-stack-card[data-tone="design"] .discipline-stack-card__surface {
-  --discipline-bg-1: #120f18;
-  --discipline-bg-2: #06050a;
-  --discipline-edge: rgba(165, 127, 233, 0.128);
+  --discipline-bg-1: #120d16;
+  --discipline-bg-2: #060507;
+  --discipline-edge: rgba(165, 127, 233, 0.42);
   --discipline-shadow: rgba(64, 44, 99, 0.15);
   --discipline-sheen: rgba(176, 144, 234, 0.014);
 }
 
 .discipline-stack-card[data-tone="music"] .discipline-stack-card__surface {
-  --discipline-bg-1: #130d10;
-  --discipline-bg-2: #060507;
-  --discipline-edge: rgba(201, 109, 95, 0.128);
+  --discipline-bg-1: #120d0d;
+  --discipline-bg-2: #060505;
+  --discipline-edge: rgba(201, 109, 95, 0.42);
   --discipline-shadow: rgba(74, 38, 42, 0.15);
   --discipline-sheen: rgba(211, 128, 112, 0.014);
 }
 
 .discipline-stack-card[data-tone="research"] .discipline-stack-card__surface {
-  --discipline-bg-1: #0c1518;
-  --discipline-bg-2: #04080a;
-  --discipline-edge: rgba(106, 184, 161, 0.128);
+  --discipline-bg-1: #101511;
+  --discipline-bg-2: #060505;
+  --discipline-edge: rgba(106, 184, 161, 0.42);
   --discipline-shadow: rgba(32, 69, 63, 0.15);
   --discipline-sheen: rgba(106, 184, 161, 0.014);
 }
