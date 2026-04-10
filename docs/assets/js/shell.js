@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410k';
+  const assetVersion = '20260410l';
   if ("scrollRestoration" in history) {
     history.scrollRestoration = "auto";
   }
@@ -54,7 +54,7 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { iconSvg: iconSvg('<path d="M5.5 12.2a4.5 4.5 0 0 1 9 0v1H5.5Z"/><path d="m7.55 7.45-.78-1.18"/><path d="m12.45 7.45.78-1.18"/><circle cx="8.75" cy="10.15" r=".44" fill="currentColor" stroke="none"/><circle cx="11.25" cy="10.15" r=".44" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M5 12.4a5 5 0 0 1 10 0v1.2H5Z"/><path d="m7.65 7.55-.62-.94"/><path d="m12.35 7.55.62-.94"/><circle cx="8.9" cy="10.1" r=".66" fill="currentColor" stroke="none"/><circle cx="11.1" cy="10.1" r=".66" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
         { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
         { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "System Virtualization" }
@@ -1610,7 +1610,6 @@
     let pointerState = null;
     let metrics = null;
     let activeAnimation = null;
-    let reorderTimer = 0;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
@@ -1735,10 +1734,6 @@
     };
 
     const cancelActiveMotion = () => {
-      if (reorderTimer) {
-        clearTimeout(reorderTimer);
-        reorderTimer = 0;
-      }
       activeAnimation?.cancel?.();
       activeAnimation = null;
       cards.forEach((card) => {
@@ -1870,10 +1865,9 @@
         }
         card.style.removeProperty("transition");
       });
-      return animation;
     };
 
-    const rotate = (direction, options = {}) => {
+    const rotate = (direction) => {
       if (!direction) {
         return false;
       }
@@ -1886,29 +1880,12 @@
 
       const outgoingIndex = activeIndex;
       const outgoingCard = cards[outgoingIndex];
-      const outgoingStart = options.startLayout || getLayoutForOffset(0);
-      const deferReorder = Boolean(options.deferReorder);
+      const outgoingStart = getLayoutForOffset(0);
 
       cancelActiveMotion();
-      if (deferReorder && portraitQuery.matches && !prefersReducedMotion) {
-        const animation = animateOutgoingCard(outgoingCard, direction, outgoingStart);
-        const reorderDelay = 260;
-        reorderTimer = window.setTimeout(() => {
-          reorderTimer = 0;
-          activeIndex = targetIndex;
-          applyState();
-        }, reorderDelay);
-        animation?.finished.finally(() => {
-          if (!reorderTimer && activeIndex !== targetIndex) {
-            activeIndex = targetIndex;
-            applyState();
-          }
-        });
-      } else {
-        activeIndex = targetIndex;
-        applyState();
-        animateOutgoingCard(outgoingCard, direction, outgoingStart);
-      }
+      activeIndex = targetIndex;
+      applyState();
+      animateOutgoingCard(outgoingCard, direction, outgoingStart);
       return true;
     };
 
@@ -2004,16 +1981,7 @@
       const targetIndex = clamp(activeIndex + direction, 0, total - 1);
       const hasTarget = targetIndex !== activeIndex;
       if (hasTarget && (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.04) {
-        const releaseStart = createLayout(
-          getMetrics().cardWidth * 0.72 * Math.abs(progress) * Math.sign(progress),
-          0,
-          1 - Math.abs(progress) * 0.027,
-          Math.sign(progress) * 10.4 * Math.abs(progress)
-        );
-        rotate(direction, {
-          startLayout: releaseStart,
-          deferReorder: true
-        });
+        rotate(direction);
       } else {
         applyState();
       }
