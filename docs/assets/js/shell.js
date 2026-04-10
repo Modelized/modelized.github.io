@@ -3,10 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410l';
-  if ("scrollRestoration" in history) {
-    history.scrollRestoration = "auto";
-  }
+  const assetVersion = '20260410n';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -54,7 +51,7 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { iconSvg: iconSvg('<path d="M5 12.4a5 5 0 0 1 10 0v1.2H5Z"/><path d="m7.65 7.55-.62-.94"/><path d="m12.35 7.55.62-.94"/><circle cx="8.9" cy="10.1" r=".66" fill="currentColor" stroke="none"/><circle cx="11.1" cy="10.1" r=".66" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M5 12.4a5 5 0 0 1 10 0v1.2H5Z"/><path d="m7.4 7.6-.72-1.08"/><path d="m12.6 7.6.72-1.08"/><circle cx="8.9" cy="10.1" r=".66" fill="currentColor" stroke="none"/><circle cx="11.1" cy="10.1" r=".66" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
         { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
         { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "System Virtualization" }
@@ -903,11 +900,6 @@
       syncFromViewport();
     };
 
-    const interruptScrollLock = () => {
-      if (!lockedHash) return;
-      releaseScrollLock();
-    };
-
     const scheduleScrollLockRelease = (delay = 140) => {
       if (!lockedHash) return;
       if (lockTimer) {
@@ -996,49 +988,8 @@
       scheduleScrollLockRelease(140);
     }, { passive: true });
 
-    window.addEventListener('wheel', interruptScrollLock, { passive: true });
-    window.addEventListener('touchmove', interruptScrollLock, { passive: true });
-    window.addEventListener('keydown', (event) => {
-      if (!lockedHash) return;
-      if (event.defaultPrevented) return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if ([
-        'ArrowUp',
-        'ArrowDown',
-        'PageUp',
-        'PageDown',
-        'Home',
-        'End',
-        ' ',
-        'Spacebar'
-      ].includes(event.key)) {
-        interruptScrollLock();
-      }
-    });
-
     window.addEventListener('orientationchange', clearScrollLock);
     window.addEventListener('resize', releaseScrollLock);
-  }
-
-  function initSectionDepth() {
-    const sections = Array.from(document.querySelectorAll(".section"));
-    if (!sections.length || !("IntersectionObserver" in window)) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          entry.target.classList.toggle("is-active", entry.isIntersecting);
-        });
-      },
-      {
-        rootMargin: "-20% 0px -20% 0px",
-        threshold: 0.18
-      }
-    );
-
-    sections.forEach((section) => observer.observe(section));
   }
 
   function applyRevealStagger() {
@@ -1708,7 +1659,6 @@
       const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom));
       const pad = Math.ceil(Math.max(28, cardHeight * 0.08));
 
-      shell?.style.setProperty("--discipline-card-width-resolved", `${cardWidth}px`);
       shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
       stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
       stage?.style.setProperty("--discipline-stack-pad-bottom", `${pad}px`);
@@ -1769,10 +1719,10 @@
 
         if (isDragging && hasTarget && offset === 0 && dragSign !== 0) {
           visual = createLayout(
-            currentMetrics.cardWidth * 0.72 * dragMagnitude * dragSign,
+            currentMetrics.cardWidth * 0.58 * dragMagnitude * dragSign,
             0,
-            1 - dragMagnitude * 0.027,
-            dragSign * 10.4 * dragMagnitude
+            1 - dragMagnitude * 0.024,
+            dragSign * 9.1 * dragMagnitude
           );
         } else if (isDragging && hasTarget && offset !== 0) {
           const side = Math.sign(offset);
@@ -1824,7 +1774,7 @@
 
     const animateOutgoingCard = (card, direction, startLayout) => {
       if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
-        return null;
+        return;
       }
 
       const currentMetrics = getMetrics();
@@ -1951,11 +1901,11 @@
 
       event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
-      const raw = deltaX / (width * 0.42);
+      const raw = deltaX / (width * 0.46);
       const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
       const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
-      const limit = outOfBounds ? 0.18 : 0.98;
-      const resistance = outOfBounds ? 1.8 : 0.8;
+      const limit = outOfBounds ? 0.18 : 0.94;
+      const resistance = outOfBounds ? 1.8 : 0.84;
       const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
@@ -2085,35 +2035,6 @@
     window.addEventListener('pageshow', requestFrame);
   }
 
-  function initHoverTracking() {
-    if (prefersReducedMotion) {
-      return;
-    }
-
-    const supportsFinePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    if (!supportsFinePointer) {
-      return;
-    }
-
-    const cards = Array.from(document.querySelectorAll(".project-card"));
-
-    cards.forEach((card) => {
-      card.addEventListener("pointermove", (event) => {
-        const rect = card.getBoundingClientRect();
-        const x = ((event.clientX - rect.left) / rect.width) * 100;
-        const y = ((event.clientY - rect.top) / rect.height) * 100;
-
-        card.style.setProperty("--mx", `${x.toFixed(2)}%`);
-        card.style.setProperty("--my", `${y.toFixed(2)}%`);
-      });
-
-      card.addEventListener("pointerleave", () => {
-        card.style.removeProperty("--mx");
-        card.style.removeProperty("--my");
-      });
-    });
-  }
-
   async function boot() {
     const heroTitleReady = initHeroTitle();
 
@@ -2130,7 +2051,6 @@
     syncMobileNavState();
     initAnchorScroll();
     initSectionSpy();
-    initSectionDepth();
     initReveal();
     initHeroIntro();
     initRockSaltSafeAreas();
