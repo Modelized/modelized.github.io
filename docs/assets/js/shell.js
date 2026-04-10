@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410g';
+  const assetVersion = '20260410i';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -51,7 +51,7 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { iconSvg: iconSvg('<path d="M6.1 7.2h7.8"/><path d="M7.3 5.1v2.1M12.7 5.1v2.1"/><path d="M6.8 7.2 5.7 12h8.6l-1.1-4.8"/><path d="M7.6 12v2.2M12.4 12v2.2"/><path d="M6.2 14.2h1.7M12.1 14.2h1.7"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M6.3 7.2h7.4a1.8 1.8 0 0 1 1.8 1.8v3a1.8 1.8 0 0 1-1.8 1.8H6.3A1.8 1.8 0 0 1 4.5 12V9a1.8 1.8 0 0 1 1.8-1.8Z"/><path d="m7.4 6.1-1-1.4"/><path d="m12.6 6.1 1-1.4"/><circle cx="8.8" cy="10" r=".44" fill="currentColor" stroke="none"/><circle cx="11.2" cy="10" r=".44" fill="currentColor" stroke="none"/><path d="M7.6 13.8v1.5M12.4 13.8v1.5"/><path d="M4.5 9.5H3.3M16.7 9.5h-1.2"/>'), label: "Custom ROM Building" },
         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
         { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
         { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "System Virtualization" }
@@ -1607,17 +1607,17 @@
       const steps = portraitQuery.matches
         ? [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.21, scale: 0.892, rotate: 4.9 },
-            { x: cardWidth * 0.334, scale: 0.786, rotate: 7.8 },
-            { x: cardWidth * 0.418, scale: 0.692, rotate: 10.2 },
-            { x: cardWidth * 0.474, scale: 0.614, rotate: 12.2 }
+            { x: cardWidth * 0.228, scale: 0.872, rotate: 5.1 },
+            { x: cardWidth * 0.366, scale: 0.744, rotate: 8.4 },
+            { x: cardWidth * 0.462, scale: 0.63, rotate: 11.1 },
+            { x: cardWidth * 0.528, scale: 0.538, rotate: 13.5 }
           ]
         : [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.224, scale: 0.904, rotate: 4.4 },
-            { x: cardWidth * 0.356, scale: 0.8, rotate: 6.8 },
-            { x: cardWidth * 0.446, scale: 0.706, rotate: 8.9 },
-            { x: cardWidth * 0.506, scale: 0.626, rotate: 10.5 }
+            { x: cardWidth * 0.238, scale: 0.886, rotate: 4.6 },
+            { x: cardWidth * 0.386, scale: 0.762, rotate: 7.2 },
+            { x: cardWidth * 0.486, scale: 0.654, rotate: 9.8 },
+            { x: cardWidth * 0.55, scale: 0.566, rotate: 11.8 }
           ];
 
       return steps.reduce((layouts, step, depth) => {
@@ -1719,11 +1719,7 @@
       const active = disciplines[activeIndex];
       stack.setAttribute("aria-label", `Core disciplines cards. ${active.title} is in focus.`);
       stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
-      if (portraitQuery.matches) {
-        stack.removeAttribute("tabindex");
-      } else {
-        stack.tabIndex = 0;
-      }
+      stack.removeAttribute("tabindex");
     };
 
     const applyState = ({ dragProgress = 0 } = {}) => {
@@ -1731,20 +1727,52 @@
       const dragSign = dragProgress === 0 ? 0 : Math.sign(dragProgress);
       const currentMetrics = getMetrics();
       const dragMagnitude = Math.abs(dragProgress);
+      const inwardSide = dragSign === 0 ? 0 : -dragSign;
+      const hasTarget =
+        dragSign === 0 ||
+        (dragSign < 0 ? activeIndex < total - 1 : activeIndex > 0);
 
       stack.classList.toggle("is-dragging", isDragging);
 
       cards.forEach((card, index) => {
         const offset = index - activeIndex;
         let visual = getLayoutForOffset(offset);
+        let zIndex = getZIndex(offset);
 
-        if (isDragging && offset === 0 && dragSign !== 0) {
+        if (isDragging && hasTarget && offset === 0 && dragSign !== 0) {
           visual = createLayout(
-            currentMetrics.cardWidth * 0.66 * dragMagnitude * dragSign,
+            currentMetrics.cardWidth * 0.58 * dragMagnitude * dragSign,
             0,
-            1 - dragMagnitude * 0.028,
-            dragSign * 10.5 * dragMagnitude
+            1 - dragMagnitude * 0.024,
+            dragSign * 9.1 * dragMagnitude
           );
+        } else if (isDragging && hasTarget && offset !== 0) {
+          const side = Math.sign(offset);
+          const depth = Math.min(Math.abs(offset), total - 1);
+          const inwardScaleLift = [0, 0.032, 0.026, 0.02, 0.016][depth] || 0.016;
+          const outwardScaleDrop = [0, 0.022, 0.028, 0.032, 0.036][depth] || 0.036;
+          const inwardXPull = [0, 0.18, 0.15, 0.13, 0.11][depth] || 0.11;
+          const outwardXPush = [0, 0.14, 0.18, 0.22, 0.26][depth] || 0.26;
+          const inwardRotateEase = [0, 0.18, 0.14, 0.12, 0.1][depth] || 0.1;
+          const outwardRotateBoost = [0, 0.08, 0.1, 0.12, 0.14][depth] || 0.14;
+
+          if (side === inwardSide) {
+            visual = createLayout(
+              visual.x * (1 - inwardXPull * dragMagnitude),
+              0,
+              visual.scale + inwardScaleLift * dragMagnitude,
+              visual.rotate * (1 - inwardRotateEase * dragMagnitude)
+            );
+            zIndex += 8 - depth;
+          } else if (side === dragSign) {
+            visual = createLayout(
+              visual.x * (1 + outwardXPush * dragMagnitude),
+              0,
+              visual.scale - outwardScaleDrop * dragMagnitude,
+              visual.rotate * (1 + outwardRotateBoost * dragMagnitude)
+            );
+            zIndex -= 5 + depth;
+          }
         }
 
         const appearance = getDepthAppearance(offset);
@@ -1756,7 +1784,7 @@
         card.classList.toggle("is-active", offset === 0);
         card.classList.toggle("is-neighbor", isNeighbor);
         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
-        card.style.zIndex = String(getZIndex(offset));
+        card.style.zIndex = String(zIndex);
         card.style.transform = formatTransform(visual);
         card.style.setProperty("--discipline-depth-dim", appearance.dim.toFixed(3));
         card.style.setProperty("--discipline-surface-lift", appearance.lift.toFixed(3));
@@ -1895,11 +1923,11 @@
 
       event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
-      const raw = deltaX / (width * 0.2);
+      const raw = deltaX / (width * 0.46);
       const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
       const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
-      const limit = outOfBounds ? 0.2 : 0.92;
-      const resistance = outOfBounds ? 2.05 : 0.88;
+      const limit = outOfBounds ? 0.18 : 0.94;
+      const resistance = outOfBounds ? 1.8 : 0.84;
       const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
@@ -1955,20 +1983,6 @@
     stack.addEventListener("pointerup", onPointerUp);
     stack.addEventListener("pointercancel", (event) => clearPointer(event, { snap: true }));
     stack.addEventListener("pointerleave", (event) => clearPointer(event, { snap: true }));
-    stack.addEventListener("keydown", (event) => {
-      if (portraitQuery.matches) {
-        return;
-      }
-
-      if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        rotate(-1);
-      } else if (event.key === "ArrowRight") {
-        event.preventDefault();
-        rotate(1);
-      }
-    });
-
     metrics = measureMetrics();
     stack.classList.add("discipline-stack-viewport--static");
     applyState();

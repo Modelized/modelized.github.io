@@ -1472,6 +1472,29 @@ a {
   touch-action: pan-y;
   isolation: isolate;
   z-index: 1;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.discipline-stack-shell,
+.discipline-stack-bleed,
+.discipline-stack-stage,
+.discipline-stack-viewport {
+  outline: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.discipline-stack-shell:focus,
+.discipline-stack-shell:focus-visible,
+.discipline-stack-bleed:focus,
+.discipline-stack-bleed:focus-visible,
+.discipline-stack-stage:focus,
+.discipline-stack-stage:focus-visible,
+.discipline-stack-viewport:focus,
+.discipline-stack-viewport:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .js .discipline-stack-viewport:not([data-stack-ready="true"]) .discipline-stack-card {
