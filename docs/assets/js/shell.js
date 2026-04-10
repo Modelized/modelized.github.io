@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410q';
+  const assetVersion = '20260410s';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1028,9 +1028,6 @@
 
       heroRevealElements.forEach((element) => {
         element.classList.add("is-visible");
-        if (element.hasAttribute("data-parallax")) {
-          element.classList.add("reveal-settled");
-        }
         observer?.unobserve?.(element);
       });
     };
@@ -1048,12 +1045,6 @@
             return;
           }
           entry.target.classList.add("is-visible");
-          if (entry.target.hasAttribute("data-parallax")) {
-            const rawDelay = parseFloat(entry.target.style.getPropertyValue("--reveal-delay")) || 0;
-            window.setTimeout(() => {
-              entry.target.classList.add("reveal-settled");
-            }, rawDelay + 940);
-          }
           obs.unobserve(entry.target);
         });
       },
@@ -2014,68 +2005,6 @@
     window.addEventListener("pageshow", syncWithoutAnimation);
   }
 
-  function initParallax() {
-    if (prefersReducedMotion) {
-      return;
-    }
-
-    const layers = Array.from(document.querySelectorAll("[data-parallax]"));
-    if (!layers.length) {
-      return;
-    }
-
-    const entries = layers.map((layer) => ({
-      layer,
-      speed: Number(layer.getAttribute("data-parallax")) || 0.02,
-      section: layer.closest(".section")
-    }));
-
-    let raf = 0;
-
-    const render = () => {
-      raf = 0;
-      const viewportCenter = window.innerHeight * 0.5;
-      const sectionDistances = new Map();
-
-      entries.forEach(({ section, layer, speed }) => {
-        const key = section || layer;
-
-        if (!sectionDistances.has(key)) {
-          const rect = key.getBoundingClientRect();
-          const distance = rect.top + rect.height * 0.5 - viewportCenter;
-          sectionDistances.set(key, distance);
-        }
-
-        const distance = sectionDistances.get(key) || 0;
-        const shift = Math.max(-28, Math.min(28, -distance * speed));
-
-        layer.style.setProperty("--parallax-y", `${shift.toFixed(2)}px`);
-      });
-
-      const scrollY = window.scrollY || window.pageYOffset || 0;
-      const documentHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
-      const maxScroll = Math.max(1, documentHeight - window.innerHeight);
-      const progress = Math.max(0, Math.min(1, scrollY / maxScroll));
-      const ambientShiftY = Math.max(-22, Math.min(22, scrollY * 0.018));
-      const ambientShiftX = Math.max(-14, Math.min(14, (progress - 0.5) * 18));
-
-      body.style.setProperty("--scroll-progress", progress.toFixed(4));
-      body.style.setProperty("--ambient-shift-y", `${ambientShiftY.toFixed(2)}px`);
-      body.style.setProperty("--ambient-shift-x", `${ambientShiftX.toFixed(2)}px`);
-    };
-
-    const requestFrame = () => {
-      if (!raf) {
-        raf = requestAnimationFrame(render);
-      }
-    };
-
-    requestFrame();
-    window.addEventListener("scroll", requestFrame, { passive: true });
-    window.addEventListener("resize", requestFrame);
-    window.addEventListener('pageshow', requestFrame);
-  }
-
   async function boot() {
     const heroTitleReady = initHeroTitle();
 
@@ -2097,7 +2026,6 @@
     initRockSaltSafeAreas();
     initAboutCreator();
     initDisciplineStack();
-    initParallax();
 
   }
 
