@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410n';
+  const assetVersion = '20260410o';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1017,8 +1017,27 @@
     applyRevealStagger();
     revealElements.forEach((element) => element.classList.add("reveal"));
 
+    const heroRevealElements = revealElements.filter((element) => element.closest("#hero"));
+    const shouldPrewarmHero = () => {
+      return getScrollTop() > Math.max(64, window.innerHeight * 0.16);
+    };
+    const settleHeroReveal = (observer) => {
+      if (!shouldPrewarmHero()) {
+        return;
+      }
+
+      heroRevealElements.forEach((element) => {
+        element.classList.add("is-visible");
+        if (element.hasAttribute("data-parallax")) {
+          element.classList.add("reveal-settled");
+        }
+        observer?.unobserve?.(element);
+      });
+    };
+
     if (prefersReducedMotion || !("IntersectionObserver" in window)) {
       revealElements.forEach((element) => element.classList.add("is-visible"));
+      settleHeroReveal();
       return;
     }
 
@@ -1045,6 +1064,10 @@
     );
 
     revealElements.forEach((element) => observer.observe(element));
+    settleHeroReveal(observer);
+    requestAnimationFrame(() => settleHeroReveal(observer));
+    window.setTimeout(() => settleHeroReveal(observer), 120);
+    window.addEventListener("pageshow", () => settleHeroReveal(observer));
   }
 
   function initHeroIntro() {
