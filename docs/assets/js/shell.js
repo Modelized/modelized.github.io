@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410t';
+  const assetVersion = '20260410u';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1704,7 +1704,7 @@
       const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
       const baseHeight = Math.ceil(getBaseCardHeight());
       const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom));
-      const pad = Math.ceil(Math.max(28, cardHeight * 0.08));
+      const pad = Math.ceil(Math.max(18, cardHeight * 0.055));
 
       shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
       stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
