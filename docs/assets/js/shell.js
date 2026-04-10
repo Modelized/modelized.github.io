@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410i';
+  const assetVersion = '20260410j';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -51,7 +51,7 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { iconSvg: iconSvg('<path d="M6.3 7.2h7.4a1.8 1.8 0 0 1 1.8 1.8v3a1.8 1.8 0 0 1-1.8 1.8H6.3A1.8 1.8 0 0 1 4.5 12V9a1.8 1.8 0 0 1 1.8-1.8Z"/><path d="m7.4 6.1-1-1.4"/><path d="m12.6 6.1 1-1.4"/><circle cx="8.8" cy="10" r=".44" fill="currentColor" stroke="none"/><circle cx="11.2" cy="10" r=".44" fill="currentColor" stroke="none"/><path d="M7.6 13.8v1.5M12.4 13.8v1.5"/><path d="M4.5 9.5H3.3M16.7 9.5h-1.2"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M5.2 12a4.8 4.8 0 0 1 9.6 0"/><path d="m7.1 7.7-1.05-1.55"/><path d="m12.9 7.7 1.05-1.55"/><circle cx="8.7" cy="10.2" r=".46" fill="currentColor" stroke="none"/><circle cx="11.3" cy="10.2" r=".46" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
         { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
         { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "System Virtualization" }
