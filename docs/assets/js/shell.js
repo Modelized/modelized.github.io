@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410s';
+  const assetVersion = '20260410t';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1038,27 +1038,57 @@
       return;
     }
 
+    const revealElement = (element, observer) => {
+      if (element.classList.contains("is-visible")) {
+        return;
+      }
+      element.classList.add("is-visible");
+      observer?.unobserve?.(element);
+    };
+
+    const inView = (element) => {
+      const rect = element.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const vw = window.innerWidth || document.documentElement.clientWidth;
+      return rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
+    };
+
     const observer = new IntersectionObserver(
       (entries, obs) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) {
             return;
           }
-          entry.target.classList.add("is-visible");
-          obs.unobserve(entry.target);
+          revealElement(entry.target, obs);
         });
       },
       {
-        rootMargin: "0px 0px -10% 0px",
-        threshold: 0.12
+        root: null,
+        rootMargin: "0px 0px -1% 0px",
+        threshold: 0
       }
     );
 
     revealElements.forEach((element) => observer.observe(element));
+    const revealVisibleNow = () => {
+      revealElements.forEach((element) => {
+        if (!element.classList.contains("is-visible") && inView(element)) {
+          revealElement(element, observer);
+        }
+      });
+    };
+    requestAnimationFrame(revealVisibleNow);
     settleHeroReveal(observer);
     requestAnimationFrame(() => settleHeroReveal(observer));
-    window.setTimeout(() => settleHeroReveal(observer), 120);
-    window.addEventListener("pageshow", () => settleHeroReveal(observer));
+    window.setTimeout(() => {
+      settleHeroReveal(observer);
+      revealVisibleNow();
+    }, 120);
+    window.addEventListener("resize", revealVisibleNow);
+    window.addEventListener("pageshow", () => {
+      settleHeroReveal(observer);
+      revealVisibleNow();
+    });
   }
 
   function initHeroIntro() {
