@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410o';
+  const assetVersion = '20260410p';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1584,6 +1584,9 @@
     let pointerState = null;
     let metrics = null;
     let activeAnimation = null;
+    let lastViewportWidth = window.innerWidth;
+    let lastViewportHeight = window.innerHeight;
+    let lastPortraitState = portraitQuery.matches;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
@@ -1991,7 +1994,22 @@
       stack.classList.remove("discipline-stack-viewport--static");
     });
 
-    window.addEventListener("resize", syncWithoutAnimation);
+    window.addEventListener("resize", () => {
+      const nextWidth = window.innerWidth;
+      const nextHeight = window.innerHeight;
+      const nextPortraitState = portraitQuery.matches;
+      const widthChanged = Math.abs(nextWidth - lastViewportWidth) > 2;
+      const portraitStateChanged = nextPortraitState !== lastPortraitState;
+      const heightChanged = Math.abs(nextHeight - lastViewportHeight) > 120;
+
+      lastViewportWidth = nextWidth;
+      lastViewportHeight = nextHeight;
+      lastPortraitState = nextPortraitState;
+
+      if (portraitStateChanged || widthChanged || (!nextPortraitState && heightChanged)) {
+        syncWithoutAnimation();
+      }
+    });
     window.addEventListener("orientationchange", syncWithoutAnimation);
     window.addEventListener("pageshow", syncWithoutAnimation);
   }
