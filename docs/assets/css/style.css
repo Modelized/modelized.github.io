@@ -2075,7 +2075,7 @@ a {
   }
 
   .discipline-stack-shell {
-    --discipline-card-width: min(100%, 24.1rem);
+    --discipline-card-width: min(calc(100% - 2.35rem), 24.1rem);
     --discipline-card-height: clamp(25.8rem, 84vw, 30.4rem);
   }
 
