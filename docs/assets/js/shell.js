@@ -3,7 +3,10 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410j';
+  const assetVersion = '20260410k';
+  if ("scrollRestoration" in history) {
+    history.scrollRestoration = "auto";
+  }
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -51,7 +54,7 @@
         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
       arsenalKind: "engineering",
       arsenal: [
-        { iconSvg: iconSvg('<path d="M5.2 12a4.8 4.8 0 0 1 9.6 0"/><path d="m7.1 7.7-1.05-1.55"/><path d="m12.9 7.7 1.05-1.55"/><circle cx="8.7" cy="10.2" r=".46" fill="currentColor" stroke="none"/><circle cx="11.3" cy="10.2" r=".46" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
+        { iconSvg: iconSvg('<path d="M5.5 12.2a4.5 4.5 0 0 1 9 0v1H5.5Z"/><path d="m7.55 7.45-.78-1.18"/><path d="m12.45 7.45.78-1.18"/><circle cx="8.75" cy="10.15" r=".44" fill="currentColor" stroke="none"/><circle cx="11.25" cy="10.15" r=".44" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
         { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
         { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "System Virtualization" }
@@ -900,6 +903,11 @@
       syncFromViewport();
     };
 
+    const interruptScrollLock = () => {
+      if (!lockedHash) return;
+      releaseScrollLock();
+    };
+
     const scheduleScrollLockRelease = (delay = 140) => {
       if (!lockedHash) return;
       if (lockTimer) {
@@ -987,6 +995,26 @@
     window.addEventListener('scroll', () => {
       scheduleScrollLockRelease(140);
     }, { passive: true });
+
+    window.addEventListener('wheel', interruptScrollLock, { passive: true });
+    window.addEventListener('touchmove', interruptScrollLock, { passive: true });
+    window.addEventListener('keydown', (event) => {
+      if (!lockedHash) return;
+      if (event.defaultPrevented) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if ([
+        'ArrowUp',
+        'ArrowDown',
+        'PageUp',
+        'PageDown',
+        'Home',
+        'End',
+        ' ',
+        'Spacebar'
+      ].includes(event.key)) {
+        interruptScrollLock();
+      }
+    });
 
     window.addEventListener('orientationchange', clearScrollLock);
     window.addEventListener('resize', releaseScrollLock);
@@ -1582,6 +1610,7 @@
     let pointerState = null;
     let metrics = null;
     let activeAnimation = null;
+    let reorderTimer = 0;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
@@ -1706,6 +1735,10 @@
     };
 
     const cancelActiveMotion = () => {
+      if (reorderTimer) {
+        clearTimeout(reorderTimer);
+        reorderTimer = 0;
+      }
       activeAnimation?.cancel?.();
       activeAnimation = null;
       cards.forEach((card) => {
@@ -1741,10 +1774,10 @@
 
         if (isDragging && hasTarget && offset === 0 && dragSign !== 0) {
           visual = createLayout(
-            currentMetrics.cardWidth * 0.58 * dragMagnitude * dragSign,
+            currentMetrics.cardWidth * 0.72 * dragMagnitude * dragSign,
             0,
-            1 - dragMagnitude * 0.024,
-            dragSign * 9.1 * dragMagnitude
+            1 - dragMagnitude * 0.027,
+            dragSign * 10.4 * dragMagnitude
           );
         } else if (isDragging && hasTarget && offset !== 0) {
           const side = Math.sign(offset);
@@ -1796,7 +1829,7 @@
 
     const animateOutgoingCard = (card, direction, startLayout) => {
       if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
-        return;
+        return null;
       }
 
       const currentMetrics = getMetrics();
@@ -1837,9 +1870,10 @@
         }
         card.style.removeProperty("transition");
       });
+      return animation;
     };
 
-    const rotate = (direction) => {
+    const rotate = (direction, options = {}) => {
       if (!direction) {
         return false;
       }
@@ -1852,12 +1886,29 @@
 
       const outgoingIndex = activeIndex;
       const outgoingCard = cards[outgoingIndex];
-      const outgoingStart = getLayoutForOffset(0);
+      const outgoingStart = options.startLayout || getLayoutForOffset(0);
+      const deferReorder = Boolean(options.deferReorder);
 
       cancelActiveMotion();
-      activeIndex = targetIndex;
-      applyState();
-      animateOutgoingCard(outgoingCard, direction, outgoingStart);
+      if (deferReorder && portraitQuery.matches && !prefersReducedMotion) {
+        const animation = animateOutgoingCard(outgoingCard, direction, outgoingStart);
+        const reorderDelay = 260;
+        reorderTimer = window.setTimeout(() => {
+          reorderTimer = 0;
+          activeIndex = targetIndex;
+          applyState();
+        }, reorderDelay);
+        animation?.finished.finally(() => {
+          if (!reorderTimer && activeIndex !== targetIndex) {
+            activeIndex = targetIndex;
+            applyState();
+          }
+        });
+      } else {
+        activeIndex = targetIndex;
+        applyState();
+        animateOutgoingCard(outgoingCard, direction, outgoingStart);
+      }
       return true;
     };
 
@@ -1923,11 +1974,11 @@
 
       event.preventDefault();
       const width = Math.max(stack.clientWidth, 1);
-      const raw = deltaX / (width * 0.46);
+      const raw = deltaX / (width * 0.42);
       const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
       const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
-      const limit = outOfBounds ? 0.18 : 0.94;
-      const resistance = outOfBounds ? 1.8 : 0.84;
+      const limit = outOfBounds ? 0.18 : 0.98;
+      const resistance = outOfBounds ? 1.8 : 0.8;
       const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
       pointerState.progress = progress;
       applyState({ dragProgress: progress });
@@ -1953,7 +2004,16 @@
       const targetIndex = clamp(activeIndex + direction, 0, total - 1);
       const hasTarget = targetIndex !== activeIndex;
       if (hasTarget && (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.04) {
-        rotate(direction);
+        const releaseStart = createLayout(
+          getMetrics().cardWidth * 0.72 * Math.abs(progress) * Math.sign(progress),
+          0,
+          1 - Math.abs(progress) * 0.027,
+          Math.sign(progress) * 10.4 * Math.abs(progress)
+        );
+        rotate(direction, {
+          startLayout: releaseStart,
+          deferReorder: true
+        });
       } else {
         applyState();
       }
