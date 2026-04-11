@@ -1855,6 +1855,7 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
+  align-content: center;
   gap: clamp(1.2rem, 2.1vw, 1.8rem);
   height: 100%;
 }
@@ -2205,7 +2206,6 @@ a {
 
   .project-stack-card.has-media .project-stack-card__layout {
     gap: 0.92rem;
-    align-content: start;
   }
 
   .project-stack-card__image {
