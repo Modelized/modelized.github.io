@@ -1321,7 +1321,7 @@ a {
   border-radius: 26px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(255, 255, 255, 0) 15%),
-    linear-gradient(180deg, rgba(18, 12, 10, 0.993) 0%, rgba(6, 5, 5, 0.998) 100%);
+    linear-gradient(180deg, rgb(18, 12, 10) 0%, rgb(6, 5, 5) 100%);
   box-shadow: 0 10px 22px rgba(0, 0, 0, 0.12);
   color: var(--text);
   text-decoration: none;
@@ -1829,7 +1829,7 @@ a {
 
 .project-stack-shell {
   margin-top: 1.45rem;
-  --discipline-card-width: min(100%, 62rem);
+  --discipline-card-width: min(100%, 50rem);
   --discipline-card-height: clamp(24.2rem, 34vw, 29.5rem);
   --discipline-stack-pad-top: clamp(0.8rem, 1.4vw, 1.15rem);
   --discipline-stack-pad-bottom: clamp(3rem, 6vw, 4.75rem);
@@ -1856,7 +1856,7 @@ a {
     clamp(1.54rem, 2.95vw, 2.24rem);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.01) 0%, rgba(255, 255, 255, 0) 15%),
-    linear-gradient(180deg, rgba(18, 12, 10, 0.993) 0%, rgba(6, 5, 5, 0.998) 100%);
+    linear-gradient(180deg, rgb(18, 12, 10) 0%, rgb(6, 5, 5) 100%);
   box-shadow:
     inset 0 0 0 1px var(--discipline-edge),
     0 10px 22px rgba(0, 0, 0, 0.12);
@@ -1891,8 +1891,8 @@ a {
 .project-stack-card__icon {
   width: clamp(3rem, 5vw, 3.45rem);
   height: clamp(3rem, 5vw, 3.45rem);
-  border-radius: 16px;
-  object-fit: cover;
+  border-radius: 0;
+  object-fit: contain;
   flex: 0 0 auto;
 }
 
@@ -1913,6 +1913,15 @@ a {
   margin-top: 0.15rem;
 }
 
+.project-stack-card__actions {
+  margin-top: 0.08rem;
+}
+
+.project-stack-card__button {
+  min-height: 48px;
+  padding-inline: 1.18rem;
+}
+
 .project-category-pill {
   padding: 0.42rem 0.78rem;
   border-color: rgba(223, 141, 93, 0.16);
@@ -1930,12 +1939,10 @@ a {
   justify-content: center;
   align-self: center;
   aspect-ratio: 4 / 3;
-  border-radius: 24px;
-  overflow: hidden;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.012) 0%, rgba(255, 255, 255, 0) 18%),
-    linear-gradient(180deg, rgba(13, 10, 9, 0.95) 0%, rgba(8, 6, 6, 0.985) 100%);
-  border: 1px solid rgba(223, 141, 93, 0.14);
+  border-radius: 0;
+  overflow: visible;
+  background: none;
+  border: 0;
 }
 
 .project-stack-card__image {
@@ -1946,7 +1953,10 @@ a {
 }
 
 .project-stack-card--istage .project-stack-card__image {
-  padding: clamp(0.2rem, 0.8vw, 0.55rem);
+  width: 118%;
+  height: auto;
+  max-width: none;
+  margin-inline: -9%;
 }
 
 .project-stack-card:not(.has-media) .project-stack-card__layout {
@@ -2049,21 +2059,11 @@ a {
   }
 
   .project-stack-shell {
-    --discipline-card-width: min(100%, 48rem);
     --discipline-card-height: clamp(25rem, 44vw, 31rem);
   }
 
   .project-stack-card__surface {
     padding: 1.4rem 1.35rem 1.45rem;
-  }
-
-  .project-stack-card__layout {
-    grid-template-columns: 1fr;
-    gap: 1.15rem;
-  }
-
-  .project-stack-card__media {
-    aspect-ratio: 1.18 / 1;
   }
 
   .footer-row {
@@ -2182,7 +2182,7 @@ a {
   .project-stack-card__icon {
     width: 2.8rem;
     height: 2.8rem;
-    border-radius: 14px;
+    border-radius: 0;
   }
 
   .project-stack-card__title {
@@ -2192,6 +2192,11 @@ a {
   .project-stack-card__body {
     font-size: 0.99rem;
     max-width: none;
+  }
+
+  .project-stack-card__layout {
+    grid-template-columns: 1fr;
+    gap: 1.35rem;
   }
 
   .project-stack-card__media {
@@ -2214,12 +2219,25 @@ a {
   }
 
   .project-stack-shell {
-    --discipline-card-width: min(100%, 52rem);
+    --discipline-card-width: min(100%, 41rem);
     --discipline-card-height: clamp(21.5rem, 36.5vw, 25.6rem);
   }
 
   .discipline-stack-viewport {
     min-height: var(--discipline-card-height);
+  }
+
+  .project-stack-card__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(14.4rem, 0.86fr);
+    gap: 1.15rem;
+  }
+
+  .project-stack-card:not(.has-media) .project-stack-card__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .project-stack-card__media {
+    aspect-ratio: 1.02 / 1;
   }
 }
 
