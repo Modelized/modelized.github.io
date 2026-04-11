@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260410u';
+  const assetVersion = '20260411a';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -11,16 +11,51 @@
 
   const projects = [
     {
-      name: "iStage",
-      tagline: "Android. Reimagined.",
+      slug: "istage",
+      title: "iStage",
       description:
-        "A pixel-perfect recreation of the iOS Lock Screen for Android, with built-in Dynamic Island, stock wallpapers and deep personalization - all powered by KLCK.",
-      icon: "assets/img/iStage-icon.png",
-      hero: "assets/img/hero-iStage-series.png",
-      url: "https://modelized.github.io/iStage/"
+        "A pixel-perfect recreation of the iOS Lock Screen for Android, with built-in Dynamic Island, stock wallpapers and deep personalization — all powered by KLCK.",
+      categories: ["Development", "Design"],
+      icon: "assets/img/iStage-icon-dark.png",
+      image: "assets/img/hero-iStage-series.png"
+    },
+    {
+      slug: "sherlockgenes",
+      title: "SherlockGenes",
+      description:
+        "An interactive pedigree analysis program that helps users build family trees and estimate the risk of inherited genetic disorders. It analyzes possible inheritance patterns based on provided family connections and medical conditions, calculating the probability of inheritance to make complex genetic prediction visual and accessible.",
+      categories: ["Development", "Research"],
+      image: "assets/img/hero-SherlockGenes.png"
+    },
+    {
+      slug: "truevision",
+      title: "TrueVision",
+      description:
+        "An AI-based crowd density analysis system designed to detect and visualize dangerous congestion in real time. Using computer vision, it analyzes video input to estimate relative positions and evaluate density, presenting intuitive visual data such as the number of detected people, density levels, and risk stages to effectively monitor crowd flow.",
+      categories: ["Development", "Engineering", "Research"]
+    },
+    {
+      slug: "vanta",
+      title: "Vanta",
+      description:
+        "A native macOS launcher engineered for iOS virtual machines (vphone-aio). It replaces terminal-heavy workflows with a clean graphical interface and a dedicated viewer, making low-level VM management visually intuitive.",
+      categories: ["Development", "Engineering"],
+      icon: "assets/img/Vanta-icon-dark.png"
+    },
+    {
+      slug: "airtime-cabin",
+      title: "AirTime Cabin",
+      description:
+        "A hyper realistic virtual flight relaxation app for iOS and visionOS. Designed for focus and meditation, it dynamically simulates real world flight phases — triggering aviation announcements synchronized with the flight, weather shifts, and immersive 3D sky visuals outside the window.",
+      categories: ["Development", "Design"]
+    },
+    {
+      slug: "aero",
+      title: "Aero",
+      description:
+        "A conceptual next-generation operating system designed ahead of its time, focusing on deep personalization and seamless UI/UX. It features Space — a fully customized and optimized environment tailored by the user, alongside context-aware action suggestions based on user data. It also introduces an interactive Activity Indicator that the navigation bar expands to display relevant live activities.",
+      categories: ["Design"]
     }
-
-    // Duplicate this object block to add another project card.
   ];
 
   const disciplines = [
@@ -107,50 +142,81 @@
   }
 
   function renderProjects() {
-    const track = document.getElementById("project-track");
+    const stack = document.getElementById("project-stack");
     const template = document.getElementById("project-card-template");
 
-    if (!track || !template) {
+    if (!stack || !template) {
       return;
     }
 
-    track.innerHTML = "";
+    stack.innerHTML = "";
+    delete stack.dataset.stackReady;
 
-    projects.forEach((project) => {
+    projects.forEach((project, index) => {
       const fragment = template.content.cloneNode(true);
-      const card = fragment.querySelector(".project-card");
-      const name = fragment.querySelector(".project-name");
-      const tagline = fragment.querySelector(".project-tagline");
-      const description = fragment.querySelector(".project-description");
-      const icon = fragment.querySelector(".project-icon");
-      const hero = fragment.querySelector(".project-media");
-      const link = fragment.querySelector(".project-link");
+      const card = fragment.querySelector(".project-stack-card");
+      const title = fragment.querySelector(".project-stack-card__title");
+      const description = fragment.querySelector(".project-stack-card__body");
+      const icon = fragment.querySelector(".project-stack-card__icon");
+      const media = fragment.querySelector(".project-stack-card__media");
+      const image = fragment.querySelector(".project-stack-card__image");
+      const categories = fragment.querySelector(".project-stack-card__categories");
 
-      if (card && project.name) {
-        const slug = project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        card.classList.add(`project-card--${slug}`);
+      if (card) {
+        card.dataset.index = String(index);
+        card.dataset.slug = project.slug;
+        card.classList.add(`project-stack-card--${project.slug}`);
+        if (project.image) {
+          card.classList.add("has-media");
+        }
+        if (project.icon) {
+          card.classList.add("has-icon");
+        }
       }
 
-      if (name) name.textContent = project.name;
-      if (tagline) tagline.textContent = project.tagline;
+      if (title) title.textContent = project.title;
       if (description) description.textContent = project.description;
 
       if (icon) {
-        icon.src = project.icon;
-        icon.alt = `${project.name} icon`;
+        if (project.icon) {
+          icon.hidden = false;
+          icon.src = project.icon;
+          icon.alt = `${project.title} icon`;
+        } else {
+          icon.remove();
+        }
       }
 
-      if (hero) {
-        hero.src = project.hero;
-        hero.alt = `${project.name} project preview`;
+      if (media && image) {
+        if (project.image) {
+          media.hidden = false;
+          image.src = project.image;
+          image.alt = `${project.title} project preview`;
+        } else {
+          media.remove();
+        }
       }
 
-      if (link && project.url) {
-        link.href = project.url;
-        link.setAttribute("aria-label", `Open ${project.name}`);
+      if (categories) {
+        if (project.categories?.length) {
+          categories.hidden = false;
+          project.categories.forEach((category) => {
+            const pill = document.createElement("span");
+            pill.className = "discipline-pill project-category-pill";
+
+            const label = document.createElement("span");
+            label.className = "discipline-pill__label";
+            label.textContent = category;
+
+            pill.appendChild(label);
+            categories.appendChild(pill);
+          });
+        } else {
+          categories.remove();
+        }
       }
 
-      track.appendChild(fragment);
+      stack.appendChild(fragment);
     });
   }
 
@@ -1589,8 +1655,62 @@
     observer.observe(title);
   }
 
-  function initDisciplineStack() {
-    const stack = document.getElementById("discipline-stack");
+  function measureDisciplineCard(card) {
+    const surface = card.querySelector(".discipline-stack-card__surface");
+    const header = surface?.querySelector(".discipline-stack-card__header");
+    const body = surface?.querySelector(".discipline-stack-card__body");
+    const arsenal = surface?.querySelector(".discipline-stack-card__arsenal:not([hidden])");
+    const styles = surface ? getComputedStyle(surface) : null;
+    const gap = styles ? parseFloat(styles.rowGap || styles.gap) || 0 : 0;
+    const paddingTop = styles ? parseFloat(styles.paddingTop) || 0 : 0;
+    const paddingBottom = styles ? parseFloat(styles.paddingBottom) || 0 : 0;
+    const parts = [header, body, arsenal].filter(Boolean);
+
+    return Math.ceil(
+      paddingTop +
+      paddingBottom +
+      parts.reduce((sum, part) => sum + (part.scrollHeight || part.getBoundingClientRect().height || 0), 0) +
+      gap * Math.max(0, parts.length - 1)
+    );
+  }
+
+  function measureProjectCard(card, { portrait }) {
+    const surface = card.querySelector(".project-stack-card__surface");
+    const layout = surface?.querySelector(".project-stack-card__layout");
+    const content = surface?.querySelector(".project-stack-card__content");
+    const media = surface?.querySelector(".project-stack-card__media:not([hidden])");
+
+    if (!surface || !layout || !content) {
+      return 0;
+    }
+
+    const surfaceStyles = getComputedStyle(surface);
+    const layoutStyles = getComputedStyle(layout);
+    const paddingTop = parseFloat(surfaceStyles.paddingTop) || 0;
+    const paddingBottom = parseFloat(surfaceStyles.paddingBottom) || 0;
+    const rowGap = parseFloat(layoutStyles.rowGap || layoutStyles.gap) || 0;
+    const contentHeight = content.scrollHeight || content.getBoundingClientRect().height || 0;
+    const mediaHeight = media ? Math.max(media.scrollHeight || 0, media.getBoundingClientRect().height || 0) : 0;
+
+    if (!media) {
+      return Math.ceil(paddingTop + paddingBottom + contentHeight);
+    }
+
+    if (portrait) {
+      return Math.ceil(paddingTop + paddingBottom + contentHeight + rowGap + mediaHeight);
+    }
+
+    return Math.ceil(paddingTop + paddingBottom + Math.max(contentHeight, mediaHeight));
+  }
+
+  function initStackDeck({
+    stackId,
+    items,
+    getAriaLabel,
+    getBaseCardHeight,
+    measureCard
+  }) {
+    const stack = document.getElementById(stackId);
     const shell = stack?.closest(".discipline-stack-shell");
     const stage = stack?.closest(".discipline-stack-stage");
     const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
@@ -1612,22 +1732,6 @@
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
     const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
-    const getBaseCardHeight = () => {
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-      if (portraitQuery.matches) {
-        return clamp(window.innerWidth * 0.84, 25.8 * rem, 30.4 * rem);
-      }
-
-      if (window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches) {
-        return clamp(window.innerWidth * 0.33, 18.8 * rem, 22.8 * rem);
-      }
-
-      if (window.innerWidth <= 980) {
-        return clamp(window.innerWidth * 0.4, 20 * rem, 24 * rem);
-      }
-
-      return clamp(window.innerWidth * 0.39, 22 * rem, 28 * rem);
-    };
 
     const buildLayouts = (cardWidth) => {
       const steps = portraitQuery.matches
@@ -1636,14 +1740,16 @@
             { x: cardWidth * 0.228, scale: 0.872, rotate: 5.1 },
             { x: cardWidth * 0.366, scale: 0.744, rotate: 8.4 },
             { x: cardWidth * 0.462, scale: 0.63, rotate: 11.1 },
-            { x: cardWidth * 0.528, scale: 0.538, rotate: 13.5 }
+            { x: cardWidth * 0.528, scale: 0.538, rotate: 13.5 },
+            { x: cardWidth * 0.586, scale: 0.476, rotate: 15.3 }
           ]
         : [
             { x: 0, scale: 1, rotate: 0 },
             { x: cardWidth * 0.238, scale: 0.886, rotate: 4.6 },
             { x: cardWidth * 0.386, scale: 0.762, rotate: 7.2 },
             { x: cardWidth * 0.486, scale: 0.654, rotate: 9.8 },
-            { x: cardWidth * 0.55, scale: 0.566, rotate: 11.8 }
+            { x: cardWidth * 0.55, scale: 0.566, rotate: 11.8 },
+            { x: cardWidth * 0.604, scale: 0.502, rotate: 13.6 }
           ];
 
       return steps.reduce((layouts, step, depth) => {
@@ -1664,8 +1770,8 @@
 
     const getDepthAppearance = (offset) => {
       const depth = Math.min(Math.abs(offset), total - 1);
-      const dim = [0.028, 0.11, 0.18, 0.24, 0.29][depth] || 0.29;
-      const lift = [0.026, 0.018, 0.012, 0.008, 0.004][depth] || 0.004;
+      const dim = [0.028, 0.11, 0.18, 0.24, 0.29, 0.34][depth] || 0.34;
+      const lift = [0.026, 0.018, 0.012, 0.008, 0.004, 0.002][depth] || 0.002;
       return { dim, lift };
     };
 
@@ -1682,27 +1788,15 @@
       let maxContentHeight = 0;
 
       cards.forEach((card) => {
-        const surface = card.querySelector(".discipline-stack-card__surface");
-        const header = surface?.querySelector(".discipline-stack-card__header");
-        const body = surface?.querySelector(".discipline-stack-card__body");
-        const arsenal = surface?.querySelector(".discipline-stack-card__arsenal:not([hidden])");
-        const styles = surface ? getComputedStyle(surface) : null;
-        const gap = styles ? parseFloat(styles.rowGap || styles.gap) || 0 : 0;
-        const paddingTop = styles ? parseFloat(styles.paddingTop) || 0 : 0;
-        const paddingBottom = styles ? parseFloat(styles.paddingBottom) || 0 : 0;
-        const parts = [header, body, arsenal].filter(Boolean);
-        const contentHeight = Math.ceil(
-          paddingTop +
-          paddingBottom +
-          parts.reduce((sum, part) => sum + (part.scrollHeight || part.getBoundingClientRect().height || 0), 0) +
-          gap * Math.max(0, parts.length - 1)
+        maxContentHeight = Math.max(
+          maxContentHeight,
+          Math.ceil(measureCard(card, { portrait: portraitQuery.matches }) || 0)
         );
-        maxContentHeight = Math.max(maxContentHeight, contentHeight);
       });
 
       const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
       const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
-      const baseHeight = Math.ceil(getBaseCardHeight());
+      const baseHeight = Math.ceil(getBaseCardHeight({ portrait: portraitQuery.matches }));
       const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom));
       const pad = Math.ceil(Math.max(18, cardHeight * 0.055));
 
@@ -1734,15 +1828,14 @@
       activeAnimation?.cancel?.();
       activeAnimation = null;
       cards.forEach((card) => {
-        card.classList.remove("is-slipping-left", "is-slipping-right");
         card.style.removeProperty("transition");
         card.getAnimations?.().forEach((animation) => animation.cancel());
       });
     };
 
     const syncLabels = () => {
-      const active = disciplines[activeIndex];
-      stack.setAttribute("aria-label", `Core disciplines cards. ${active.title} is in focus.`);
+      const active = items[activeIndex];
+      stack.setAttribute("aria-label", getAriaLabel(active, activeIndex, total));
       stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
       stack.removeAttribute("tabindex");
     };
@@ -1774,12 +1867,12 @@
         } else if (isDragging && hasTarget && offset !== 0) {
           const side = Math.sign(offset);
           const depth = Math.min(Math.abs(offset), total - 1);
-          const inwardScaleLift = [0, 0.032, 0.026, 0.02, 0.016][depth] || 0.016;
-          const outwardScaleDrop = [0, 0.022, 0.028, 0.032, 0.036][depth] || 0.036;
-          const inwardXPull = [0, 0.18, 0.15, 0.13, 0.11][depth] || 0.11;
-          const outwardXPush = [0, 0.14, 0.18, 0.22, 0.26][depth] || 0.26;
-          const inwardRotateEase = [0, 0.18, 0.14, 0.12, 0.1][depth] || 0.1;
-          const outwardRotateBoost = [0, 0.08, 0.1, 0.12, 0.14][depth] || 0.14;
+          const inwardScaleLift = [0, 0.032, 0.026, 0.02, 0.016, 0.014][depth] || 0.014;
+          const outwardScaleDrop = [0, 0.022, 0.028, 0.032, 0.036, 0.04][depth] || 0.04;
+          const inwardXPull = [0, 0.18, 0.15, 0.13, 0.11, 0.1][depth] || 0.1;
+          const outwardXPush = [0, 0.14, 0.18, 0.22, 0.26, 0.3][depth] || 0.3;
+          const inwardRotateEase = [0, 0.18, 0.14, 0.12, 0.1, 0.08][depth] || 0.08;
+          const outwardRotateBoost = [0, 0.08, 0.1, 0.12, 0.14, 0.16][depth] || 0.16;
 
           if (side === inwardSide) {
             visual = createLayout(
@@ -1875,8 +1968,7 @@
         return false;
       }
 
-      const outgoingIndex = activeIndex;
-      const outgoingCard = cards[outgoingIndex];
+      const outgoingCard = cards[activeIndex];
       const outgoingStart = getLayoutForOffset(0);
 
       cancelActiveMotion();
@@ -1977,7 +2069,11 @@
       const direction = progress < 0 ? 1 : -1;
       const targetIndex = clamp(activeIndex + direction, 0, total - 1);
       const hasTarget = targetIndex !== activeIndex;
-      if (hasTarget && (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) && Math.abs(deltaX) > Math.abs(deltaY) * 1.04) {
+      if (
+        hasTarget &&
+        (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) &&
+        Math.abs(deltaX) > Math.abs(deltaY) * 1.04
+      ) {
         rotate(direction);
       } else {
         applyState();
@@ -2008,6 +2104,7 @@
     stack.addEventListener("pointerup", onPointerUp);
     stack.addEventListener("pointercancel", (event) => clearPointer(event, { snap: true }));
     stack.addEventListener("pointerleave", (event) => clearPointer(event, { snap: true }));
+
     metrics = measureMetrics();
     stack.classList.add("discipline-stack-viewport--static");
     applyState();
@@ -2031,8 +2128,63 @@
         syncWithoutAnimation();
       }
     });
+
     window.addEventListener("orientationchange", syncWithoutAnimation);
     window.addEventListener("pageshow", syncWithoutAnimation);
+  }
+
+  function initDisciplineStack() {
+    const getBaseCardHeight = ({ portrait }) => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      if (portrait) {
+        return Math.min(Math.max(window.innerWidth * 0.84, 25.8 * rem), 30.4 * rem);
+      }
+
+      if (window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches) {
+        return Math.min(Math.max(window.innerWidth * 0.33, 18.8 * rem), 22.8 * rem);
+      }
+
+      if (window.innerWidth <= 980) {
+        return Math.min(Math.max(window.innerWidth * 0.4, 20 * rem), 24 * rem);
+      }
+
+      return Math.min(Math.max(window.innerWidth * 0.39, 22 * rem), 28 * rem);
+    };
+
+    initStackDeck({
+      stackId: "discipline-stack",
+      items: disciplines,
+      getAriaLabel: (item) => `Core disciplines cards. ${item.title} is in focus.`,
+      getBaseCardHeight,
+      measureCard: measureDisciplineCard
+    });
+  }
+
+  function initProjectStack() {
+    const getBaseCardHeight = ({ portrait }) => {
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      if (portrait) {
+        return Math.min(Math.max(window.innerWidth * 1.04, 32.4 * rem), 39.5 * rem);
+      }
+
+      if (window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches) {
+        return Math.min(Math.max(window.innerWidth * 0.365, 21.5 * rem), 25.6 * rem);
+      }
+
+      if (window.innerWidth <= 980) {
+        return Math.min(Math.max(window.innerWidth * 0.47, 22.8 * rem), 27.2 * rem);
+      }
+
+      return Math.min(Math.max(window.innerWidth * 0.325, 24.2 * rem), 29.5 * rem);
+    };
+
+    initStackDeck({
+      stackId: "project-stack",
+      items: projects,
+      getAriaLabel: (item) => `Current project cards. ${item.title} is in focus.`,
+      getBaseCardHeight,
+      measureCard: measureProjectCard
+    });
   }
 
   async function boot() {
@@ -2056,6 +2208,7 @@
     initRockSaltSafeAreas();
     initAboutCreator();
     initDisciplineStack();
+    initProjectStack();
 
   }
 
