@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260411g';
+  const assetVersion = '20260411h';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -18,22 +18,9 @@
       categories: ["Development", "Design"],
       icon: "assets/img/iStage-icon-dark.png",
       image: "assets/img/hero-iStage-series.png",
+      imageRatio: 1,
+      imageSizing: "compact",
       url: "https://modelized.github.io/iStage/"
-    },
-    {
-      slug: "sherlockgenes",
-      title: "SherlockGenes",
-      description:
-        "An interactive pedigree analysis program that estimates the risk of genetic disorders. It processes family connections to make complex inheritance predictions visually accessible.",
-      categories: ["Development", "Research"],
-      image: "assets/img/hero-SherlockGenes.png"
-    },
-    {
-      slug: "truevision",
-      title: "TrueVision",
-      description:
-        "An AI-based crowd density analysis system designed to detect and visualize dangerous congestion in real time. Using computer vision, it analyzes video input to estimate relative positions and evaluate density, presenting intuitive visual data such as the number of detected people, density levels, and risk stages to effectively monitor crowd flow.",
-      categories: ["Development", "Engineering", "Research"]
     },
     {
       slug: "vanta",
@@ -42,7 +29,24 @@
         "A native macOS launcher engineered for iOS virtual machines (vphone-aio). It replaces terminal-heavy workflows with a clean graphical interface and a dedicated viewer, making low-level VM management visually intuitive.",
       categories: ["Development", "Engineering"],
       icon: "assets/img/Vanta-icon-dark.png",
-      image: "assets/img/hero-Vanta.png"
+      image: "assets/img/hero-Vanta.png",
+      imageRatio: 2184 / 1648
+    },
+    {
+      slug: "sherlockgenes",
+      title: "SherlockGenes",
+      description:
+        "An interactive pedigree analysis program that estimates the risk of genetic disorders. It processes family connections to make complex inheritance predictions visually accessible.",
+      categories: ["Development", "Research"],
+      image: "assets/img/hero-SherlockGenes.png",
+      imageRatio: 2784 / 1880
+    },
+    {
+      slug: "truevision",
+      title: "TrueVision",
+      description:
+        "An AI-based crowd density analysis system designed to detect and visualize dangerous congestion in real time. Using computer vision, it analyzes video input to estimate relative positions and evaluate density, presenting intuitive visual data such as the number of detected people, density levels, and risk stages to effectively monitor crowd flow.",
+      categories: ["Development", "Engineering", "Research"]
     },
     {
       slug: "airtime-cabin",
@@ -174,6 +178,12 @@
         if (project.icon) {
           card.classList.add("has-icon");
         }
+        if (project.imageRatio) {
+          card.dataset.imageRatio = String(project.imageRatio);
+        }
+        if (project.imageSizing) {
+          card.dataset.imageSizing = project.imageSizing;
+        }
       }
 
       if (title) title.textContent = project.title;
@@ -194,6 +204,10 @@
           image.hidden = false;
           image.src = project.image;
           image.alt = `${project.title} project preview`;
+          if (project.imageRatio) {
+            image.dataset.imageRatio = String(project.imageRatio);
+          }
+          image.draggable = false;
         } else {
           image.remove();
         }
@@ -1715,7 +1729,11 @@
     const paddingBottom = parseFloat(surfaceStyles.paddingBottom) || 0;
     const rowGap = parseFloat(layoutStyles.rowGap || layoutStyles.gap) || 0;
     const contentHeight = content.scrollHeight || content.getBoundingClientRect().height || 0;
-    const imageHeight = image ? Math.max(image.scrollHeight || 0, image.getBoundingClientRect().height || 0) : 0;
+    const imageBoundsHeight = image ? Math.max(image.scrollHeight || 0, image.getBoundingClientRect().height || 0) : 0;
+    const imageWidth = image ? Math.max(image.getBoundingClientRect().width || 0, image.offsetWidth || 0) : 0;
+    const imageRatio = image ? parseFloat(image.dataset.imageRatio || card.dataset.imageRatio || "") || 0 : 0;
+    const estimatedImageHeight = imageRatio && imageWidth ? imageWidth / imageRatio : 0;
+    const imageHeight = Math.max(imageBoundsHeight, estimatedImageHeight);
 
     if (!image) {
       return Math.ceil(paddingTop + paddingBottom + contentHeight);
@@ -1733,7 +1751,9 @@
     items,
     getAriaLabel,
     getBaseCardHeight,
-    measureCard
+    measureCard,
+    mediaSelector,
+    onMediaReady
   }) {
     const stack = document.getElementById(stackId);
     const shell = stack?.closest(".discipline-stack-shell");
@@ -1750,6 +1770,7 @@
     let pointerState = null;
     let metrics = null;
     let activeAnimation = null;
+    let queuedSyncFrame = 0;
     let lastViewportWidth = window.innerWidth;
     let lastViewportHeight = window.innerHeight;
     let lastPortraitState = portraitQuery.matches;
@@ -1855,6 +1876,17 @@
       cards.forEach((card) => {
         card.style.removeProperty("transition");
         card.getAnimations?.().forEach((animation) => animation.cancel());
+      });
+    };
+
+    const queueSyncWithoutAnimation = () => {
+      if (queuedSyncFrame) {
+        cancelAnimationFrame(queuedSyncFrame);
+      }
+
+      queuedSyncFrame = requestAnimationFrame(() => {
+        queuedSyncFrame = 0;
+        syncWithoutAnimation();
       });
     };
 
@@ -2014,6 +2046,37 @@
       });
     };
 
+    const bindMediaSync = () => {
+      if (!mediaSelector) {
+        return;
+      }
+
+      const mediaNodes = Array.from(stack.querySelectorAll(mediaSelector));
+      mediaNodes.forEach((media) => {
+        const markReady = () => {
+          if (media.dataset.stackMediaReady === "true") {
+            return;
+          }
+
+          media.dataset.stackMediaReady = "true";
+          onMediaReady?.(media, media.closest(".discipline-stack-card"));
+          queueSyncWithoutAnimation();
+        };
+
+        if (media.complete && media.naturalWidth) {
+          markReady();
+          return;
+        }
+
+        media.addEventListener("load", markReady, { once: true });
+        media.addEventListener("error", markReady, { once: true });
+
+        if (typeof media.decode === "function") {
+          media.decode().then(markReady).catch(() => {});
+        }
+      });
+    };
+
     const onPointerDown = (event) => {
       if (!portraitQuery.matches || !event.isPrimary) {
         return;
@@ -2136,6 +2199,7 @@
     requestAnimationFrame(() => {
       stack.classList.remove("discipline-stack-viewport--static");
     });
+    bindMediaSync();
 
     window.addEventListener("resize", () => {
       const nextWidth = window.innerWidth;
@@ -2186,6 +2250,15 @@
   }
 
   function initProjectStack() {
+    const classifyProjectImage = (image, card) => {
+      if (!image || !card || !image.naturalWidth || !image.naturalHeight) {
+        return;
+      }
+
+      const aspectRatio = image.naturalWidth / image.naturalHeight;
+      card.dataset.imageRatio = String(aspectRatio);
+    };
+
     const getBaseCardHeight = ({ portrait }) => {
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
       if (portrait) {
@@ -2208,7 +2281,9 @@
       items: projects,
       getAriaLabel: (item) => `Current project cards. ${item.title} is in focus.`,
       getBaseCardHeight,
-      measureCard: measureProjectCard
+      measureCard: measureProjectCard,
+      mediaSelector: ".project-stack-card__image",
+      onMediaReady: classifyProjectImage
     });
   }
 
