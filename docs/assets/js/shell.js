@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260411a';
+  const assetVersion = '20260411b';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -17,7 +17,8 @@
         "A pixel-perfect recreation of the iOS Lock Screen for Android, with built-in Dynamic Island, stock wallpapers and deep personalization — all powered by KLCK.",
       categories: ["Development", "Design"],
       icon: "assets/img/iStage-icon-dark.png",
-      image: "assets/img/hero-iStage-series.png"
+      image: "assets/img/hero-iStage-series.png",
+      url: "https://modelized.github.io/iStage/"
     },
     {
       slug: "sherlockgenes",
@@ -161,6 +162,8 @@
       const media = fragment.querySelector(".project-stack-card__media");
       const image = fragment.querySelector(".project-stack-card__image");
       const categories = fragment.querySelector(".project-stack-card__categories");
+      const actions = fragment.querySelector(".project-stack-card__actions");
+      const button = fragment.querySelector(".project-stack-card__button");
 
       if (card) {
         card.dataset.index = String(index);
@@ -213,6 +216,16 @@
           });
         } else {
           categories.remove();
+        }
+      }
+
+      if (actions && button) {
+        if (project.url) {
+          actions.hidden = false;
+          button.href = project.url;
+          button.setAttribute("aria-label", `Open ${project.title}`);
+        } else {
+          actions.remove();
         }
       }
 
