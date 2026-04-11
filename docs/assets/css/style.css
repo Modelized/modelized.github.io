@@ -1245,23 +1245,12 @@ a {
 }
 
 .button.primary::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(115deg, transparent 20%, rgba(255, 255, 255, 0.28) 50%, transparent 80%);
-  transform: translateX(-120%);
-  transition: transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: -1;
-  pointer-events: none;
+  content: none;
 }
 
 .button.primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.04);
-}
-
-.button.primary:hover::after {
-  transform: translateX(120%);
 }
 
 .button.secondary {
@@ -1923,14 +1912,15 @@ a {
 }
 
 .project-stack-card__button::after {
-  transform: none;
+  transform: none !important;
   opacity: 0;
+  background: var(--button-bg);
   transition:
-    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .project-stack-card__button:hover::after {
+  transform: none !important;
   opacity: 1;
 }
 
@@ -1957,11 +1947,6 @@ a {
   border: 0;
 }
 
-.project-stack-card--istage .project-stack-card__media,
-.project-stack-card--sherlockgenes .project-stack-card__media {
-  aspect-ratio: 1.56 / 1;
-}
-
 .project-stack-card__image {
   width: 100%;
   height: 100%;
@@ -1970,19 +1955,17 @@ a {
 }
 
 .project-stack-card--istage .project-stack-card__image {
-  width: 118%;
-  height: auto;
-  max-width: none;
-  margin-inline: -9%;
-  margin-block: -2%;
+  width: 100%;
 }
 
 .project-stack-card--sherlockgenes .project-stack-card__image {
-  width: 108%;
-  height: auto;
-  max-width: none;
-  margin-inline: -4%;
-  margin-block: -1.5%;
+  width: 100%;
+}
+
+.project-stack-card--istage .project-stack-card__media,
+.project-stack-card--sherlockgenes .project-stack-card__media,
+.project-stack-card--vanta .project-stack-card__media {
+  padding-block: 0.2rem;
 }
 
 .project-stack-card:not(.has-media) .project-stack-card__layout {
@@ -2215,6 +2198,11 @@ a {
     font-size: clamp(1.45rem, 7vw, 2.15rem);
   }
 
+  .project-stack-card--airtime-cabin .project-stack-card__title {
+    white-space: nowrap;
+    font-size: clamp(1.25rem, 6.2vw, 2.15rem);
+  }
+
   .project-stack-card__body {
     font-size: 0.99rem;
     max-width: none;
@@ -2229,10 +2217,6 @@ a {
     aspect-ratio: 1.2 / 1;
   }
 
-  .project-stack-card--istage .project-stack-card__media,
-  .project-stack-card--sherlockgenes .project-stack-card__media {
-    aspect-ratio: 1.42 / 1;
-  }
 }
 
 @media (max-width: 980px) and (orientation: landscape) {
