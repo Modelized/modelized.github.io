@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260410u">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260411a">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -122,36 +122,44 @@
     </template>
 
     <section id="projects" class="section projects" data-section="projects">
-      <div class="container projects-shell">
+      <div class="container">
         <div class="section-head reveal" data-reveal>
           <p class="eyebrow">Current Projects</p>
           <h2><span class="tagline-script">Live</span> Modules</h2>
           <p class="section-note">Where creative intent meets structural logic.</p>
         </div>
-        <div id="project-track" class="project-track"></div>
-      </div>
 
-      <template id="project-card-template">
-        <article class="project-card reveal" data-reveal>
-          <div class="project-content">
-            <div class="project-meta">
-              <img class="project-icon" src="" alt="" loading="lazy" decoding="async">
-              <div>
-                <p class="project-name"></p>
-                <p class="project-tagline"></p>
-              </div>
-            </div>
-            <p class="project-description"></p>
-            <div class="project-actions">
-              <a class="button secondary project-link" href="https://modelized.github.io/iStage/" target="_blank" rel="noopener noreferrer">Open Project</a>
+        <div class="discipline-stack-shell project-stack-shell reveal" data-reveal>
+          <div class="discipline-stack-bleed">
+            <div class="discipline-stack-stage project-stack-stage">
+              <div id="project-stack" class="discipline-stack-viewport project-stack-viewport" aria-live="polite" aria-label="Current project cards"></div>
             </div>
           </div>
-          <div class="project-media-wrap">
-            <img class="project-media" src="" alt="" loading="lazy" decoding="async">
-          </div>
-        </article>
-      </template>
+        </div>
+      </div>
     </section>
+
+    <template id="project-card-template">
+      <article class="discipline-stack-card project-stack-card" aria-hidden="true">
+        <div class="discipline-stack-card__surface project-stack-card__surface">
+          <div class="project-stack-card__layout">
+            <div class="project-stack-card__content">
+              <div class="discipline-stack-card__header project-stack-card__header">
+                <div class="project-stack-card__heading">
+                  <img class="project-stack-card__icon" src="" alt="" loading="lazy" decoding="async" hidden>
+                  <h3 class="discipline-stack-card__title project-stack-card__title"></h3>
+                </div>
+              </div>
+              <p class="discipline-stack-card__body project-stack-card__body"></p>
+              <div class="discipline-stack-card__arsenal project-stack-card__categories" hidden></div>
+            </div>
+            <div class="project-stack-card__media" hidden>
+              <img class="project-stack-card__image" src="" alt="" loading="lazy" decoding="async">
+            </div>
+          </div>
+        </div>
+      </article>
+    </template>
 
     <section id="connect" class="section connect" data-section="connect">
       <div class="container">
@@ -185,6 +193,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260410u" defer></script>
+  <script src="assets/js/shell.js?v=20260411a" defer></script>
 </body>
 </html>
