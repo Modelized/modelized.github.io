@@ -1922,6 +1922,18 @@ a {
   padding-inline: 1.18rem;
 }
 
+.project-stack-card__button::after {
+  transform: none;
+  opacity: 0;
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.project-stack-card__button:hover::after {
+  opacity: 1;
+}
+
 .project-category-pill {
   padding: 0.42rem 0.78rem;
   border-color: rgba(223, 141, 93, 0.16);
@@ -1945,6 +1957,11 @@ a {
   border: 0;
 }
 
+.project-stack-card--istage .project-stack-card__media,
+.project-stack-card--sherlockgenes .project-stack-card__media {
+  aspect-ratio: 1.56 / 1;
+}
+
 .project-stack-card__image {
   width: 100%;
   height: 100%;
@@ -1957,6 +1974,15 @@ a {
   height: auto;
   max-width: none;
   margin-inline: -9%;
+  margin-block: -2%;
+}
+
+.project-stack-card--sherlockgenes .project-stack-card__image {
+  width: 108%;
+  height: auto;
+  max-width: none;
+  margin-inline: -4%;
+  margin-block: -1.5%;
 }
 
 .project-stack-card:not(.has-media) .project-stack-card__layout {
@@ -2201,6 +2227,11 @@ a {
 
   .project-stack-card__media {
     aspect-ratio: 1.2 / 1;
+  }
+
+  .project-stack-card--istage .project-stack-card__media,
+  .project-stack-card--sherlockgenes .project-stack-card__media {
+    aspect-ratio: 1.42 / 1;
   }
 }
 
