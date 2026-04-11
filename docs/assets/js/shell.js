@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260411h';
+  const assetVersion = '20260411l';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -394,6 +394,21 @@
   function clearPortraitBrandLock(nav){
     if (!nav) return;
     delete nav.dataset.brandShiftLocked;
+    delete nav.dataset.brandShiftX;
+    delete nav.dataset.brandShiftY;
+  }
+
+  function setPortraitBrandShift(nav, shiftX, shiftY){
+    if (!nav) return;
+    const root = document.documentElement;
+    const normalizedX = Math.round(shiftX);
+    const normalizedY = Math.round(shiftY);
+
+    root.style.setProperty('--mobile-brand-shift-x', `${normalizedX}px`);
+    root.style.setProperty('--mobile-brand-shift-y', `${normalizedY}px`);
+    nav.dataset.brandShiftLocked = '1';
+    nav.dataset.brandShiftX = String(normalizedX);
+    nav.dataset.brandShiftY = String(normalizedY);
   }
 
   function syncPortraitMenuBlurViewport(){
@@ -446,8 +461,15 @@
       root.style.getPropertyValue('--mobile-brand-shift-x').trim() !== '' &&
       root.style.getPropertyValue('--mobile-brand-shift-y').trim() !== '';
     const brandShiftLocked = nav.dataset.brandShiftLocked === '1';
+    const lockedShiftX = Number.parseFloat(nav.dataset.brandShiftX || '');
+    const lockedShiftY = Number.parseFloat(nav.dataset.brandShiftY || '');
+    const hasLockedShift = Number.isFinite(lockedShiftX) && Number.isFinite(lockedShiftY);
 
-    if (shouldAlignBrand && (!brandShiftLocked || !hasBrandShift)){
+    if (shouldAlignBrand && brandShiftLocked && hasLockedShift){
+      if (!hasBrandShift){
+        setPortraitBrandShift(nav, lockedShiftX, lockedShiftY);
+      }
+    } else if (shouldAlignBrand && (!brandShiftLocked || !hasBrandShift)){
       const brand = nav.querySelector('.brand');
       const logo = nav.querySelector('.brand-logo');
       const firstLink = nav.querySelector('.mobile-menu a');
@@ -462,9 +484,7 @@
         const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
         const shiftY = Math.round(targetTop - logoRect.top);
 
-        root.style.setProperty('--mobile-brand-shift-x', `${shiftX}px`);
-        root.style.setProperty('--mobile-brand-shift-y', `${shiftY}px`);
-        nav.dataset.brandShiftLocked = '1';
+        setPortraitBrandShift(nav, shiftX, shiftY);
       }
     } else {
       root.style.removeProperty('--mobile-brand-shift-x');

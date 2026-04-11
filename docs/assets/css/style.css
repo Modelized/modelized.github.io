@@ -1466,11 +1466,11 @@ a {
 }
 
 .discipline-stack-shell {
-  margin-top: 1.75rem;
+  margin-top: 0.95rem;
   --discipline-card-width: min(100%, 50rem);
   --discipline-card-height: clamp(22rem, 39vw, 28rem);
-  --discipline-stack-pad-top: clamp(0.7rem, 1.1vw, 1rem);
-  --discipline-stack-pad-bottom: clamp(3.4rem, 7vw, 5.8rem);
+  --discipline-stack-pad-top: clamp(0.38rem, 0.85vw, 0.7rem);
+  --discipline-stack-pad-bottom: clamp(1.95rem, 4.6vw, 3.2rem);
   --discipline-stack-pad-inline: clamp(0.3rem, 1.2vw, 0.85rem);
 }
 
@@ -1817,11 +1817,11 @@ a {
 }
 
 .project-stack-shell {
-  margin-top: 1.45rem;
+  margin-top: 0.95rem;
   --discipline-card-width: min(100%, 50rem);
   --discipline-card-height: clamp(24.2rem, 34vw, 29.5rem);
-  --discipline-stack-pad-top: clamp(0.8rem, 1.4vw, 1.15rem);
-  --discipline-stack-pad-bottom: clamp(3rem, 6vw, 4.75rem);
+  --discipline-stack-pad-top: clamp(0.38rem, 0.9vw, 0.72rem);
+  --discipline-stack-pad-bottom: clamp(1.85rem, 4.3vw, 3rem);
 }
 
 .project-stack-stage {
@@ -2124,8 +2124,8 @@ a {
   .project-stack-shell {
     --discipline-card-width: 100%;
     --discipline-card-height: clamp(32.4rem, 104vw, 39.5rem);
-    --discipline-stack-pad-top: 0.5rem;
-    --discipline-stack-pad-bottom: clamp(8.4rem, 28vw, 11.2rem);
+    --discipline-stack-pad-top: 0.28rem;
+    --discipline-stack-pad-bottom: clamp(4.8rem, 18vw, 6.7rem);
     --discipline-stack-pad-inline: 0.15rem;
   }
 
@@ -2152,8 +2152,8 @@ a {
   }
 
   .discipline-stack-shell {
-    --discipline-stack-pad-top: 0.55rem;
-    --discipline-stack-pad-bottom: clamp(9.4rem, 34vw, 13.8rem);
+    --discipline-stack-pad-top: 0.3rem;
+    --discipline-stack-pad-bottom: clamp(5.4rem, 19vw, 7.4rem);
     --discipline-stack-pad-inline: 0.15rem;
   }
 
@@ -2213,7 +2213,8 @@ a {
   }
 
   .project-stack-card[data-imageSizing="compact"] .project-stack-card__image {
-    width: min(100%, 18.7rem);
+    width: min(100%, 18rem);
+    margin-bottom: -0.55rem;
   }
 
 }
