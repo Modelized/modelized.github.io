@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260411f';
+  const assetVersion = '20260411g';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -160,7 +160,6 @@
       const title = fragment.querySelector(".project-stack-card__title");
       const description = fragment.querySelector(".project-stack-card__body");
       const icon = fragment.querySelector(".project-stack-card__icon");
-      const media = fragment.querySelector(".project-stack-card__media");
       const image = fragment.querySelector(".project-stack-card__image");
       const categories = fragment.querySelector(".project-stack-card__categories");
       const projectLink = fragment.querySelector(".project-stack-card__link");
@@ -190,13 +189,13 @@
         }
       }
 
-      if (media && image) {
+      if (image) {
         if (project.image) {
-          media.hidden = false;
+          image.hidden = false;
           image.src = project.image;
           image.alt = `${project.title} project preview`;
         } else {
-          media.remove();
+          image.remove();
         }
       }
 
@@ -1704,7 +1703,7 @@
     const surface = card.querySelector(".project-stack-card__surface");
     const layout = surface?.querySelector(".project-stack-card__layout");
     const content = surface?.querySelector(".project-stack-card__content");
-    const media = surface?.querySelector(".project-stack-card__media:not([hidden])");
+    const image = surface?.querySelector(".project-stack-card__image:not([hidden])");
 
     if (!surface || !layout || !content) {
       return 0;
@@ -1716,17 +1715,17 @@
     const paddingBottom = parseFloat(surfaceStyles.paddingBottom) || 0;
     const rowGap = parseFloat(layoutStyles.rowGap || layoutStyles.gap) || 0;
     const contentHeight = content.scrollHeight || content.getBoundingClientRect().height || 0;
-    const mediaHeight = media ? Math.max(media.scrollHeight || 0, media.getBoundingClientRect().height || 0) : 0;
+    const imageHeight = image ? Math.max(image.scrollHeight || 0, image.getBoundingClientRect().height || 0) : 0;
 
-    if (!media) {
+    if (!image) {
       return Math.ceil(paddingTop + paddingBottom + contentHeight);
     }
 
     if (portrait) {
-      return Math.ceil(paddingTop + paddingBottom + contentHeight + rowGap + mediaHeight);
+      return Math.ceil(paddingTop + paddingBottom + contentHeight + rowGap + imageHeight);
     }
 
-    return Math.ceil(paddingTop + paddingBottom + Math.max(contentHeight, mediaHeight));
+    return Math.ceil(paddingTop + paddingBottom + Math.max(contentHeight, imageHeight));
   }
 
   function initStackDeck({
