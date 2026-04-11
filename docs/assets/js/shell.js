@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260411b';
+  const assetVersion = '20260411e';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -24,7 +24,7 @@
       slug: "sherlockgenes",
       title: "SherlockGenes",
       description:
-        "An interactive pedigree analysis program that helps users build family trees and estimate the risk of inherited genetic disorders. It analyzes possible inheritance patterns based on provided family connections and medical conditions, calculating the probability of inheritance to make complex genetic prediction visual and accessible.",
+        "An interactive pedigree analysis program that estimates the risk of genetic disorders. It processes family connections to make complex inheritance predictions visually accessible.",
       categories: ["Development", "Research"],
       image: "assets/img/hero-SherlockGenes.png"
     },
@@ -41,7 +41,8 @@
       description:
         "A native macOS launcher engineered for iOS virtual machines (vphone-aio). It replaces terminal-heavy workflows with a clean graphical interface and a dedicated viewer, making low-level VM management visually intuitive.",
       categories: ["Development", "Engineering"],
-      icon: "assets/img/Vanta-icon-dark.png"
+      icon: "assets/img/Vanta-icon-dark.png",
+      image: "assets/img/hero-Vanta.png"
     },
     {
       slug: "airtime-cabin",
@@ -378,6 +379,11 @@
     root.style.removeProperty('--mobile-wordmark-bottom');
   }
 
+  function clearPortraitBrandLock(nav){
+    if (!nav) return;
+    delete nav.dataset.brandShiftLocked;
+  }
+
   function syncPortraitMenuBlurViewport(){
     const root = document.documentElement;
     if (!isPortraitMobile()) return null;
@@ -424,7 +430,12 @@
 
     const shouldAlignBrand = isNavMenuOpen(nav);
 
-    if (shouldAlignBrand){
+    const hasBrandShift =
+      root.style.getPropertyValue('--mobile-brand-shift-x').trim() !== '' &&
+      root.style.getPropertyValue('--mobile-brand-shift-y').trim() !== '';
+    const brandShiftLocked = nav.dataset.brandShiftLocked === '1';
+
+    if (shouldAlignBrand && (!brandShiftLocked || !hasBrandShift)){
       const brand = nav.querySelector('.brand');
       const logo = nav.querySelector('.brand-logo');
       const firstLink = nav.querySelector('.mobile-menu a');
@@ -441,10 +452,12 @@
 
         root.style.setProperty('--mobile-brand-shift-x', `${shiftX}px`);
         root.style.setProperty('--mobile-brand-shift-y', `${shiftY}px`);
+        nav.dataset.brandShiftLocked = '1';
       }
     } else {
       root.style.removeProperty('--mobile-brand-shift-x');
       root.style.removeProperty('--mobile-brand-shift-y');
+      clearPortraitBrandLock(nav);
     }
 
     const wordmark = document.querySelector('.mobile-menu-wordmark');
@@ -487,6 +500,7 @@
       sheet.setAttribute('inert', '');
       sheet.hidden = true;
     }
+    clearPortraitBrandLock(nav);
     clearPortraitMenuLayoutVars();
   }
 
