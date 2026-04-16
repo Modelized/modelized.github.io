@@ -155,6 +155,10 @@ a {
   margin: 0 auto;
 }
 
+.hero .container {
+  width: min(var(--container), calc(100% - 4.5rem));
+}
+
 .section:not(.hero) .container {
   width: min(var(--container), calc(100% - 4.5rem));
 }
@@ -1016,25 +1020,47 @@ a {
 }
 
 .hero {
-  --hero-top-pad: calc(var(--page-top-offset) + clamp(0.9rem, 2.4vh, 1.9rem));
-  --hero-bottom-pad: clamp(1.25rem, 3vh, 2.45rem);
-  --hero-stage-height: calc(100svh - var(--hero-top-pad) - var(--hero-bottom-pad));
-  --hero-image-size: clamp(24rem, 38vw, 43rem);
-  --hero-side-pad: clamp(1rem, 3vw, 3.25rem);
+  --hero-top-pad: calc(var(--page-top-offset) + clamp(0.75rem, 1.3vw, 1.4rem));
+  --hero-content-bottom-gap: clamp(3rem, 5vw, 4.4rem);
+  --hero-extra-tail: clamp(3.75rem, 7vw, 6rem);
+  --hero-stage-min: 0px;
+  --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
+  --hero-image-size: clamp(22rem, 33vw, 38rem);
+  --hero-side-pad: clamp(0rem, 1.4vw, 1.35rem);
   position: relative;
   margin-top: calc(var(--page-top-offset) * -1);
-  min-height: 100svh;
-  min-height: 100dvh;
+  min-height: max(
+    calc(var(--hero-initial-viewport-height, 100svh) + var(--hero-extra-tail)),
+    calc(var(--hero-top-pad) + var(--hero-stage-min) + var(--hero-content-bottom-gap) + var(--hero-extra-tail))
+  );
   padding-top: var(--hero-top-pad);
-  padding-bottom: var(--hero-bottom-pad);
+  padding-bottom: calc(var(--hero-content-bottom-gap) + var(--hero-extra-tail));
   background: #000;
   overflow: clip;
   isolation: isolate;
 }
 
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 0;
+  height: clamp(10rem, 16vw, 15rem);
+  pointer-events: none;
+  background:
+    radial-gradient(72% 120% at 22% 100%, rgba(255, 157, 77, 0.09), rgba(255, 157, 77, 0) 70%),
+    radial-gradient(70% 120% at 78% 100%, rgba(82, 104, 255, 0.09), rgba(82, 104, 255, 0) 72%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.84) 36%, rgba(6, 7, 10, 0.96) 70%, rgba(6, 7, 10, 0) 100%);
+}
+
+.hero + .section::before {
+  opacity: 0.56;
+  background: linear-gradient(90deg, transparent 0%, rgba(243, 242, 238, 0.06) 18%, rgba(243, 242, 238, 0.06) 82%, transparent 100%);
+}
+
 .hero-layout {
   position: relative;
-  min-height: var(--hero-stage-height);
+  min-height: max(var(--hero-stage-height), var(--hero-stage-min));
 }
 
 .hero-stage {
@@ -1043,10 +1069,22 @@ a {
   isolation: isolate;
 }
 
+.hero-stage::after {
+  content: "";
+  position: absolute;
+  left: var(--hero-side-pad);
+  right: var(--hero-side-pad);
+  bottom: clamp(1.2rem, 2vw, 2.2rem);
+  z-index: 2;
+  height: clamp(8rem, 16vw, 12rem);
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.72) 36%, rgba(0, 0, 0, 0.94) 70%, #000 100%);
+}
+
 .hero-image-wrap {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 48%;
   z-index: 1;
   width: min(100%, var(--hero-image-size));
   transform: translate(-50%, -50%);
@@ -1097,22 +1135,22 @@ a {
 }
 
 .hero-tagline-shape.tagline-script {
-  left: clamp(0rem, 8vw, 7.2rem);
-  top: clamp(1.6rem, 10vh, 5.4rem);
-  font-size: clamp(2.5rem, 5.8vw, 5.8rem);
+  left: calc(50% - clamp(21rem, 26vw, 27rem));
+  top: clamp(1rem, 3vw, 2.6rem);
+  font-size: clamp(1.95rem, 3.9vw, 4.25rem);
   line-height: 1;
 }
 
 .hero-tagline-unseen {
-  right: clamp(0rem, 3vw, 3rem);
-  top: 47%;
-  max-width: 5.6ch;
+  left: calc(50% + clamp(6.4rem, 7vw, 8.8rem));
+  top: 50%;
+  max-width: 5.2ch;
   font-family: var(--heading-font);
-  font-size: clamp(3.25rem, 7.6vw, 8rem);
+  font-size: clamp(2.6rem, 5.4vw, 5.85rem);
   font-weight: 800;
   letter-spacing: 0.005em;
-  line-height: 0.88;
-  text-align: right;
+  line-height: 0.9;
+  text-align: left;
   color: var(--hero-fill-color);
   transform: translateY(-50%);
 }
@@ -1278,7 +1316,7 @@ a {
 
 .hero-subtitle {
   margin: 0;
-  max-width: 28ch;
+  max-width: 18.5ch;
   color: var(--muted);
   font-size: clamp(1rem, 1.7vw, 1.24rem);
   line-height: 1.6;
@@ -2107,21 +2145,23 @@ a {
   }
 
   .hero {
-    --hero-top-pad: calc(var(--page-top-offset) + clamp(0.7rem, 2vh, 1.2rem));
-    --hero-bottom-pad: clamp(1rem, 2.6vh, 1.6rem);
-    --hero-image-size: clamp(18rem, 44vw, 28rem);
+    --hero-top-pad: calc(var(--page-top-offset) + clamp(0.6rem, 1.4vw, 1rem));
+    --hero-content-bottom-gap: clamp(2.8rem, 4.8vw, 3.5rem);
+    --hero-extra-tail: clamp(3rem, 5.6vw, 4.4rem);
+    --hero-image-size: clamp(18rem, 38vw, 27rem);
+    --hero-side-pad: clamp(0rem, 1vw, 0.8rem);
   }
 
   .hero-tagline-shape.tagline-script {
-    left: clamp(0rem, 3vw, 1.6rem);
-    top: clamp(0.9rem, 6vh, 2.4rem);
-    font-size: clamp(1.95rem, 5.2vw, 3.6rem);
+    left: calc(50% - clamp(16.5rem, 23vw, 18.5rem));
+    top: clamp(0.65rem, 1.8vw, 1.4rem);
+    font-size: clamp(1.7rem, 3.25vw, 2.8rem);
   }
 
   .hero-tagline-unseen {
-    right: clamp(0rem, 1.5vw, 1.2rem);
-    font-size: clamp(2.2rem, 6vw, 4.35rem);
-    max-width: 5.2ch;
+    left: calc(50% + clamp(5.2rem, 6.5vw, 7.2rem));
+    font-size: clamp(2.15rem, 4.65vw, 3.85rem);
+    max-width: 5.15ch;
   }
 
   .hero-copy {
@@ -2129,7 +2169,7 @@ a {
   }
 
   .hero-subtitle {
-    max-width: 24ch;
+    max-width: 20ch;
   }
 
   .section-head h2 {
@@ -2185,14 +2225,15 @@ a {
   }
 
   .hero {
-    --hero-top-pad: calc(var(--page-top-offset) + clamp(0.35rem, 0.8vh, 0.7rem));
-    --hero-bottom-pad: clamp(0.8rem, 1.8vh, 1.15rem);
-    --hero-image-size: min(89vw, 29rem);
+    --hero-top-pad: calc(var(--page-top-offset) + 0.45rem);
+    --hero-content-bottom-gap: 4.15rem;
+    --hero-extra-tail: 5.2rem;
+    --hero-image-size: min(84vw, 26.5rem);
     --hero-side-pad: 0;
   }
 
   .hero-image-wrap {
-    top: 49%;
+    top: 47%;
     width: min(100%, var(--hero-image-size));
   }
 
@@ -2202,9 +2243,9 @@ a {
 
   .hero-tagline-shape.tagline-script {
     left: 50%;
-    top: clamp(0.5rem, 3vh, 1.4rem);
-    font-size: clamp(2.15rem, 11vw, 4.4rem);
-    transform: translateX(-52%);
+    top: 0.3rem;
+    font-size: clamp(1.9rem, 8.2vw, 3.25rem);
+    transform: translateX(-50%);
     text-align: center;
   }
 
@@ -2212,10 +2253,10 @@ a {
     left: 50%;
     right: auto;
     top: auto;
-    bottom: clamp(9rem, 16vh, 11.5rem);
-    width: min(100%, 6.3ch);
+    bottom: 10.2rem;
+    width: min(100%, 5.45ch);
     max-width: none;
-    font-size: clamp(3.45rem, 15.3vw, 6.15rem);
+    font-size: clamp(2.75rem, 11.9vw, 4.55rem);
     text-align: center;
     transform: translateX(-50%);
   }
@@ -2223,12 +2264,12 @@ a {
   .hero-copy {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.9rem;
+    gap: 1rem;
     padding-inline: 0;
   }
 
   .hero-subtitle {
-    max-width: 16.5ch;
+    max-width: min(100%, 20rem);
     font-size: 1.02rem;
     line-height: 1.52;
   }
@@ -2356,19 +2397,20 @@ a {
   }
 
   .hero {
-    --hero-image-size: clamp(18rem, 38vw, 24rem);
+    --hero-image-size: clamp(17rem, 31vw, 22rem);
+    --hero-stage-min: 19.5rem;
   }
 
   .hero-tagline-shape.tagline-script {
-    left: clamp(0rem, 3vw, 1.2rem);
-    top: clamp(0.4rem, 4vh, 1.35rem);
-    font-size: clamp(1.85rem, 4.2vw, 3rem);
+    left: calc(50% - clamp(14rem, 20vw, 16rem));
+    top: 0.65rem;
+    font-size: clamp(1.55rem, 3.1vw, 2.45rem);
   }
 
   .hero-tagline-unseen {
-    right: clamp(0rem, 1.2vw, 0.8rem);
-    font-size: clamp(2rem, 4.9vw, 3.45rem);
-    max-width: 4.8ch;
+    left: calc(50% + clamp(4.4rem, 5vw, 5.8rem));
+    font-size: clamp(1.95rem, 4.1vw, 3.2rem);
+    max-width: 4.9ch;
   }
 
   .discipline-stack-shell {
@@ -2405,7 +2447,7 @@ a {
   }
 
   .hero .container {
-    width: calc(100% - 2.05rem);
+    width: calc(100% - 2.35rem);
   }
 }
 

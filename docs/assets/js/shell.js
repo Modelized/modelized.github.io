@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260411l';
+  const assetVersion = '20260417b';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1236,6 +1236,19 @@
     applyReady();
   }
 
+  function initHeroViewportLock() {
+    const hero = document.querySelector('#hero');
+    if (!hero) return;
+
+    const root = document.documentElement;
+    const viewportHeight = Math.max(
+      1,
+      Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0)
+    );
+
+    root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
+  }
+
   async function initHeroTitle() {
     const title = document.querySelector('.hero-title');
     if (!title) {
@@ -2319,6 +2332,7 @@
     renderProjects();
     renderDisciplines();
     initYear();
+    initHeroViewportLock();
     initNav();
     syncMobileNavState();
     initAnchorScroll();
