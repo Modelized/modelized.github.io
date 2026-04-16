@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260417b">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260417c">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -27,9 +27,6 @@
   <meta property="og:url" content="https://modelized.github.io/">
 
   <script>document.documentElement.classList.add('js');</script>
-  <style>
-    .js .hero-title.hero-title--pending { visibility: hidden; }
-  </style>
 </head>
 <body class="page-home" data-base=".">
   <div class="nav-menu-blur" aria-hidden="true"></div>
@@ -57,8 +54,20 @@
           </div>
 
           <h1 class="hero-tagline" aria-label="Shape The Unseen.">
-            <span class="hero-tagline-shape tagline-script">Shape</span>
-            <span class="hero-tagline-unseen">The Unseen.</span>
+            <span class="hero-tagline-side hero-tagline-side--left">
+              <span class="hero-shape-stack">
+                <span class="hero-shape-fill tagline-script">Shape</span>
+                <span class="hero-shape-glow tagline-script" aria-hidden="true">Shape</span>
+              </span>
+            </span>
+            <span class="hero-tagline-side hero-tagline-side--center" aria-hidden="true"></span>
+            <span class="hero-tagline-side hero-tagline-side--right">
+              <span class="hero-unseen-stack">
+                <span class="hero-unseen-outline" aria-hidden="true">The Unseen.</span>
+                <span class="hero-unseen-fill">The Unseen.</span>
+                <span class="hero-unseen-glow" aria-hidden="true">The Unseen.</span>
+              </span>
+            </span>
           </h1>
 
           <div class="hero-copy">
@@ -206,6 +215,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260417b" defer></script>
+  <script src="assets/js/shell.js?v=20260417c" defer></script>
 </body>
 </html>

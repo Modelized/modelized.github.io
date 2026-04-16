@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260417b';
+  const assetVersion = '20260417c';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1249,174 +1249,6 @@
     root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
   }
 
-  async function initHeroTitle() {
-    const title = document.querySelector('.hero-title');
-    if (!title) {
-      return;
-    }
-
-    const sourceText = (title.dataset.heroText || title.getAttribute('aria-label') || title.textContent || "").trim();
-    if (!sourceText) {
-      return;
-    }
-
-    title.dataset.heroText = sourceText;
-    title.classList.add('hero-title--pending');
-    const words = sourceText.split(/\s+/).filter(Boolean);
-    if (!words.length) {
-      return;
-    }
-
-    const renderLines = (lines) => {
-      title.textContent = "";
-
-      lines.forEach((line, index) => {
-        const row = document.createElement("span");
-        row.className = "hero-line";
-        row.style.setProperty("--line-index", String(index));
-
-        const stack = document.createElement("span");
-        stack.className = "hero-stack";
-
-        const outline = document.createElement("span");
-        outline.className = "hero-text hero-text--outline";
-        outline.textContent = line;
-
-        const fill = document.createElement("span");
-        fill.className = "hero-text hero-text--fill";
-        fill.textContent = line;
-        fill.setAttribute("aria-hidden", "true");
-
-        const glow = document.createElement("span");
-        glow.className = "hero-text hero-text--glow";
-        glow.textContent = line;
-        glow.setAttribute("aria-hidden", "true");
-
-        stack.append(outline, fill, glow);
-        row.append(stack);
-        title.appendChild(row);
-      });
-    };
-
-    const getMeasureWidth = () => {
-      const parent = title.parentElement || title;
-      const parentWidth = Math.max(1, Math.round(parent.getBoundingClientRect().width));
-      const styles = getComputedStyle(title);
-      const maxWidthValue = styles.maxWidth;
-      const maxWidth = maxWidthValue && maxWidthValue !== "none"
-        ? Math.max(1, Math.round(parseFloat(maxWidthValue)))
-        : parentWidth;
-
-      return Math.max(1, Math.min(parentWidth, maxWidth));
-    };
-
-    const measureLines = (width) => {
-      const measure = document.createElement("span");
-      measure.className = "hero-title hero-title--measure";
-      measure.setAttribute("aria-hidden", "true");
-      measure.style.width = `${width}px`;
-
-      words.forEach((word, index) => {
-        const wordSpan = document.createElement("span");
-        wordSpan.className = "hero-word";
-        wordSpan.textContent = `${word}${index < words.length - 1 ? " " : ""}`;
-        measure.appendChild(wordSpan);
-      });
-
-      (title.parentElement || document.body).appendChild(measure);
-
-      const groups = [];
-      let lastTop = null;
-
-      measure.querySelectorAll(".hero-word").forEach((wordSpan) => {
-        const token = wordSpan.textContent.trim();
-        if (!token) return;
-
-        const top = wordSpan.offsetTop;
-        if (lastTop === null || Math.abs(top - lastTop) > 2) {
-          groups.push([]);
-          lastTop = top;
-        }
-        groups[groups.length - 1].push(token);
-      });
-
-      measure.remove();
-      return groups.map((group) => group.join(" "));
-    };
-
-    let frame = 0;
-    const cancelPendingBuild = () => {
-      window.cancelAnimationFrame(frame);
-      frame = 0;
-    };
-
-    const runBuild = () => new Promise((resolve) => {
-      const width = getMeasureWidth();
-
-      frame = window.requestAnimationFrame(() => {
-        frame = 0;
-        const lines = measureLines(width);
-        const signature = `${width}:${lines.join("|")}`;
-
-        if (!signature) {
-          title.textContent = sourceText;
-          title.classList.remove('hero-title--pending');
-          resolve();
-          return;
-        }
-
-        if (signature === title.dataset.lineSignature && title.querySelector(".hero-line")) {
-          title.classList.add('hero-title--built');
-          title.classList.remove('hero-title--pending');
-          resolve();
-          return;
-        }
-
-        title.dataset.lineSignature = signature;
-        renderLines(lines);
-        title.classList.add('hero-title--built');
-        title.classList.remove('hero-title--pending');
-        resolve();
-      });
-    });
-
-    const settledBuild = createSettledScheduler(runBuild);
-    const scheduleSettledBuild = (baseDelay = 0) => {
-      settledBuild.schedule(baseDelay, cancelPendingBuild);
-    };
-
-    if (document.fonts?.ready) {
-      try {
-        await document.fonts.ready;
-      } catch (_error) {
-        // Continue with current metrics if font readiness fails.
-      }
-    }
-
-    await runBuild();
-
-    if ("ResizeObserver" in window) {
-      const resizeTarget = title.parentElement || title;
-      const observer = new ResizeObserver(() => {
-        scheduleSettledBuild(80);
-      });
-      observer.observe(resizeTarget);
-      observer.observe(title);
-    }
-
-    window.addEventListener("resize", () => {
-      scheduleSettledBuild(120);
-    });
-    window.addEventListener("orientationchange", () => {
-      scheduleSettledBuild(180);
-    });
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener("resize", () => {
-        scheduleSettledBuild(140);
-      });
-    }
-  }
-
   const rockSaltCanvas = document.createElement("canvas");
   const rockSaltContext = rockSaltCanvas.getContext("2d");
 
@@ -2321,18 +2153,16 @@
   }
 
   async function boot() {
-    const heroTitleReady = initHeroTitle();
+    initHeroViewportLock();
 
     await Promise.all([
       injectPartial('#nav-slot', 'nav.html'),
-      injectPartial('#footer-slot', 'footer.html'),
-      heroTitleReady
+      injectPartial('#footer-slot', 'footer.html')
     ]);
 
     renderProjects();
     renderDisciplines();
     initYear();
-    initHeroViewportLock();
     initNav();
     syncMobileNavState();
     initAnchorScroll();
