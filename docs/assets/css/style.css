@@ -1149,7 +1149,11 @@ a {
 }
 
 .hero-shape-fill {
-  background-image: linear-gradient(90deg, var(--accent-script-color) 0%, var(--accent-script-color) 34%, rgba(255, 244, 235, 0.98) 50%, var(--accent-script-color) 66%, var(--accent-script-color) 100%);
+  color: var(--accent-script-color);
+  -webkit-text-fill-color: var(--accent-script-color);
+  background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
 }
 
 .hero-unseen-fill {
@@ -2290,12 +2294,12 @@ a {
     --hero-content-bottom-gap: 2.12rem;
     --hero-extra-tail: clamp(1.45rem, 5.4vw, 2.1rem);
     --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
-    --hero-image-max-inline: min(calc(100vw - 0.95rem), calc(100% + 1.4rem));
+    --hero-image-max-inline: 110%;
     --hero-tagline-base-size: clamp(2.25rem, min(calc(var(--hero-stage-reference) * 0.1), 11.2cqi), 3.35rem);
   }
 
   .hero-image-wrap {
-    top: 41.6%;
+    top: 40.5%;
   }
 
   .hero-kicker {
