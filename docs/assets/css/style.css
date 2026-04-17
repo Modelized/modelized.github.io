@@ -1127,9 +1127,18 @@ a {
 .hero-shape-fill,
 .hero-shape-glow {
   font-family: "Rock Salt", "Segoe Script", cursive;
+  --script-safe-top: 0.2em;
+  --script-safe-right: 0.05em;
+  --script-safe-bottom: 0.12em;
+  --script-safe-left: 0.05em;
+  --script-safe-top-neg: calc(var(--script-safe-top) * -1);
+  --script-safe-right-neg: calc(var(--script-safe-right) * -1);
+  --script-safe-bottom-neg: calc(var(--script-safe-bottom) * -1);
+  --script-safe-left-neg: calc(var(--script-safe-left) * -1);
   font-size: clamp(1.55rem, calc(var(--hero-side-space) / 5.35), 2.65rem);
   line-height: 0.92;
   letter-spacing: 0.015em;
+  overflow: visible;
 }
 
 .hero-unseen-outline,
@@ -1197,19 +1206,19 @@ a {
 }
 
 .js body.hero-ready .hero-unseen-outline {
-  animation: hero-outline-fade 240ms cubic-bezier(0.24, 0.9, 0.32, 1) 1010ms forwards;
+  animation: hero-outline-fade 220ms cubic-bezier(0.22, 0.88, 0.28, 1) 950ms forwards;
 }
 
 .js body.hero-ready .hero-unseen-fill {
   animation:
-    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 1180ms forwards,
-    hero-sheen-pass 1080ms cubic-bezier(0.22, 0.88, 0.24, 1) 1180ms forwards;
+    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 1170ms forwards,
+    hero-sheen-pass 1080ms cubic-bezier(0.22, 0.88, 0.24, 1) 1170ms forwards;
 }
 
 .js body.hero-ready .hero-unseen-glow {
   animation:
-    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 1180ms forwards,
-    hero-glow-pass 1120ms cubic-bezier(0.22, 0.88, 0.24, 1) 1180ms forwards;
+    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 1170ms forwards,
+    hero-glow-pass 1120ms cubic-bezier(0.22, 0.88, 0.24, 1) 1170ms forwards;
 }
 
 @keyframes hero-mask-reveal {
