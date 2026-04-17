@@ -45,7 +45,10 @@
       <div class="container hero-layout">
         <div class="hero-stage">
           <div class="hero-image-wrap" aria-hidden="true">
-            <img class="hero-home-image hero-home-image--base" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
+            <div class="hero-image-frame">
+              <img class="hero-home-image hero-home-image--base" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
+              <img class="hero-home-image hero-home-image--silhouette" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
+            </div>
           </div>
 
           <div class="hero-kicker">
@@ -78,6 +81,7 @@
       </div>
     </section>
 
+    <div class="page-content-layer">
     <section id="about" class="section about" data-section="about">
       <div class="container">
         <div class="section-head reveal" data-reveal>
@@ -114,10 +118,10 @@
 
         <div class="discipline-stack-shell reveal" data-reveal>
           <div class="discipline-stack-bleed">
+            <div class="stack-loading-overlay" aria-hidden="true">
+              <div class="stack-loading-spinner"></div>
+            </div>
             <div class="discipline-stack-stage">
-              <div class="stack-loading-overlay" aria-hidden="true">
-                <div class="stack-loading-spinner"></div>
-              </div>
               <div id="discipline-stack" class="discipline-stack-viewport" aria-live="polite" aria-label="Core disciplines cards"></div>
             </div>
           </div>
@@ -147,10 +151,10 @@
 
         <div class="discipline-stack-shell project-stack-shell reveal" data-reveal>
           <div class="discipline-stack-bleed">
+            <div class="stack-loading-overlay" aria-hidden="true">
+              <div class="stack-loading-spinner"></div>
+            </div>
             <div class="discipline-stack-stage project-stack-stage">
-              <div class="stack-loading-overlay" aria-hidden="true">
-                <div class="stack-loading-spinner"></div>
-              </div>
               <div id="project-stack" class="discipline-stack-viewport project-stack-viewport" aria-live="polite" aria-label="Current project cards"></div>
             </div>
           </div>
@@ -215,6 +219,7 @@
         </div>
       </div>
     </section>
+    </div>
   </main>
 
   <div id="footer-slot"></div>

@@ -1240,6 +1240,113 @@
     root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
   }
 
+  function initHomeScrollTransition() {
+    const root = document.documentElement;
+    const hero = document.querySelector("#hero");
+    const contentLayer = document.querySelector(".page-content-layer");
+
+    if (!hero || !contentLayer) {
+      return;
+    }
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const lerp = (start, end, amount) => start + (end - start) * amount;
+    const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
+    const easeInOutCubic = (value) =>
+      value < 0.5
+        ? 4 * value * value * value
+        : 1 - Math.pow(-2 * value + 2, 3) / 2;
+    const range = (value, start, end, ease = easeOutCubic) => {
+      if (end <= start) {
+        return value >= end ? 1 : 0;
+      }
+
+      return ease(clamp((value - start) / (end - start), 0, 1));
+    };
+
+    let rafId = 0;
+    let transitionSpan = 1;
+
+    const readMetrics = () => {
+      const styles = getComputedStyle(hero);
+      transitionSpan = Math.max(
+        1,
+        parseFloat(styles.getPropertyValue("--home-transition-span")) || window.innerHeight * 0.14
+      );
+    };
+
+    const sync = () => {
+      rafId = 0;
+
+      const progress = clamp(-hero.getBoundingClientRect().top / transitionSpan, 0, 1);
+      const uiProgress = easeInOutCubic(progress);
+      const uiShift = lerp(0, Math.min(window.innerHeight * 0.22, 176), uiProgress);
+      const uiOpacity = 1 - 0.94 * range(progress, 0.24, 1, easeInOutCubic);
+
+      const imageScale = lerp(1, 1.12, easeOutCubic(progress));
+      const baseFade = 1 - range(progress, 0.14, 0.84, easeInOutCubic);
+      const baseBrightness = lerp(1, 0.72, range(progress, 0.18, 0.88, easeInOutCubic));
+      const baseContrast = lerp(1, 0.93, range(progress, 0.18, 0.88, easeInOutCubic));
+      const silhouetteAppear = range(progress, 0.24, 0.66, easeOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.72, 1, easeInOutCubic);
+      const silhouetteOpacity = 0.58 * silhouetteAppear * silhouetteFade;
+      const imagePresence = 1 - range(progress, 0.78, 1, easeInOutCubic);
+
+      const sharedFade = range(progress, 0.52, 1, easeInOutCubic);
+      const backdropOpacity = 1 - sharedFade;
+      const contentLift = transitionSpan * easeInOutCubic(progress);
+
+      root.style.setProperty("--home-ui-shift", `${uiShift.toFixed(2)}px`);
+      root.style.setProperty("--home-ui-opacity", uiOpacity.toFixed(4));
+      root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
+      root.style.setProperty("--home-image-base-opacity", Math.max(0, baseFade).toFixed(4));
+      root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
+      root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
+      root.style.setProperty("--home-image-silhouette-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
+      root.style.setProperty("--home-image-presence", Math.max(0, imagePresence).toFixed(4));
+      root.style.setProperty("--home-backdrop-opacity", Math.max(0, backdropOpacity).toFixed(4));
+      root.style.setProperty("--home-content-layer-lift", `${contentLift.toFixed(2)}px`);
+    };
+
+    const requestSync = () => {
+      if (rafId) {
+        return;
+      }
+
+      rafId = requestAnimationFrame(sync);
+    };
+
+    const handleViewportChange = () => {
+      readMetrics();
+      requestSync();
+    };
+
+    if (prefersReducedMotion) {
+      root.style.setProperty("--home-ui-shift", "0px");
+      root.style.setProperty("--home-ui-opacity", "1");
+      root.style.setProperty("--home-image-scroll-scale", "1");
+      root.style.setProperty("--home-image-base-opacity", "1");
+      root.style.setProperty("--home-image-base-brightness", "1");
+      root.style.setProperty("--home-image-base-contrast", "1");
+      root.style.setProperty("--home-image-silhouette-opacity", "0");
+      root.style.setProperty("--home-image-presence", "1");
+      root.style.setProperty("--home-backdrop-opacity", "1");
+      root.style.setProperty("--home-content-layer-lift", "0px");
+      return;
+    }
+
+    readMetrics();
+    sync();
+
+    window.addEventListener("scroll", requestSync, { passive: true });
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("orientationchange", () => {
+      window.setTimeout(handleViewportChange, 80);
+    });
+    window.addEventListener("pageshow", handleViewportChange);
+    window.visualViewport?.addEventListener?.("resize", handleViewportChange);
+  }
+
   const rockSaltCanvas = document.createElement("canvas");
   const rockSaltContext = rockSaltCanvas.getContext("2d");
 
@@ -2197,6 +2304,7 @@
     initSectionSpy();
     initReveal();
     initHeroIntro();
+    initHomeScrollTransition();
     initRockSaltSafeAreas();
     initAboutCreator();
     initDisciplineStack();
