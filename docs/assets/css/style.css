@@ -1005,10 +1005,11 @@ a {
   --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
   --hero-image-size: clamp(30rem, calc(var(--hero-stage-reference) * 1.06), 60rem);
-  --hero-tagline-base-size: clamp(2.75rem, min(calc(var(--hero-stage-reference) * 0.106), calc((100vw - 2.35rem) / 6.45)), 4.85rem);
+  --hero-image-max-inline: 100%;
+  --hero-tagline-base-size: clamp(2.75rem, min(calc(var(--hero-stage-reference) * 0.106), 12.6cqi), 4.45rem);
   --hero-shape-size: calc(var(--hero-tagline-base-size) * 0.79);
   --hero-unseen-size: var(--hero-tagline-base-size);
-  --hero-tagline-max-width: min(100%, 14ch);
+  --hero-tagline-max-width: 100%;
   position: relative;
   margin-top: calc(var(--page-top-offset) * -1);
   min-height: max(
@@ -1050,7 +1051,7 @@ a {
   left: 50%;
   top: 44.6%;
   z-index: 1;
-  width: min(100%, var(--hero-image-size));
+  width: min(var(--hero-image-size), var(--hero-image-max-inline));
   transform: translate(-50%, -50%);
   overflow: visible;
   pointer-events: none;
@@ -1337,6 +1338,7 @@ a {
 }
 
 .hero-copy-main {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -2264,13 +2266,15 @@ a {
 
   .hero {
     --hero-top-pad: calc(var(--page-top-offset) + 0.45rem);
-    --hero-content-bottom-gap: 2.6rem;
+    --hero-content-bottom-gap: 2.42rem;
     --hero-extra-tail: clamp(1.45rem, 5.4vw, 2.1rem);
+    --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
+    --hero-image-max-inline: min(calc(100vw - 0.95rem), calc(100% + 1.4rem));
+    --hero-tagline-base-size: clamp(2.25rem, min(calc(var(--hero-stage-reference) * 0.1), 11.2cqi), 3.35rem);
   }
 
   .hero-image-wrap {
     top: 43.4%;
-    width: min(100%, var(--hero-image-size));
   }
 
   .hero-kicker {
@@ -2281,7 +2285,7 @@ a {
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
-    gap: 1.25rem;
+    gap: 1.38rem;
     padding-inline: 0;
   }
 
