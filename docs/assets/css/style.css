@@ -1004,9 +1004,7 @@ a {
   --hero-stage-min: 0px;
   --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
-  --hero-image-size: clamp(20rem, calc(var(--hero-stage-reference) * 0.82), 43rem);
-  --hero-person-space: min(100%, var(--hero-image-size));
-  --hero-side-space: max(0px, calc((100% - var(--hero-person-space)) / 2));
+  --hero-image-size: clamp(24rem, calc(var(--hero-stage-reference) * 0.95), 50rem);
   position: relative;
   margin-top: calc(var(--page-top-offset) * -1);
   min-height: max(
@@ -1031,25 +1029,25 @@ a {
   isolation: isolate;
 }
 
-.hero-stage::after {
+.hero-image-wrap::after {
   content: "";
   position: absolute;
-  left: 0;
-  right: 0;
+  left: -3%;
+  right: -3%;
   bottom: 0;
-  z-index: 2;
-  height: clamp(10rem, 28%, 16rem);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.44) 38%, rgba(0, 0, 0, 0.82) 74%, #000 100%);
+  height: clamp(8rem, 23%, 14rem);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.18) 30%, rgba(0, 0, 0, 0.64) 72%, #000 100%);
   pointer-events: none;
 }
 
 .hero-image-wrap {
   position: absolute;
   left: 50%;
-  top: 48.8%;
+  top: 46.2%;
   z-index: 1;
   width: min(100%, var(--hero-image-size));
   transform: translate(-50%, -50%);
+  overflow: visible;
   pointer-events: none;
 }
 
@@ -1082,35 +1080,31 @@ a {
 
 .hero-tagline {
   margin: 0;
-  position: absolute;
-  inset: 0;
+  position: relative;
   z-index: 3;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--hero-person-space) minmax(0, 1fr);
-  align-items: center;
-  column-gap: clamp(0.7rem, 1.75vw, 1.8rem);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(0.18rem, 0.7vw, 0.48rem);
   pointer-events: none;
 }
 
-.hero-tagline-side {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.hero-tagline-side--center {
-  visibility: hidden;
+.hero-tagline-line {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .hero-shape-stack,
 .hero-unseen-stack {
   position: relative;
   display: grid;
-  place-items: center;
+  place-items: start;
+  align-self: flex-start;
   width: max-content;
   max-width: 100%;
+  overflow: visible;
 }
 
 .hero-shape-fill,
@@ -1127,16 +1121,8 @@ a {
 .hero-shape-fill,
 .hero-shape-glow {
   font-family: "Rock Salt", "Segoe Script", cursive;
-  --script-safe-top: 0.2em;
-  --script-safe-right: 0.05em;
-  --script-safe-bottom: 0.12em;
-  --script-safe-left: 0.05em;
-  --script-safe-top-neg: calc(var(--script-safe-top) * -1);
-  --script-safe-right-neg: calc(var(--script-safe-right) * -1);
-  --script-safe-bottom-neg: calc(var(--script-safe-bottom) * -1);
-  --script-safe-left-neg: calc(var(--script-safe-left) * -1);
-  font-size: clamp(1.55rem, calc(var(--hero-side-space) / 5.35), 2.65rem);
-  line-height: 0.92;
+  font-size: clamp(2.05rem, 4.9vw, 4.3rem);
+  line-height: 0.95;
   letter-spacing: 0.015em;
   overflow: visible;
 }
@@ -1145,7 +1131,7 @@ a {
 .hero-unseen-fill,
 .hero-unseen-glow {
   font-family: var(--heading-font);
-  font-size: clamp(1.95rem, calc(var(--hero-side-space) / 7.6), 3.15rem);
+  font-size: clamp(2.8rem, 7.1vw, 6rem);
   font-weight: 800;
   line-height: 0.9;
   letter-spacing: 0.008em;
@@ -1190,7 +1176,7 @@ a {
 }
 
 .js .hero-unseen-outline {
-  opacity: 0;
+  opacity: 1;
 }
 
 .js body.hero-ready .hero-shape-fill {
@@ -1205,20 +1191,16 @@ a {
     hero-glow-pass 980ms cubic-bezier(0.22, 0.88, 0.24, 1) 90ms forwards;
 }
 
-.js body.hero-ready .hero-unseen-outline {
-  animation: hero-outline-fade 220ms cubic-bezier(0.22, 0.88, 0.28, 1) 950ms forwards;
-}
-
 .js body.hero-ready .hero-unseen-fill {
   animation:
-    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 1170ms forwards,
-    hero-sheen-pass 1080ms cubic-bezier(0.22, 0.88, 0.24, 1) 1170ms forwards;
+    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 970ms forwards,
+    hero-sheen-pass 1080ms cubic-bezier(0.22, 0.88, 0.24, 1) 970ms forwards;
 }
 
 .js body.hero-ready .hero-unseen-glow {
   animation:
-    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 1170ms forwards,
-    hero-glow-pass 1120ms cubic-bezier(0.22, 0.88, 0.24, 1) 1170ms forwards;
+    hero-mask-reveal 980ms cubic-bezier(0.18, 0.92, 0.24, 1) 970ms forwards,
+    hero-glow-pass 1120ms cubic-bezier(0.22, 0.88, 0.24, 1) 970ms forwards;
 }
 
 @keyframes hero-mask-reveal {
@@ -1270,16 +1252,6 @@ a {
   }
 }
 
-@keyframes hero-outline-fade {
-  0% {
-    opacity: 0;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
 .hero-copy {
   position: absolute;
   inset: auto 0 0;
@@ -1287,8 +1259,16 @@ a {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 1.4rem;
+  gap: clamp(1.6rem, 3vw, 3.4rem);
   padding: 0;
+}
+
+.hero-copy-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(0.95rem, 1.8vw, 1.5rem);
+  width: min(100%, clamp(22rem, 42vw, 42rem));
 }
 
 .hero-subtitle {
@@ -2143,26 +2123,26 @@ a {
   .hero {
     --hero-top-pad: calc(var(--page-top-offset) + clamp(0.55rem, 1.3vw, 0.95rem));
     --hero-content-bottom-gap: clamp(2.9rem, 4.6vw, 3.75rem);
-    --hero-image-size: clamp(18rem, calc(var(--hero-stage-reference) * 0.76), 30rem);
-  }
-
-  .hero-tagline {
-    column-gap: clamp(0.6rem, 1.45vw, 1.3rem);
+    --hero-image-size: clamp(20rem, calc(var(--hero-stage-reference) * 0.84), 35rem);
   }
 
   .hero-shape-fill,
   .hero-shape-glow {
-    font-size: clamp(1.35rem, calc(var(--hero-side-space) / 5.4), 2.2rem);
+    font-size: clamp(1.8rem, 4.7vw, 3.5rem);
   }
 
   .hero-unseen-outline,
   .hero-unseen-fill,
   .hero-unseen-glow {
-    font-size: clamp(1.65rem, calc(var(--hero-side-space) / 8.1), 2.55rem);
+    font-size: clamp(2.45rem, 6.8vw, 4.9rem);
   }
 
   .hero-copy {
-    gap: 1rem;
+    gap: clamp(1.35rem, 2.6vw, 2.2rem);
+  }
+
+  .hero-copy-main {
+    width: min(100%, clamp(20rem, 48vw, 36rem));
   }
 
   .hero-subtitle {
@@ -2225,11 +2205,11 @@ a {
     --hero-top-pad: calc(var(--page-top-offset) + 0.45rem);
     --hero-content-bottom-gap: 3.15rem;
     --hero-extra-tail: clamp(2.35rem, 7vw, 3.35rem);
-    --hero-image-size: min(88vw, clamp(18.5rem, calc(var(--hero-stage-reference) * 0.58), 28rem));
+    --hero-image-size: min(96vw, clamp(20.75rem, calc(var(--hero-stage-reference) * 0.66), 34rem));
   }
 
   .hero-image-wrap {
-    top: 47.8%;
+    top: 44.9%;
     width: min(100%, var(--hero-image-size));
   }
 
@@ -2237,51 +2217,33 @@ a {
     padding-inline: 0;
   }
 
-  .hero-tagline {
-    display: block;
-  }
-
-  .hero-tagline-side {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: max-content;
-    max-width: 100%;
-  }
-
-  .hero-tagline-side--left {
-    top: clamp(0.95rem, 5vw, 1.9rem);
-  }
-
-  .hero-tagline-side--center {
-    display: none;
-  }
-
-  .hero-tagline-side--right {
-    bottom: clamp(8.8rem, 22vw, 10.9rem);
-  }
-
   .hero-shape-fill,
   .hero-shape-glow {
-    font-size: clamp(1.45rem, 5.9vw, 2.35rem);
+    font-size: clamp(1.6rem, 7.2vw, 2.75rem);
   }
 
   .hero-unseen-outline,
   .hero-unseen-fill,
   .hero-unseen-glow {
-    font-size: clamp(1.8rem, 8.7vw, 3.1rem);
-    text-align: center;
+    font-size: clamp(2.4rem, 11.1vw, 4.25rem);
+    text-align: left;
   }
 
   .hero-copy {
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.45rem;
+    justify-content: flex-end;
+    gap: 1.5rem;
     padding-inline: 0;
   }
 
+  .hero-copy-main {
+    width: min(100%, 100%);
+    gap: 1.2rem;
+  }
+
   .hero-subtitle {
-    max-width: min(100%, 28ch);
+    max-width: min(100%, 27ch);
     font-size: 1.02rem;
     line-height: 1.52;
   }
@@ -2410,18 +2372,18 @@ a {
 
   .hero {
     --hero-stage-min: 20.75rem;
-    --hero-image-size: clamp(18.5rem, calc(var(--hero-stage-reference) * 0.84), 25.5rem);
+    --hero-image-size: clamp(22rem, calc(var(--hero-stage-reference) * 0.96), 31.5rem);
   }
 
   .hero-shape-fill,
   .hero-shape-glow {
-    font-size: clamp(1.25rem, calc(var(--hero-side-space) / 5.7), 2rem);
+    font-size: clamp(1.65rem, 3.2vw, 2.8rem);
   }
 
   .hero-unseen-outline,
   .hero-unseen-fill,
   .hero-unseen-glow {
-    font-size: clamp(1.5rem, calc(var(--hero-side-space) / 8.7), 2.35rem);
+    font-size: clamp(2.2rem, 5.5vw, 4rem);
   }
 
   .discipline-stack-shell {

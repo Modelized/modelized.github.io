@@ -1278,11 +1278,14 @@
     const bboxHeight = (metrics.actualBoundingBoxAscent || fontSize * 0.8) + (metrics.actualBoundingBoxDescent || fontSize * 0.2);
     const extraHeight = Math.max(0, bboxHeight - lineHeight);
     const ascentRatio = bboxHeight > 0 ? (metrics.actualBoundingBoxAscent || bboxHeight * 0.8) / bboxHeight : 0.8;
+    const isHeroShape = element.classList.contains("hero-shape-fill") || element.classList.contains("hero-shape-glow");
+    const heroShapeTopPad = isHeroShape ? Math.ceil(fontSize * 0.1) : 0;
+    const heroShapeBottomPad = isHeroShape ? Math.ceil(fontSize * 0.07) : 0;
 
     return {
-      top: Math.max(1, Math.ceil(extraHeight * ascentRatio + 1)),
+      top: Math.max(1, Math.ceil(extraHeight * ascentRatio + 1) + heroShapeTopPad),
       right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + 1)),
-      bottom: Math.max(1, Math.ceil(extraHeight * (1 - ascentRatio) + 1)),
+      bottom: Math.max(1, Math.ceil(extraHeight * (1 - ascentRatio) + 1) + heroShapeBottomPad),
       left: Math.max(1, Math.ceil(bboxLeft + 1))
     };
   }
