@@ -1130,6 +1130,13 @@ a {
   overflow: visible;
 }
 
+.hero-tagline-line--shape .tagline-script {
+  --script-safe-top: 0.08em;
+  --script-safe-bottom: 0.2em;
+  --script-safe-top-neg: -0.08em;
+  --script-safe-bottom-neg: -0.2em;
+}
+
 .hero-tagline-line--unseen > * {
   font-family: var(--heading-font);
   font-size: var(--hero-unseen-size);
@@ -2266,7 +2273,7 @@ a {
 
   .hero {
     --hero-top-pad: calc(var(--page-top-offset) + 0.45rem);
-    --hero-content-bottom-gap: 2.42rem;
+    --hero-content-bottom-gap: 2.12rem;
     --hero-extra-tail: clamp(1.45rem, 5.4vw, 2.1rem);
     --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
     --hero-image-max-inline: min(calc(100vw - 0.95rem), calc(100% + 1.4rem));
@@ -2274,7 +2281,7 @@ a {
   }
 
   .hero-image-wrap {
-    top: 43.4%;
+    top: 42.7%;
   }
 
   .hero-kicker {
@@ -2285,7 +2292,7 @@ a {
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
-    gap: 1.38rem;
+    gap: 1.5rem;
     padding-inline: 0;
   }
 
