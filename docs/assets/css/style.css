@@ -1004,9 +1004,11 @@ a {
   --hero-stage-min: 0px;
   --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
-  --hero-image-size: clamp(26rem, calc(var(--hero-stage-reference) * 1.04), 57rem);
-  --hero-tagline-size: clamp(2.4rem, 4.4vw, 4.5rem);
-  --hero-tagline-max-width: min(100%, 15ch);
+  --hero-image-size: clamp(30rem, calc(var(--hero-stage-reference) * 1.06), 60rem);
+  --hero-tagline-base-size: clamp(2.75rem, min(calc(var(--hero-stage-reference) * 0.106), calc((100vw - 2.35rem) / 6.45)), 4.85rem);
+  --hero-shape-size: calc(var(--hero-tagline-base-size) * 0.79);
+  --hero-unseen-size: var(--hero-tagline-base-size);
+  --hero-tagline-max-width: min(100%, 14ch);
   position: relative;
   margin-top: calc(var(--page-top-offset) * -1);
   min-height: max(
@@ -1121,7 +1123,7 @@ a {
 
 .hero-tagline-line--shape > * {
   font-family: "Rock Salt", "Segoe Script", cursive;
-  font-size: var(--hero-tagline-size);
+  font-size: var(--hero-shape-size);
   line-height: 1;
   letter-spacing: 0.015em;
   overflow: visible;
@@ -1129,7 +1131,7 @@ a {
 
 .hero-tagline-line--unseen > * {
   font-family: var(--heading-font);
-  font-size: var(--hero-tagline-size);
+  font-size: var(--hero-unseen-size);
   font-weight: 800;
   line-height: 0.9;
   letter-spacing: 0.008em;
@@ -1182,6 +1184,10 @@ a {
   transform: translate(-50%, calc(-50% + 1.2rem)) scale(1.055);
 }
 
+.js .hero-image-wrap::after {
+  opacity: 0;
+}
+
 .js .hero-home-image {
   filter: brightness(1.85) contrast(1.48) saturate(0.94);
 }
@@ -1212,6 +1218,10 @@ a {
 
 .js body.hero-ready .hero-image-wrap {
   animation: hero-image-entrance 2480ms cubic-bezier(0.18, 0.9, 0.22, 1) 120ms forwards;
+}
+
+.js body.hero-ready .hero-image-wrap::after {
+  animation: hero-image-gradient-settle 2480ms cubic-bezier(0.18, 0.9, 0.22, 1) 120ms forwards;
 }
 
 .js body.hero-ready .hero-home-image {
@@ -1297,6 +1307,20 @@ a {
   }
 }
 
+@keyframes hero-image-gradient-settle {
+  0% {
+    opacity: 0;
+  }
+
+  42% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
 .hero-copy {
   position: absolute;
   inset: auto 0 0;
@@ -1306,6 +1330,10 @@ a {
   justify-content: space-between;
   gap: clamp(1.6rem, 3vw, 3.4rem);
   padding: 0;
+}
+
+.hero-actions {
+  flex: 0 0 auto;
 }
 
 .hero-copy-main {
@@ -2168,9 +2196,6 @@ a {
   .hero {
     --hero-top-pad: calc(var(--page-top-offset) + clamp(0.55rem, 1.3vw, 0.95rem));
     --hero-content-bottom-gap: clamp(2.7rem, 4vw, 3.35rem);
-    --hero-image-size: clamp(22rem, calc(var(--hero-stage-reference) * 0.92), 39rem);
-    --hero-tagline-size: clamp(2rem, 4.9vw, 3.65rem);
-    --hero-tagline-max-width: min(100%, 14ch);
   }
 
   .hero-copy {
@@ -2241,9 +2266,6 @@ a {
     --hero-top-pad: calc(var(--page-top-offset) + 0.45rem);
     --hero-content-bottom-gap: 2.6rem;
     --hero-extra-tail: clamp(1.45rem, 5.4vw, 2.1rem);
-    --hero-image-size: min(100%, clamp(22rem, calc(var(--hero-stage-reference) * 0.72), 39rem));
-    --hero-tagline-size: clamp(1.95rem, 8.25vw, 3.05rem);
-    --hero-tagline-max-width: min(100%, 11.5ch);
   }
 
   .hero-image-wrap {
@@ -2257,10 +2279,14 @@ a {
 
   .hero-copy {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     justify-content: flex-end;
     gap: 1.25rem;
     padding-inline: 0;
+  }
+
+  .hero-actions {
+    align-self: flex-end;
   }
 
   .hero-copy-main {
@@ -2398,18 +2424,6 @@ a {
 
   .hero {
     --hero-stage-min: 20.75rem;
-    --hero-image-size: clamp(22rem, calc(var(--hero-stage-reference) * 0.96), 31.5rem);
-  }
-
-  .hero-shape-fill,
-  .hero-shape-glow {
-    font-size: clamp(1.65rem, 3.2vw, 2.8rem);
-  }
-
-  .hero-unseen-outline,
-  .hero-unseen-fill,
-  .hero-unseen-glow {
-    font-size: clamp(2.2rem, 5.5vw, 4rem);
   }
 
   .discipline-stack-shell {
@@ -2510,5 +2524,11 @@ a {
     animation: none !important;
     transition: none !important;
     transform: translate(-50%, -50%) scale(1) !important;
+  }
+
+  .hero-image-wrap::after {
+    opacity: 1 !important;
+    animation: none !important;
+    transition: none !important;
   }
 }
