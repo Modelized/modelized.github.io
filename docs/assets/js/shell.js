@@ -1633,10 +1633,32 @@
     let lastViewportWidth = window.innerWidth;
     let lastViewportHeight = window.innerHeight;
     let lastPortraitState = portraitQuery.matches;
+    let loadingFadeScheduled = false;
+    let loadingFinished = false;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
     const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
+
+    const setStackLoading = (isLoading) => {
+      shell?.setAttribute("data-stack-loading", isLoading ? "true" : "false");
+      stack.setAttribute("aria-busy", isLoading ? "true" : "false");
+    };
+
+    const finishStackLoading = () => {
+      if (loadingFinished || loadingFadeScheduled) {
+        return;
+      }
+
+      loadingFadeScheduled = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          loadingFadeScheduled = false;
+          loadingFinished = true;
+          setStackLoading(false);
+        });
+      });
+    };
 
     const buildLayouts = (cardWidth) => {
       const steps = portraitQuery.matches
@@ -1907,10 +1929,17 @@
 
     const bindMediaSync = () => {
       if (!mediaSelector) {
+        finishStackLoading();
         return;
       }
 
       const mediaNodes = Array.from(stack.querySelectorAll(mediaSelector));
+      if (!mediaNodes.length) {
+        finishStackLoading();
+        return;
+      }
+
+      let readyCount = 0;
       mediaNodes.forEach((media) => {
         const markReady = () => {
           if (media.dataset.stackMediaReady === "true") {
@@ -1919,7 +1948,11 @@
 
           media.dataset.stackMediaReady = "true";
           onMediaReady?.(media, media.closest(".discipline-stack-card"));
+          readyCount += 1;
           queueSyncWithoutAnimation();
+          if (readyCount >= mediaNodes.length) {
+            finishStackLoading();
+          }
         };
 
         if (media.complete && media.naturalWidth) {
@@ -2053,6 +2086,7 @@
     stack.addEventListener("pointerleave", (event) => clearPointer(event, { snap: true }));
 
     metrics = measureMetrics();
+    setStackLoading(true);
     stack.classList.add("discipline-stack-viewport--static");
     applyState();
     requestAnimationFrame(() => {
