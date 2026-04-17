@@ -1222,18 +1222,9 @@
       return;
     }
 
-    const applyReady = () => {
-      requestAnimationFrame(() => {
-        body.classList.add("hero-ready");
-      });
-    };
-
-    if (document.fonts?.ready) {
-      document.fonts.ready.then(applyReady).catch(applyReady);
-      return;
-    }
-
-    applyReady();
+    requestAnimationFrame(() => {
+      body.classList.add("hero-ready");
+    });
   }
 
   function initHeroViewportLock() {
