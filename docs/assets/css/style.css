@@ -1251,7 +1251,7 @@ a {
 
 .js .hero-home-image--reveal {
   opacity: 0;
-  filter: brightness(3.8) contrast(1.92) saturate(0.78);
+  filter: brightness(1.62) saturate(0.82);
 }
 
 .js body.hero-ready .hero-shape-fill {
@@ -2631,8 +2631,7 @@ a {
     transition: none !important;
   }
 
-  .hero-image-wrap,
-  .hero-home-image--base {
+  .hero-image-wrap {
     opacity: 1 !important;
     filter: none !important;
     animation: none !important;
@@ -2640,11 +2639,20 @@ a {
     transform: translate(-50%, -50%) scale(1) !important;
   }
 
+  .hero-home-image--base {
+    opacity: 1 !important;
+    filter: none !important;
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
   .hero-home-image--reveal {
     opacity: 0 !important;
     filter: none !important;
     animation: none !important;
     transition: none !important;
+    transform: none !important;
   }
 
   .hero-image-wrap::after {
