@@ -41,18 +41,20 @@
   --mobile-row-inline: clamp(52px, 11.8vw, 60px);
   --mobile-menu-inline: clamp(36px, 8.4vw, 46px);
   --page-top-offset: calc(env(safe-area-inset-top, 0px) + 12px + var(--nav-pill-height-desktop) + 28px);
-  --home-ui-shift: 0px;
   --home-ui-opacity: 1;
   --home-image-scroll-scale: 1;
-  --home-image-presence: 1;
-  --home-image-base-opacity: 1;
+  --home-image-base-layer-opacity: 1;
   --home-image-base-brightness: 1;
   --home-image-base-contrast: 1;
-  --home-image-silhouette-opacity: 0;
-  --home-image-silhouette-brightness: 1.36;
-  --home-image-silhouette-contrast: 1.12;
-  --home-backdrop-opacity: 1;
-  --home-content-layer-lift: 0px;
+  --home-image-silhouette-layer-opacity: 0;
+  --home-image-silhouette-brightness: 1.24;
+  --home-image-silhouette-contrast: 1.08;
+  --home-image-gradient-opacity: 1;
+  --site-html-warm-alpha: 0.08;
+  --site-html-cool-alpha: 0.08;
+  --site-body-warm-alpha: 0.11;
+  --site-body-cool-alpha: 0.10;
+  --site-body-bottom-alpha: 0.012;
 }
 
 * {
@@ -63,8 +65,8 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   background:
-    radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.08), rgba(255, 157, 77, 0) 70%),
-    radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.08), rgba(82, 104, 255, 0) 72%),
+    radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, var(--site-html-warm-alpha)), rgba(255, 157, 77, 0) 70%),
+    radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, var(--site-html-cool-alpha)), rgba(82, 104, 255, 0) 72%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
   color-scheme: dark;
 }
@@ -78,12 +80,20 @@ body {
   font-family: var(--body-font);
   color: var(--text);
   background:
-    radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.11), rgba(255, 157, 77, 0) 70%),
-    radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.1), rgba(82, 104, 255, 0) 72%),
-    radial-gradient(78% 66% at 56% 100%, rgba(255, 255, 255, 0.012), rgba(255, 255, 255, 0) 72%),
+    radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, var(--site-body-warm-alpha)), rgba(255, 157, 77, 0) 70%),
+    radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, var(--site-body-cool-alpha)), rgba(82, 104, 255, 0) 72%),
+    radial-gradient(78% 66% at 56% 100%, rgba(255, 255, 255, var(--site-body-bottom-alpha)), rgba(255, 255, 255, 0) 72%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
   overflow-x: hidden;
   background-color: var(--bg);
+}
+
+body.page-home {
+  --site-html-warm-alpha: 0;
+  --site-html-cool-alpha: 0;
+  --site-body-warm-alpha: 0;
+  --site-body-cool-alpha: 0;
+  --site-body-bottom-alpha: 0;
 }
 
 body.no-scroll {
@@ -98,14 +108,6 @@ a {
 .site-footer {
   position: relative;
   z-index: 1;
-}
-
-.page-content-layer,
-.site-footer {
-  position: relative;
-  z-index: 1;
-  transform: translate3d(0, calc(-1 * var(--home-content-layer-lift)), 0);
-  will-change: transform;
 }
 
 .site-nav {
@@ -1037,7 +1039,7 @@ a {
     calc(var(--hero-top-pad) + var(--hero-stage-min) + var(--hero-content-bottom-gap) + var(--home-transition-span))
   );
   padding-top: var(--hero-top-pad);
-  padding-bottom: calc(var(--hero-content-bottom-gap) + var(--home-transition-span));
+  padding-bottom: var(--hero-content-bottom-gap);
   background: transparent;
   overflow: clip;
   isolation: isolate;
@@ -1045,45 +1047,25 @@ a {
 
 .hero-layout {
   position: relative;
-  position: sticky;
-  top: var(--hero-top-pad);
-  min-height: var(--hero-stage-reference);
+  min-height: calc(var(--hero-stage-reference) + var(--home-transition-span));
   z-index: 2;
   isolation: isolate;
-}
-
-.hero-layout::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: calc(-1 * var(--hero-top-pad));
-  width: 100vw;
-  height: calc(var(--hero-stage-reference) + var(--hero-top-pad) + var(--hero-content-bottom-gap));
-  transform: translateX(-50%);
-  background: #000;
-  opacity: var(--home-backdrop-opacity);
-  pointer-events: none;
-  z-index: 0;
-  will-change: opacity;
 }
 
 .hero-stage {
   position: relative;
-  min-height: inherit;
+  min-height: var(--hero-stage-reference);
   z-index: 1;
   isolation: isolate;
 }
 
-.hero-image-frame::after {
-  content: "";
-  position: absolute;
-  left: -3%;
-  right: -3%;
-  bottom: 0;
-  z-index: 2;
-  height: clamp(9rem, 28%, 16rem);
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.12) 18%, rgba(0, 0, 0, 0.42) 54%, rgba(0, 0, 0, 0.82) 82%, #000 100%);
+.hero-visual {
+  position: sticky;
+  top: var(--hero-top-pad);
+  height: var(--hero-stage-reference);
+  z-index: 1;
   pointer-events: none;
+  overflow: visible;
 }
 
 .hero-image-wrap {
@@ -1097,8 +1079,7 @@ a {
   transform: translate(-50%, -50%) scale(var(--home-image-scroll-scale));
   overflow: visible;
   pointer-events: none;
-  opacity: var(--home-image-presence);
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
 .hero-image-frame {
@@ -1106,37 +1087,65 @@ a {
   display: grid;
   place-items: center;
   width: 100%;
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
-.hero-home-image {
+.hero-image-layer {
   grid-area: 1 / 1;
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 1 / 1;
-  object-fit: contain;
-  will-change: opacity;
 }
 
-.hero-home-image--base {
+.hero-image-layer--base {
   position: relative;
   z-index: 1;
-  opacity: var(--home-image-base-opacity);
+  opacity: var(--home-image-base-layer-opacity);
   filter:
     brightness(var(--home-image-base-brightness))
     contrast(var(--home-image-base-contrast));
 }
 
-.hero-home-image--silhouette {
+.hero-image-layer--silhouette {
   position: relative;
   z-index: 2;
-  opacity: var(--home-image-silhouette-opacity);
+  opacity: var(--home-image-silhouette-layer-opacity);
   mix-blend-mode: screen;
   filter:
     brightness(var(--home-image-silhouette-brightness))
     contrast(var(--home-image-silhouette-contrast))
     saturate(0.86);
+}
+
+.hero-image-gradient {
+  position: absolute;
+  left: -3%;
+  right: -3%;
+  bottom: 0;
+  z-index: 3;
+  height: clamp(9rem, 28%, 16rem);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.12) 18%, rgba(0, 0, 0, 0.42) 54%, rgba(0, 0, 0, 0.82) 82%, #000 100%);
+  opacity: var(--home-image-gradient-opacity);
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.hero-home-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  will-change: opacity, transform;
+}
+
+.hero-home-image--base {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-home-image--silhouette {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-kicker {
@@ -1148,9 +1157,8 @@ a {
   justify-content: space-between;
   gap: 1rem;
   padding: 0;
-  transform: translate3d(0, calc(-1 * var(--home-ui-shift)), 0);
   opacity: var(--home-ui-opacity);
-  will-change: transform, opacity;
+  will-change: opacity;
 }
 
 .hero-meta {
@@ -1283,16 +1291,16 @@ a {
   transform: translate3d(0, 1.2rem, 0) scale(1.055);
 }
 
-.js .hero-image-frame::after {
-  opacity: 0;
-}
-
 .js .hero-home-image--base {
   opacity: 0;
 }
 
 .js .hero-home-image--silhouette {
   opacity: 0;
+}
+
+.js .hero-image-gradient {
+  opacity: 1;
 }
 
 .js body.hero-ready .hero-shape-fill {
@@ -1323,10 +1331,6 @@ a {
 
 .js body.hero-ready .hero-image-frame {
   animation: hero-image-entrance 2480ms cubic-bezier(0.18, 0.9, 0.22, 1) 120ms forwards;
-}
-
-.js body.hero-ready .hero-image-frame::after {
-  animation: hero-image-gradient-settle 2480ms cubic-bezier(0.18, 0.9, 0.22, 1) 120ms forwards;
 }
 
 .js body.hero-ready .hero-home-image--base {
@@ -1416,20 +1420,6 @@ a {
   }
 }
 
-@keyframes hero-image-gradient-settle {
-  0% {
-    opacity: 0;
-  }
-
-  42% {
-    opacity: 0.72;
-  }
-
-  100% {
-    opacity: 1;
-  }
-}
-
 .hero-copy {
   position: absolute;
   inset: auto 0 0;
@@ -1439,9 +1429,8 @@ a {
   justify-content: space-between;
   gap: clamp(1.6rem, 3vw, 3.4rem);
   padding: 0;
-  transform: translate3d(0, calc(-1 * var(--home-ui-shift)), 0);
   opacity: var(--home-ui-opacity);
-  will-change: transform, opacity;
+  will-change: opacity;
 }
 
 .hero-actions {
@@ -2652,15 +2641,6 @@ a {
     scroll-behavior: auto;
   }
 
-  .hero {
-    --home-transition-span: 0px !important;
-  }
-
-  .page-content-layer,
-  .site-footer {
-    transform: none !important;
-  }
-
   .button,
   .project-stack-card,
   .project-stack-card__surface,
@@ -2734,7 +2714,7 @@ a {
     transition: none !important;
   }
 
-  .hero-image-frame::after {
+  .hero-image-gradient {
     opacity: 1 !important;
     animation: none !important;
     transition: none !important;
