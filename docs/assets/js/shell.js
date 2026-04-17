@@ -1243,9 +1243,8 @@
   function initHomeScrollTransition() {
     const root = document.documentElement;
     const hero = document.querySelector("#hero");
-    const contentLayer = document.querySelector(".page-content-layer");
 
-    if (!hero || !contentLayer) {
+    if (!hero) {
       return;
     }
 
@@ -1266,6 +1265,13 @@
 
     let rafId = 0;
     let transitionSpan = 1;
+    const atmosphereTargets = {
+      htmlWarm: 0.08,
+      htmlCool: 0.08,
+      bodyWarm: 0.11,
+      bodyCool: 0.10,
+      bodyBottom: 0.012
+    };
 
     const readMetrics = () => {
       const styles = getComputedStyle(hero);
@@ -1275,37 +1281,37 @@
       );
     };
 
+    const setAtmosphere = (amount) => {
+      root.style.setProperty("--site-html-warm-alpha", (atmosphereTargets.htmlWarm * amount).toFixed(4));
+      root.style.setProperty("--site-html-cool-alpha", (atmosphereTargets.htmlCool * amount).toFixed(4));
+      root.style.setProperty("--site-body-warm-alpha", (atmosphereTargets.bodyWarm * amount).toFixed(4));
+      root.style.setProperty("--site-body-cool-alpha", (atmosphereTargets.bodyCool * amount).toFixed(4));
+      root.style.setProperty("--site-body-bottom-alpha", (atmosphereTargets.bodyBottom * amount).toFixed(4));
+    };
+
     const sync = () => {
       rafId = 0;
 
       const progress = clamp(-hero.getBoundingClientRect().top / transitionSpan, 0, 1);
-      const uiProgress = easeInOutCubic(progress);
-      const uiShift = lerp(0, Math.min(window.innerHeight * 0.22, 176), uiProgress);
-      const uiOpacity = 1 - 0.94 * range(progress, 0.24, 1, easeInOutCubic);
-
+      const uiOpacity = 1 - range(progress, 0.06, 0.44, easeInOutCubic);
       const imageScale = lerp(1, 1.12, easeOutCubic(progress));
-      const baseFade = 1 - range(progress, 0.14, 0.84, easeInOutCubic);
-      const baseBrightness = lerp(1, 0.72, range(progress, 0.18, 0.88, easeInOutCubic));
-      const baseContrast = lerp(1, 0.93, range(progress, 0.18, 0.88, easeInOutCubic));
-      const silhouetteAppear = range(progress, 0.24, 0.66, easeOutCubic);
-      const silhouetteFade = 1 - range(progress, 0.72, 1, easeInOutCubic);
-      const silhouetteOpacity = 0.58 * silhouetteAppear * silhouetteFade;
-      const imagePresence = 1 - range(progress, 0.78, 1, easeInOutCubic);
+      const baseFade = 1 - range(progress, 0.12, 0.74, easeInOutCubic);
+      const baseBrightness = lerp(1, 0.66, range(progress, 0.18, 0.78, easeInOutCubic));
+      const baseContrast = lerp(1, 0.95, range(progress, 0.18, 0.78, easeInOutCubic));
+      const silhouetteAppear = range(progress, 0.34, 0.62, easeInOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.68, 0.92, easeInOutCubic);
+      const silhouetteOpacity = 0.78 * silhouetteAppear * silhouetteFade;
+      const gradientOpacity = 1 - range(progress, 0.56, 0.9, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.82, 1, easeInOutCubic);
 
-      const sharedFade = range(progress, 0.52, 1, easeInOutCubic);
-      const backdropOpacity = 1 - sharedFade;
-      const contentLift = transitionSpan * easeInOutCubic(progress);
-
-      root.style.setProperty("--home-ui-shift", `${uiShift.toFixed(2)}px`);
-      root.style.setProperty("--home-ui-opacity", uiOpacity.toFixed(4));
+      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
       root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
-      root.style.setProperty("--home-image-base-opacity", Math.max(0, baseFade).toFixed(4));
+      root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
       root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
-      root.style.setProperty("--home-image-silhouette-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
-      root.style.setProperty("--home-image-presence", Math.max(0, imagePresence).toFixed(4));
-      root.style.setProperty("--home-backdrop-opacity", Math.max(0, backdropOpacity).toFixed(4));
-      root.style.setProperty("--home-content-layer-lift", `${contentLift.toFixed(2)}px`);
+      root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
+      root.style.setProperty("--home-image-gradient-opacity", Math.max(0, gradientOpacity).toFixed(4));
+      setAtmosphere(atmosphereProgress);
     };
 
     const requestSync = () => {
@@ -1322,16 +1328,14 @@
     };
 
     if (prefersReducedMotion) {
-      root.style.setProperty("--home-ui-shift", "0px");
       root.style.setProperty("--home-ui-opacity", "1");
       root.style.setProperty("--home-image-scroll-scale", "1");
-      root.style.setProperty("--home-image-base-opacity", "1");
+      root.style.setProperty("--home-image-base-layer-opacity", "1");
       root.style.setProperty("--home-image-base-brightness", "1");
       root.style.setProperty("--home-image-base-contrast", "1");
-      root.style.setProperty("--home-image-silhouette-opacity", "0");
-      root.style.setProperty("--home-image-presence", "1");
-      root.style.setProperty("--home-backdrop-opacity", "1");
-      root.style.setProperty("--home-content-layer-lift", "0px");
+      root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
+      root.style.setProperty("--home-image-gradient-opacity", "1");
+      setAtmosphere(1);
       return;
     }
 

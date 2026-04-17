@@ -43,14 +43,21 @@
   <main id="top" class="page-wrap">
     <section id="hero" class="section hero" data-section="hero">
       <div class="container hero-layout">
-        <div class="hero-stage">
-          <div class="hero-image-wrap" aria-hidden="true">
+        <div class="hero-visual" aria-hidden="true">
+          <div class="hero-image-wrap">
             <div class="hero-image-frame">
-              <img class="hero-home-image hero-home-image--base" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
-              <img class="hero-home-image hero-home-image--silhouette" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
+              <span class="hero-image-layer hero-image-layer--base">
+                <img class="hero-home-image hero-home-image--base" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
+              </span>
+              <span class="hero-image-layer hero-image-layer--silhouette">
+                <img class="hero-home-image hero-home-image--silhouette" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
+              </span>
+              <span class="hero-image-gradient"></span>
             </div>
           </div>
+        </div>
 
+        <div class="hero-stage">
           <div class="hero-kicker">
             <p class="eyebrow">Modelized</p>
             <p class="hero-meta">Portfolio <span data-year></span></p>
@@ -80,8 +87,6 @@
         </div>
       </div>
     </section>
-
-    <div class="page-content-layer">
     <section id="about" class="section about" data-section="about">
       <div class="container">
         <div class="section-head reveal" data-reveal>
@@ -219,7 +224,6 @@
         </div>
       </div>
     </section>
-    </div>
   </main>
 
   <div id="footer-slot"></div>
