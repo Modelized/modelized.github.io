@@ -1292,8 +1292,8 @@
     const sync = () => {
       rafId = 0;
 
-      const progress = clamp(-hero.getBoundingClientRect().top / transitionSpan, 0, 1);
-      const uiOpacity = 1 - range(progress, 0.06, 0.44, easeInOutCubic);
+      const progress = clamp(getScrollTop() / transitionSpan, 0, 1);
+      const uiOpacity = 1 - range(progress, 0.18, 0.76, easeInOutCubic);
       const imageScale = lerp(1, 1.12, easeOutCubic(progress));
       const baseFade = 1 - range(progress, 0.12, 0.74, easeInOutCubic);
       const baseBrightness = lerp(1, 0.66, range(progress, 0.18, 0.78, easeInOutCubic));
