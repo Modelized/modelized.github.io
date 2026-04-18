@@ -83,13 +83,17 @@ body {
 body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  top: calc(env(safe-area-inset-top, 0px) * -1 - 24px);
+  right: 0;
+  bottom: -24px;
+  left: 0;
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.19), rgba(255, 157, 77, 0) 70%),
-    radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.18), rgba(82, 104, 255, 0) 72%),
-    radial-gradient(78% 66% at 56% 100%, rgba(255, 255, 255, 0.012), rgba(255, 255, 255, 0) 72%);
+    radial-gradient(78% 62% at 22% 24%, rgba(224, 124, 54, 0.17), rgba(224, 124, 54, 0) 74%),
+    radial-gradient(70% 56% at 79% 34%, rgba(66, 88, 201, 0.16), rgba(66, 88, 201, 0) 76%),
+    radial-gradient(86% 72% at 56% 100%, rgba(255, 255, 255, 0.008), rgba(255, 255, 255, 0) 74%),
+    linear-gradient(180deg, rgba(6, 6, 8, 0.1) 0%, rgba(6, 6, 8, 0.035) 40%, rgba(6, 6, 8, 0.16) 100%);
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
   transform: translateZ(0);
@@ -1027,11 +1031,11 @@ a {
   --hero-stage-offset: var(--page-top-offset);
   --hero-top-pad: clamp(1.3rem, 1.9vw, 2rem);
   --hero-stage-bottom-pad: clamp(1.55rem, 2.35vw, 2.25rem);
-  --hero-copy-bottom-offset: clamp(2.45rem, 3.35vw, 3.3rem);
+  --hero-copy-bottom-offset: clamp(2.72rem, 3.6vw, 3.55rem);
   --hero-stage-min: 0px;
   --home-transition-span: clamp(9rem, 16vh, 13rem);
   --home-transition-distance: var(--home-transition-span);
-  --hero-image-anchor-y: 46.35%;
+  --hero-image-anchor-y: 45.65%;
   --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-stage-offset) - var(--hero-top-pad) - var(--hero-stage-bottom-pad));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
   --hero-visual-height: calc(var(--hero-top-pad) + var(--hero-stage-reference) + var(--hero-stage-bottom-pad));
@@ -2401,7 +2405,7 @@ body.page-home #about {
   .hero {
     --hero-top-pad: clamp(1rem, 1.7vw, 1.4rem);
     --hero-stage-bottom-pad: clamp(1.4rem, 2.15vw, 1.95rem);
-    --hero-copy-bottom-offset: clamp(2.05rem, 3.05vw, 2.6rem);
+    --hero-copy-bottom-offset: clamp(2.28rem, 3.3vw, 2.85rem);
   }
 
   .hero-copy {
@@ -2467,11 +2471,11 @@ body.page-home #about {
   .hero {
     --hero-top-pad: 1.05rem;
     --hero-stage-bottom-pad: 1.1rem;
-    --hero-copy-bottom-offset: 1.98rem;
+    --hero-copy-bottom-offset: 2.22rem;
     --home-transition-span: clamp(8.5rem, 15vh, 11.5rem);
     --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
     --hero-image-max-inline: 110vw;
-    --hero-image-anchor-y: 42.15%;
+    --hero-image-anchor-y: 41.35%;
     --hero-tagline-base-size: clamp(2.25rem, min(calc(var(--hero-stage-reference) * 0.1), 11.2cqi), 3.35rem);
   }
 
