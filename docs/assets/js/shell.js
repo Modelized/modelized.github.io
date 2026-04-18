@@ -1325,9 +1325,9 @@
       const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const atmosphereProgress = range(progress, 0.58, 0.95, easeInOutCubic);
-      const nextLayerMotionProgress = range(progress, 0.56, 0.88, easeInOutCubic);
-      const nextLayerOpacityProgress = range(progress, 0.58, 0.78, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.58, 0.92, easeInOutCubic);
+      const nextLayerMotionProgress = range(progress, 0.58, 0.88, easeInOutCubic);
+      const nextLayerOpacityProgress = range(progress, 0.58, 0.76, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
