@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260418c';
+  const assetVersion = '20260419a';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1242,9 +1242,9 @@
     root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
   }
 
-	  function initHomeScrollTransition() {
-	    const root = document.documentElement;
-	    const hero = document.querySelector("#hero");
+  function initHomeScrollTransition() {
+    const root = document.documentElement;
+    const hero = document.querySelector("#hero");
 
     if (!hero) {
       return;
@@ -1266,11 +1266,11 @@
       return ease(clamp((value - start) / (end - start), 0, 1));
     };
 
-	    let rafId = 0;
-	    let transitionSpan = 1;
-	    let transitionDistance = 1;
-	    let lowerLayerStartShift = 28;
-	    let lastBackdropSuppression = "";
+    let rafId = 0;
+    let transitionSpan = 1;
+    let transitionDistance = 1;
+    let lowerLayerStartShift = 28;
+    let lastBackdropSuppression = "";
 
     const readMetrics = () => {
       const styles = getComputedStyle(hero);
@@ -1291,29 +1291,32 @@
         stageReference * 1.78,
         viewportHeight * 1.42
       );
-      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.014, 6), 12);
-      const lowerLayerOverlap = Math.max(
-        Math.min(viewportHeight * 1.02, stageReference * 1.26),
-        viewportHeight * 0.86
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.034, 18), 34);
+      const lowerLayerOverlap = clamp(
+        transitionDistance * 0.88,
+        viewportHeight * 1.02,
+        viewportHeight * 1.24
       );
       hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
       root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
     };
 
-    const setAtmosphere = (amount) => {
+    const setAtmosphere = (amount, scrollTop) => {
       body.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
+      body.style.setProperty("--site-atmosphere-offset", `${scrollTop.toFixed(2)}px`);
     };
 
-    const setLowerLayer = (amount) => {
-      const shift = lerp(lowerLayerStartShift, 0, amount);
-      root.style.setProperty("--home-next-layer-opacity", amount.toFixed(4));
+    const setLowerLayer = (opacityAmount, motionAmount) => {
+      const shift = lerp(lowerLayerStartShift, 0, motionAmount);
+      root.style.setProperty("--home-next-layer-opacity", opacityAmount.toFixed(4));
       root.style.setProperty("--home-next-layer-shift", `${shift.toFixed(2)}px`);
     };
 
     const sync = () => {
       rafId = 0;
 
-      const progress = clamp(getScrollTop() / transitionDistance, 0, 1);
+      const scrollTop = getScrollTop();
+      const progress = clamp(scrollTop / transitionDistance, 0, 1);
       const uiOpacity = 1 - range(progress, 0.06, 0.62, linear);
       const imageScale = lerp(1, 1.125, range(progress, 0, 0.74, easeOutCubic));
       const baseFade = 1 - range(progress, 0.08, 0.56, linear);
@@ -1323,19 +1326,20 @@
       const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const atmosphereProgress = range(progress, 0.64, 0.96, easeInOutCubic);
-      const nextLayerProgress = range(progress, 0.64, 0.9, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.64, 0.95, easeInOutCubic);
+      const nextLayerMotionProgress = range(progress, 0.34, 0.86, easeInOutCubic);
+      const nextLayerOpacityProgress = range(progress, 0.64, 0.9, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
-	      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
-	      root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
+      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
+      root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
       root.style.setProperty("--home-image-unit-opacity", Math.max(0, heroUnitOpacity).toFixed(4));
       root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
       root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
       root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
-      setAtmosphere(atmosphereProgress);
-      setLowerLayer(nextLayerProgress);
+      setAtmosphere(atmosphereProgress, scrollTop);
+      setLowerLayer(nextLayerOpacityProgress, nextLayerMotionProgress);
 
       if (backdropSuppression !== lastBackdropSuppression) {
         body.dataset.homeBackdropSuppressed = backdropSuppression;
@@ -1369,8 +1373,8 @@
       root.style.setProperty("--home-image-base-brightness", "1");
       root.style.setProperty("--home-image-base-contrast", "1");
       root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
-      setAtmosphere(1);
-      setLowerLayer(1);
+      setAtmosphere(1, getScrollTop());
+      setLowerLayer(1, 1);
       body.dataset.homeBackdropSuppressed = "0";
       lastBackdropSuppression = "0";
       window.dispatchEvent(new Event("home-transition-sync"));
@@ -1814,19 +1818,19 @@
       const steps = portraitQuery.matches
         ? [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.228, scale: 0.872, rotate: 5.1 },
-            { x: cardWidth * 0.366, scale: 0.744, rotate: 8.4 },
-            { x: cardWidth * 0.462, scale: 0.63, rotate: 11.1 },
-            { x: cardWidth * 0.528, scale: 0.538, rotate: 13.5 },
-            { x: cardWidth * 0.586, scale: 0.476, rotate: 15.3 }
+            { x: cardWidth * 0.228, scale: 0.866, rotate: 5.1 },
+            { x: cardWidth * 0.366, scale: 0.734, rotate: 8.4 },
+            { x: cardWidth * 0.462, scale: 0.616, rotate: 11.1 },
+            { x: cardWidth * 0.528, scale: 0.522, rotate: 13.5 },
+            { x: cardWidth * 0.586, scale: 0.458, rotate: 15.3 }
           ]
         : [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.238, scale: 0.886, rotate: 4.6 },
-            { x: cardWidth * 0.386, scale: 0.762, rotate: 7.2 },
-            { x: cardWidth * 0.486, scale: 0.654, rotate: 9.8 },
-            { x: cardWidth * 0.55, scale: 0.566, rotate: 11.8 },
-            { x: cardWidth * 0.604, scale: 0.502, rotate: 13.6 }
+            { x: cardWidth * 0.238, scale: 0.88, rotate: 4.6 },
+            { x: cardWidth * 0.386, scale: 0.752, rotate: 7.2 },
+            { x: cardWidth * 0.486, scale: 0.64, rotate: 9.8 },
+            { x: cardWidth * 0.55, scale: 0.55, rotate: 11.8 },
+            { x: cardWidth * 0.604, scale: 0.486, rotate: 13.6 }
           ];
 
       return steps.reduce((layouts, step, depth) => {
