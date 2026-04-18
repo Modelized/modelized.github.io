@@ -621,59 +621,61 @@
     });
   }
 
- function initNavBackdrop(){
-   if (document.body.dataset.backdropInit === '1') return;
-   document.body.dataset.backdropInit = '1';
+  function initNavBackdrop(){
+    if (document.body.dataset.backdropInit === '1') return;
+    document.body.dataset.backdropInit = '1';
 
-   let backdrop = document.querySelector('.nav-backdrop');
-   let last = null;
-   let ticking = false;
+    let backdrop = document.querySelector('.nav-backdrop');
+    let last = null;
+    let ticking = false;
+    const isHomeBackdropSuppressed = () => document.body.dataset.homeBackdropSuppressed === '1';
 
-   const getScrolled = () => {
-     return getScrollTop() > 4;
-   };
+    const getScrolled = () => {
+      return getScrollTop() > 4 && !isHomeBackdropSuppressed();
+    };
 
-   const resetBackdropState = () => {
-     if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
-     backdrop?.classList.remove('is-visible');
-     document.body.classList.remove('nav--scrolled');
-     last = null;
-   };
+    const resetBackdropState = () => {
+      if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
+      backdrop?.classList.remove('is-visible');
+      document.body.classList.remove('nav--scrolled');
+      last = null;
+    };
 
-   const compute = () => {
-     ticking = false;
-     const scrolled = getScrolled();
+    const compute = () => {
+      ticking = false;
+      const scrolled = getScrolled();
 
-     if (scrolled !== last){
-       if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
-       if (backdrop) backdrop.classList.toggle('is-visible', scrolled);
+      if (scrolled !== last){
+        if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
+        if (backdrop) backdrop.classList.toggle('is-visible', scrolled);
 
-       document.body.classList.toggle('nav--scrolled', scrolled);
-       last = scrolled;
-     }
-   };
+        document.body.classList.toggle('nav--scrolled', scrolled);
+        last = scrolled;
+      }
+    };
 
-   const onChange = () => {
-     if (ticking) return;
-     ticking = true;
-     requestAnimationFrame(compute);
-   };
+    const onChange = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(compute);
+    };
 
-   const settledChange = createSettledScheduler(onChange);
-   const scheduleSettledChange = (baseDelay = 0) => {
-     settledChange.schedule(baseDelay, resetBackdropState);
-   };
+    const settledChange = createSettledScheduler(onChange);
+    const scheduleSettledChange = (baseDelay = 0) => {
+      settledChange.schedule(baseDelay, resetBackdropState);
+    };
 
-   compute();
-   window.addEventListener('scroll', onChange, { passive:true });
-   window.addEventListener('resize', () => scheduleSettledChange(80));
-   window.addEventListener('orientationchange', () => scheduleSettledChange(140));
-   window.addEventListener('pageshow', () => scheduleSettledChange(80));
-   if (window.visualViewport){
-     window.visualViewport.addEventListener('resize', () => scheduleSettledChange(100));
-     window.visualViewport.addEventListener('scroll', () => scheduleSettledChange(100));
-   }
- }
+    compute();
+    window.addEventListener('scroll', onChange, { passive:true });
+    window.addEventListener('resize', () => scheduleSettledChange(80));
+    window.addEventListener('orientationchange', () => scheduleSettledChange(140));
+    window.addEventListener('pageshow', () => scheduleSettledChange(80));
+    window.addEventListener('home-transition-sync', onChange);
+    if (window.visualViewport){
+      window.visualViewport.addEventListener('resize', () => scheduleSettledChange(100));
+      window.visualViewport.addEventListener('scroll', () => scheduleSettledChange(100));
+    }
+  }
 
   function initMenuThumb(){
     const menu = document.querySelector('ul.menu');
@@ -1240,9 +1242,9 @@
     root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
   }
 
-  function initHomeScrollTransition() {
-    const root = document.documentElement;
-    const hero = document.querySelector("#hero");
+	  function initHomeScrollTransition() {
+	    const root = document.documentElement;
+	    const hero = document.querySelector("#hero");
 
     if (!hero) {
       return;
@@ -1250,6 +1252,7 @@
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const lerp = (start, end, amount) => start + (end - start) * amount;
+    const linear = (value) => value;
     const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
     const easeInOutCubic = (value) =>
       value < 0.5
@@ -1263,11 +1266,12 @@
       return ease(clamp((value - start) / (end - start), 0, 1));
     };
 
-    let rafId = 0;
-    let transitionSpan = 1;
-    let transitionDistance = 1;
-    let lowerLayerStartShift = 58;
-    const atmosphereTargets = {
+	    let rafId = 0;
+	    let transitionSpan = 1;
+	    let transitionDistance = 1;
+	    let lowerLayerStartShift = 58;
+	    let lastBackdropSuppression = "";
+	    const atmosphereTargets = {
       htmlWarm: 0.08,
       htmlCool: 0.08,
       bodyWarm: 0.11,
@@ -1290,11 +1294,12 @@
         parseFloat(styles.getPropertyValue("--home-transition-span")) || viewportHeight * 0.14
       );
       transitionDistance = Math.max(
-        transitionSpan * 5.6,
-        stageReference * 1.58,
-        viewportHeight * 1.24
+        transitionSpan * 6.5,
+        stageReference * 1.78,
+        viewportHeight * 1.42
       );
-      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.28, 148), 280);
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.07, 36), 84);
+      hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
     };
 
     const setAtmosphere = (amount) => {
@@ -1315,20 +1320,21 @@
       rafId = 0;
 
       const progress = clamp(getScrollTop() / transitionDistance, 0, 1);
-      const uiOpacity = 1 - range(progress, 0.24, 0.95, easeInOutCubic);
-      const imageScale = lerp(1, 1.12, easeOutCubic(progress));
-      const baseFade = 1 - range(progress, 0.3, 0.985, easeInOutCubic);
-      const baseBrightness = lerp(1, 0.68, range(progress, 0.26, 0.965, easeInOutCubic));
-      const baseContrast = lerp(1, 0.95, range(progress, 0.26, 0.965, easeInOutCubic));
-      const silhouetteAppear = range(progress, 0.44, 0.84, easeInOutCubic);
-      const silhouetteFade = 1 - range(progress, 0.86, 1, easeInOutCubic);
+      const uiOpacity = 1 - range(progress, 0.02, 0.7, linear);
+      const imageScale = lerp(1, 1.12, range(progress, 0, 0.8, easeOutCubic));
+      const baseFade = 1 - range(progress, 0.06, 0.76, linear);
+      const baseBrightness = lerp(1, 0.7, range(progress, 0.08, 0.72, easeInOutCubic));
+      const baseContrast = lerp(1, 0.93, range(progress, 0.08, 0.72, easeInOutCubic));
+      const silhouetteAppear = range(progress, 0.16, 0.44, easeInOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.46, 0.76, easeInOutCubic);
       const silhouetteOpacity = 0.8 * silhouetteAppear * silhouetteFade;
       const gradientOpacity = Math.max(0, baseFade);
-      const atmosphereProgress = range(progress, 0.74, 0.995, easeInOutCubic);
-      const nextLayerProgress = range(progress, 0.66, 0.99, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.42, 0.74, easeInOutCubic);
+      const nextLayerProgress = range(progress, 0.38, 0.76, easeInOutCubic);
+      const backdropSuppression = progress < 0.78 ? "1" : "0";
 
-      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
-      root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
+	      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
+	      root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
       root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
       root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
@@ -1336,6 +1342,12 @@
       root.style.setProperty("--home-image-gradient-opacity", Math.max(0, gradientOpacity).toFixed(4));
       setAtmosphere(atmosphereProgress);
       setLowerLayer(nextLayerProgress);
+
+      if (backdropSuppression !== lastBackdropSuppression) {
+        body.dataset.homeBackdropSuppressed = backdropSuppression;
+        lastBackdropSuppression = backdropSuppression;
+        window.dispatchEvent(new Event("home-transition-sync"));
+      }
     };
 
     const requestSync = () => {
@@ -1351,6 +1363,10 @@
       requestSync();
     };
 
+    body.dataset.homeBackdropSuppressed = "1";
+    lastBackdropSuppression = "1";
+    window.dispatchEvent(new Event("home-transition-sync"));
+
     if (prefersReducedMotion) {
       root.style.setProperty("--home-ui-opacity", "1");
       root.style.setProperty("--home-image-scroll-scale", "1");
@@ -1361,6 +1377,9 @@
       root.style.setProperty("--home-image-gradient-opacity", "1");
       setAtmosphere(1);
       setLowerLayer(1);
+      body.dataset.homeBackdropSuppressed = "0";
+      lastBackdropSuppression = "0";
+      window.dispatchEvent(new Event("home-transition-sync"));
       return;
     }
 
