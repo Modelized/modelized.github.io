@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260418a';
+  const assetVersion = '20260418c';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1265,6 +1265,8 @@
 
     let rafId = 0;
     let transitionSpan = 1;
+    let transitionDistance = 1;
+    let lowerLayerStartShift = 58;
     const atmosphereTargets = {
       htmlWarm: 0.08,
       htmlCool: 0.08,
@@ -1275,10 +1277,24 @@
 
     const readMetrics = () => {
       const styles = getComputedStyle(hero);
+      const viewportHeight = Math.max(
+        1,
+        window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0
+      );
+      const stageReference =
+        parseFloat(styles.getPropertyValue("--hero-stage-reference")) ||
+        Math.max(1, viewportHeight * 0.72);
+
       transitionSpan = Math.max(
         1,
-        parseFloat(styles.getPropertyValue("--home-transition-span")) || window.innerHeight * 0.14
+        parseFloat(styles.getPropertyValue("--home-transition-span")) || viewportHeight * 0.14
       );
+      transitionDistance = Math.max(
+        transitionSpan * 5.6,
+        stageReference * 1.58,
+        viewportHeight * 1.24
+      );
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.28, 148), 280);
     };
 
     const setAtmosphere = (amount) => {
@@ -1290,7 +1306,7 @@
     };
 
     const setLowerLayer = (amount) => {
-      const shift = lerp(58, 0, amount);
+      const shift = lerp(lowerLayerStartShift, 0, amount);
       root.style.setProperty("--home-next-layer-opacity", amount.toFixed(4));
       root.style.setProperty("--home-next-layer-shift", `${shift.toFixed(2)}px`);
     };
@@ -1298,18 +1314,18 @@
     const sync = () => {
       rafId = 0;
 
-      const progress = clamp(getScrollTop() / transitionSpan, 0, 1);
-      const uiOpacity = 1 - range(progress, 0.28, 0.92, easeInOutCubic);
+      const progress = clamp(getScrollTop() / transitionDistance, 0, 1);
+      const uiOpacity = 1 - range(progress, 0.24, 0.95, easeInOutCubic);
       const imageScale = lerp(1, 1.12, easeOutCubic(progress));
-      const baseFade = 1 - range(progress, 0.24, 0.92, easeInOutCubic);
-      const baseBrightness = lerp(1, 0.7, range(progress, 0.3, 0.9, easeInOutCubic));
-      const baseContrast = lerp(1, 0.96, range(progress, 0.3, 0.9, easeInOutCubic));
-      const silhouetteAppear = range(progress, 0.42, 0.72, easeInOutCubic);
-      const silhouetteFade = 1 - range(progress, 0.82, 1, easeInOutCubic);
-      const silhouetteOpacity = 0.78 * silhouetteAppear * silhouetteFade;
-      const gradientOpacity = 1 - range(progress, 0.54, 0.96, easeInOutCubic);
-      const atmosphereProgress = range(progress, 0.72, 1, easeInOutCubic);
-      const nextLayerProgress = range(progress, 0.7, 0.98, easeInOutCubic);
+      const baseFade = 1 - range(progress, 0.3, 0.985, easeInOutCubic);
+      const baseBrightness = lerp(1, 0.68, range(progress, 0.26, 0.965, easeInOutCubic));
+      const baseContrast = lerp(1, 0.95, range(progress, 0.26, 0.965, easeInOutCubic));
+      const silhouetteAppear = range(progress, 0.44, 0.84, easeInOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.86, 1, easeInOutCubic);
+      const silhouetteOpacity = 0.8 * silhouetteAppear * silhouetteFade;
+      const gradientOpacity = Math.max(0, baseFade);
+      const atmosphereProgress = range(progress, 0.74, 0.995, easeInOutCubic);
+      const nextLayerProgress = range(progress, 0.66, 0.99, easeInOutCubic);
 
       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
       root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
