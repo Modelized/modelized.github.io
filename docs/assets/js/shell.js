@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260419c';
+  const assetVersion = '20260418c';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1254,7 +1254,6 @@
     const lerp = (start, end, amount) => start + (end - start) * amount;
     const linear = (value) => value;
     const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
-    const easeInOutSine = (value) => 0.5 - Math.cos(Math.PI * value) / 2;
     const easeInOutCubic = (value) =>
       value < 0.5
         ? 4 * value * value * value
@@ -1292,10 +1291,10 @@
         stageReference * 1.78,
         viewportHeight * 1.42
       );
-      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.024, 14), 24);
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.014, 6), 12);
       const lowerLayerOverlap = Math.max(
-        Math.min(transitionDistance + viewportHeight * 0.28, viewportHeight * 1.74),
-        viewportHeight * 1.5
+        Math.min(viewportHeight * 1.02, stageReference * 1.26),
+        viewportHeight * 0.86
       );
       hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
       root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
@@ -1305,9 +1304,9 @@
       body.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
     };
 
-    const setLowerLayer = (opacityAmount, motionAmount) => {
-      const shift = lerp(lowerLayerStartShift, 0, motionAmount);
-      root.style.setProperty("--home-next-layer-opacity", opacityAmount.toFixed(4));
+    const setLowerLayer = (amount) => {
+      const shift = lerp(lowerLayerStartShift, 0, amount);
+      root.style.setProperty("--home-next-layer-opacity", amount.toFixed(4));
       root.style.setProperty("--home-next-layer-shift", `${shift.toFixed(2)}px`);
     };
 
@@ -1324,9 +1323,8 @@
       const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const nextLayerMotionProgress = range(progress, 0.24, 0.84, easeInOutCubic);
-      const nextLayerOpacityProgress = range(progress, 0.64, 0.94, easeInOutSine);
-      const atmosphereProgress = range(progress, 0.64, 0.985, easeInOutSine);
+      const atmosphereProgress = range(progress, 0.64, 0.96, easeInOutCubic);
+      const nextLayerProgress = range(progress, 0.64, 0.9, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
 	      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
@@ -1337,7 +1335,7 @@
       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
       root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
       setAtmosphere(atmosphereProgress);
-      setLowerLayer(nextLayerOpacityProgress, nextLayerMotionProgress);
+      setLowerLayer(nextLayerProgress);
 
       if (backdropSuppression !== lastBackdropSuppression) {
         body.dataset.homeBackdropSuppressed = backdropSuppression;
@@ -1372,7 +1370,7 @@
       root.style.setProperty("--home-image-base-contrast", "1");
       root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
       setAtmosphere(1);
-      setLowerLayer(1, 1);
+      setLowerLayer(1);
       body.dataset.homeBackdropSuppressed = "0";
       lastBackdropSuppression = "0";
       window.dispatchEvent(new Event("home-transition-sync"));
@@ -1786,15 +1784,14 @@
     let lastPortraitState = portraitQuery.matches;
     let loadingFadeScheduled = false;
     let loadingFinished = false;
-    let revealTimer = 0;
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
     const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
 
-    const setStackLoadingState = (state) => {
-      shell?.setAttribute("data-stack-loading", state);
-      stack.setAttribute("aria-busy", state === "false" ? "false" : "true");
+    const setStackLoading = (isLoading) => {
+      shell?.setAttribute("data-stack-loading", isLoading ? "true" : "false");
+      stack.setAttribute("aria-busy", isLoading ? "true" : "false");
     };
 
     const finishStackLoading = () => {
@@ -1803,36 +1800,33 @@
       }
 
       loadingFadeScheduled = true;
-      setStackLoadingState("settling");
-      window.setTimeout(() => {
-        loadingFadeScheduled = false;
-        loadingFinished = true;
-        stack.dataset.stackReady = "revealing";
-        setStackLoadingState("false");
-        window.clearTimeout(revealTimer);
-        revealTimer = window.setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          loadingFadeScheduled = false;
+          loadingFinished = true;
           stack.dataset.stackReady = "true";
-        }, 900 + Math.max(0, total - 1) * 420);
-      }, 280);
+          setStackLoading(false);
+        });
+      });
     };
 
     const buildLayouts = (cardWidth) => {
       const steps = portraitQuery.matches
         ? [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.228, scale: 0.864, rotate: 5.1 },
-            { x: cardWidth * 0.366, scale: 0.73, rotate: 8.4 },
-            { x: cardWidth * 0.462, scale: 0.612, rotate: 11.1 },
-            { x: cardWidth * 0.528, scale: 0.514, rotate: 13.5 },
-            { x: cardWidth * 0.586, scale: 0.446, rotate: 15.3 }
+            { x: cardWidth * 0.228, scale: 0.872, rotate: 5.1 },
+            { x: cardWidth * 0.366, scale: 0.744, rotate: 8.4 },
+            { x: cardWidth * 0.462, scale: 0.63, rotate: 11.1 },
+            { x: cardWidth * 0.528, scale: 0.538, rotate: 13.5 },
+            { x: cardWidth * 0.586, scale: 0.476, rotate: 15.3 }
           ]
         : [
             { x: 0, scale: 1, rotate: 0 },
-            { x: cardWidth * 0.238, scale: 0.878, rotate: 4.6 },
-            { x: cardWidth * 0.386, scale: 0.748, rotate: 7.2 },
-            { x: cardWidth * 0.486, scale: 0.638, rotate: 9.8 },
-            { x: cardWidth * 0.55, scale: 0.544, rotate: 11.8 },
-            { x: cardWidth * 0.604, scale: 0.482, rotate: 13.6 }
+            { x: cardWidth * 0.238, scale: 0.886, rotate: 4.6 },
+            { x: cardWidth * 0.386, scale: 0.762, rotate: 7.2 },
+            { x: cardWidth * 0.486, scale: 0.654, rotate: 9.8 },
+            { x: cardWidth * 0.55, scale: 0.566, rotate: 11.8 },
+            { x: cardWidth * 0.604, scale: 0.502, rotate: 13.6 }
           ];
 
       return steps.reduce((layouts, step, depth) => {
@@ -1946,8 +1940,7 @@
 
       stack.classList.toggle("is-dragging", isDragging);
 
-    cards.forEach((card, index) => {
-        card.style.setProperty("--stack-reveal-order", String(Math.max(0, index - activeIndex)));
+      cards.forEach((card, index) => {
         const offset = index - activeIndex;
         let visual = getLayoutForOffset(offset);
         let zIndex = getZIndex(offset);
@@ -2242,7 +2235,7 @@
     stack.addEventListener("pointerleave", (event) => clearPointer(event, { snap: true }));
 
     metrics = measureMetrics();
-    setStackLoadingState("true");
+    setStackLoading(true);
     stack.dataset.stackReady = "false";
     stack.classList.add("discipline-stack-viewport--static");
     applyState();
