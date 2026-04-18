@@ -50,6 +50,8 @@
   --home-image-silhouette-brightness: 1.24;
   --home-image-silhouette-contrast: 1.08;
   --home-image-gradient-opacity: 1;
+  --home-next-layer-opacity: 0;
+  --home-next-layer-shift: 58px;
   --site-html-warm-alpha: 0.08;
   --site-html-cool-alpha: 0.08;
   --site-body-warm-alpha: 0.11;
@@ -1020,10 +1022,10 @@ a {
 }
 
 .hero {
-  --hero-top-pad: calc(var(--page-top-offset) + clamp(0.75rem, 1.15vw, 1.3rem));
+  --hero-top-pad: calc(var(--page-top-offset) + clamp(1rem, 1.45vw, 1.65rem));
   --hero-content-bottom-gap: clamp(3rem, 4.1vw, 4.2rem);
   --hero-stage-min: 0px;
-  --home-transition-span: clamp(7rem, 14vh, 11rem);
+  --home-transition-span: clamp(12rem, 23vh, 19rem);
   --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
   --hero-image-size: clamp(30rem, calc(var(--hero-stage-reference) * 1.06), 60rem);
@@ -1073,7 +1075,7 @@ a {
 .hero-image-wrap {
   position: absolute;
   left: 50%;
-  top: 44.6%;
+  top: 46.8%;
   z-index: 1;
   display: grid;
   place-items: center;
@@ -1435,6 +1437,13 @@ a {
   will-change: opacity;
 }
 
+.js body.page-home .page-wrap > .section:not(.hero),
+.js body.page-home .site-footer {
+  opacity: var(--home-next-layer-opacity);
+  transform: translate3d(0, var(--home-next-layer-shift), 0);
+  will-change: opacity, transform;
+}
+
 .hero-actions {
   flex: 0 0 auto;
 }
@@ -1792,11 +1801,12 @@ a {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(10, 10, 14, 0.48) 0%, rgba(8, 8, 11, 0.72) 100%);
-  backdrop-filter: blur(18px) saturate(0.82);
-  -webkit-backdrop-filter: blur(18px) saturate(0.82);
-  -webkit-mask: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
-  mask: linear-gradient(90deg, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    linear-gradient(180deg, rgba(8, 8, 11, 0.97) 0%, rgba(7, 7, 10, 0.985) 100%);
+  backdrop-filter: blur(16px) saturate(0.76);
+  -webkit-backdrop-filter: blur(16px) saturate(0.76);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.015);
 }
 
 .stack-loading-spinner {
@@ -1840,6 +1850,23 @@ a {
   z-index: 1;
   outline: none;
   -webkit-tap-highlight-color: transparent;
+  transition:
+    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear 420ms;
+}
+
+.discipline-stack-shell[data-stack-loading="true"] .discipline-stack-viewport {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: none;
+}
+
+.discipline-stack-shell[data-stack-loading="false"] .discipline-stack-viewport {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 120ms, 0s;
 }
 
 .discipline-stack-shell,
@@ -1865,6 +1892,7 @@ a {
 
 .js .discipline-stack-viewport:not([data-stack-ready="true"]) .discipline-stack-card {
   opacity: 0 !important;
+  visibility: hidden !important;
   transition: none !important;
 }
 
@@ -2355,7 +2383,7 @@ a {
   }
 
   .hero {
-    --hero-top-pad: calc(var(--page-top-offset) + clamp(0.55rem, 1.3vw, 0.95rem));
+    --hero-top-pad: calc(var(--page-top-offset) + clamp(0.8rem, 1.55vw, 1.2rem));
     --hero-content-bottom-gap: clamp(2.7rem, 4vw, 3.35rem);
   }
 
@@ -2420,16 +2448,16 @@ a {
   }
 
   .hero {
-    --hero-top-pad: calc(var(--page-top-offset) + 0.45rem);
+    --hero-top-pad: calc(var(--page-top-offset) + 0.9rem);
     --hero-content-bottom-gap: 2.12rem;
-    --home-transition-span: clamp(8rem, 15vh, 10.5rem);
+    --home-transition-span: clamp(11rem, 20vh, 14rem);
     --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
     --hero-image-max-inline: 110vw;
     --hero-tagline-base-size: clamp(2.25rem, min(calc(var(--hero-stage-reference) * 0.1), 11.2cqi), 3.35rem);
   }
 
   .hero-image-wrap {
-    top: 40.5%;
+    top: 42.8%;
   }
 
   .hero-kicker {
@@ -2587,7 +2615,7 @@ a {
 
   .hero {
     --hero-stage-min: 20.75rem;
-    --home-transition-span: clamp(6rem, 11vh, 8rem);
+    --home-transition-span: clamp(10rem, 18vh, 13rem);
   }
 
   .discipline-stack-shell {

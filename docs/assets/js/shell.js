@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260417c';
+  const assetVersion = '20260418a';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1284,25 +1284,32 @@
     const setAtmosphere = (amount) => {
       root.style.setProperty("--site-html-warm-alpha", (atmosphereTargets.htmlWarm * amount).toFixed(4));
       root.style.setProperty("--site-html-cool-alpha", (atmosphereTargets.htmlCool * amount).toFixed(4));
-      root.style.setProperty("--site-body-warm-alpha", (atmosphereTargets.bodyWarm * amount).toFixed(4));
-      root.style.setProperty("--site-body-cool-alpha", (atmosphereTargets.bodyCool * amount).toFixed(4));
-      root.style.setProperty("--site-body-bottom-alpha", (atmosphereTargets.bodyBottom * amount).toFixed(4));
+      body.style.setProperty("--site-body-warm-alpha", (atmosphereTargets.bodyWarm * amount).toFixed(4));
+      body.style.setProperty("--site-body-cool-alpha", (atmosphereTargets.bodyCool * amount).toFixed(4));
+      body.style.setProperty("--site-body-bottom-alpha", (atmosphereTargets.bodyBottom * amount).toFixed(4));
+    };
+
+    const setLowerLayer = (amount) => {
+      const shift = lerp(58, 0, amount);
+      root.style.setProperty("--home-next-layer-opacity", amount.toFixed(4));
+      root.style.setProperty("--home-next-layer-shift", `${shift.toFixed(2)}px`);
     };
 
     const sync = () => {
       rafId = 0;
 
       const progress = clamp(getScrollTop() / transitionSpan, 0, 1);
-      const uiOpacity = 1 - range(progress, 0.18, 0.76, easeInOutCubic);
+      const uiOpacity = 1 - range(progress, 0.28, 0.92, easeInOutCubic);
       const imageScale = lerp(1, 1.12, easeOutCubic(progress));
-      const baseFade = 1 - range(progress, 0.12, 0.74, easeInOutCubic);
-      const baseBrightness = lerp(1, 0.66, range(progress, 0.18, 0.78, easeInOutCubic));
-      const baseContrast = lerp(1, 0.95, range(progress, 0.18, 0.78, easeInOutCubic));
-      const silhouetteAppear = range(progress, 0.34, 0.62, easeInOutCubic);
-      const silhouetteFade = 1 - range(progress, 0.68, 0.92, easeInOutCubic);
+      const baseFade = 1 - range(progress, 0.24, 0.92, easeInOutCubic);
+      const baseBrightness = lerp(1, 0.7, range(progress, 0.3, 0.9, easeInOutCubic));
+      const baseContrast = lerp(1, 0.96, range(progress, 0.3, 0.9, easeInOutCubic));
+      const silhouetteAppear = range(progress, 0.42, 0.72, easeInOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.82, 1, easeInOutCubic);
       const silhouetteOpacity = 0.78 * silhouetteAppear * silhouetteFade;
-      const gradientOpacity = 1 - range(progress, 0.56, 0.9, easeInOutCubic);
-      const atmosphereProgress = range(progress, 0.82, 1, easeInOutCubic);
+      const gradientOpacity = 1 - range(progress, 0.54, 0.96, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.72, 1, easeInOutCubic);
+      const nextLayerProgress = range(progress, 0.7, 0.98, easeInOutCubic);
 
       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
       root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
@@ -1312,6 +1319,7 @@
       root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
       root.style.setProperty("--home-image-gradient-opacity", Math.max(0, gradientOpacity).toFixed(4));
       setAtmosphere(atmosphereProgress);
+      setLowerLayer(nextLayerProgress);
     };
 
     const requestSync = () => {
@@ -1336,6 +1344,7 @@
       root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
       root.style.setProperty("--home-image-gradient-opacity", "1");
       setAtmosphere(1);
+      setLowerLayer(1);
       return;
     }
 
@@ -1766,6 +1775,7 @@
         requestAnimationFrame(() => {
           loadingFadeScheduled = false;
           loadingFinished = true;
+          stack.dataset.stackReady = "true";
           setStackLoading(false);
         });
       });
@@ -1957,7 +1967,6 @@
         card.style.setProperty("--discipline-surface-lift", appearance.lift.toFixed(3));
       });
 
-      stack.dataset.stackReady = "true";
       syncLabels();
     };
 
@@ -2198,6 +2207,7 @@
 
     metrics = measureMetrics();
     setStackLoading(true);
+    stack.dataset.stackReady = "false";
     stack.classList.add("discipline-stack-viewport--static");
     applyState();
     requestAnimationFrame(() => {
