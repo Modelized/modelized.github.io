@@ -43,16 +43,16 @@
   --page-top-offset: calc(env(safe-area-inset-top, 0px) + 12px + var(--nav-pill-height-desktop) + 28px);
   --home-ui-opacity: 1;
   --home-image-scroll-scale: 1;
+  --home-image-unit-opacity: 1;
   --home-image-base-layer-opacity: 1;
   --home-image-base-brightness: 1;
   --home-image-base-contrast: 1;
   --home-image-silhouette-layer-opacity: 0;
   --home-image-silhouette-brightness: 1.24;
   --home-image-silhouette-contrast: 1.08;
-  --home-image-gradient-opacity: 1;
   --home-next-layer-opacity: 0;
-  --home-next-layer-shift: 28vh;
-  --home-next-layer-overlap: clamp(23rem, 40vh, 29rem);
+  --home-next-layer-shift: 24px;
+  --home-next-layer-overlap: clamp(31rem, 62vh, 42rem);
   --site-html-warm-alpha: 0.08;
   --site-html-cool-alpha: 0.08;
   --site-body-warm-alpha: 0.11;
@@ -173,10 +173,6 @@ a {
 
 .page-wrap {
   padding-top: var(--page-top-offset);
-}
-
-body.page-home .page-wrap {
-  padding-top: 0;
 }
 
 .container {
@@ -1027,13 +1023,14 @@ body.page-home .page-wrap {
 }
 
 .hero {
-  --hero-top-clearance: var(--page-top-offset);
+  --hero-stage-offset: var(--page-top-offset);
   --hero-top-pad: clamp(1.3rem, 1.9vw, 2rem);
   --hero-content-bottom-gap: clamp(1.55rem, 2.35vw, 2.25rem);
   --hero-stage-min: 0px;
   --home-transition-span: clamp(9rem, 16vh, 13rem);
   --home-transition-distance: var(--home-transition-span);
-  --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-top-clearance) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
+  --hero-image-anchor-y: 48.9%;
+  --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-stage-offset) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
   --hero-visual-height: calc(var(--hero-top-pad) + var(--hero-stage-reference) + var(--hero-content-bottom-gap));
   --hero-image-size: clamp(30rem, calc(var(--hero-stage-reference) * 1.06), 60rem);
@@ -1043,7 +1040,7 @@ body.page-home .page-wrap {
   --hero-unseen-size: var(--hero-tagline-base-size);
   --hero-tagline-max-width: 100%;
   position: relative;
-  min-height: calc(var(--hero-top-clearance) + var(--hero-visual-height) + var(--home-transition-distance));
+  min-height: calc(var(--hero-visual-height) + var(--home-transition-distance));
   padding-top: 0;
   padding-bottom: 0;
   background: transparent;
@@ -1053,15 +1050,15 @@ body.page-home .page-wrap {
 
 .hero-layout {
   position: relative;
-  min-height: calc(var(--hero-top-clearance) + var(--hero-visual-height) + var(--home-transition-distance));
+  min-height: calc(var(--hero-visual-height) + var(--home-transition-distance));
   z-index: 2;
   isolation: isolate;
 }
 
 .hero-stage {
   position: absolute;
-  inset: var(--hero-top-clearance) 0 auto;
-  min-height: var(--hero-visual-height);
+  inset: 0 0 auto;
+  height: var(--hero-visual-height);
   padding-top: var(--hero-top-pad);
   padding-bottom: var(--hero-content-bottom-gap);
   z-index: 3;
@@ -1070,7 +1067,7 @@ body.page-home .page-wrap {
 
 .hero-visual {
   position: sticky;
-  top: var(--hero-top-clearance);
+  top: 0;
   height: var(--hero-visual-height);
   z-index: 1;
   pointer-events: none;
@@ -1080,7 +1077,7 @@ body.page-home .page-wrap {
 .hero-image-wrap {
   position: absolute;
   left: 50%;
-  top: 50.4%;
+  top: var(--hero-image-anchor-y);
   z-index: 1;
   display: grid;
   place-items: center;
@@ -1096,6 +1093,7 @@ body.page-home .page-wrap {
   display: grid;
   place-items: center;
   width: 100%;
+  opacity: var(--home-image-unit-opacity);
   will-change: transform;
 }
 
@@ -1133,7 +1131,7 @@ body.page-home .page-wrap {
   z-index: 3;
   height: clamp(9rem, 28%, 16rem);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.12) 18%, rgba(0, 0, 0, 0.42) 54%, rgba(0, 0, 0, 0.82) 82%, #000 100%);
-  opacity: var(--home-image-gradient-opacity);
+  opacity: 1;
   pointer-events: none;
   will-change: opacity;
 }
@@ -1431,7 +1429,7 @@ body.page-home .page-wrap {
 
 .hero-copy {
   position: absolute;
-  inset: auto 0 0;
+  inset: auto 0 var(--hero-content-bottom-gap);
   z-index: 3;
   display: flex;
   align-items: flex-end;
@@ -2469,11 +2467,8 @@ body.page-home #about {
     --home-transition-span: clamp(8.5rem, 15vh, 11.5rem);
     --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
     --hero-image-max-inline: 110vw;
+    --hero-image-anchor-y: 45.4%;
     --hero-tagline-base-size: clamp(2.25rem, min(calc(var(--hero-stage-reference) * 0.1), 11.2cqi), 3.35rem);
-  }
-
-  .hero-image-wrap {
-    top: 47.4%;
   }
 
   .hero-kicker {

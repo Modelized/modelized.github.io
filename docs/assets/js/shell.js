@@ -1269,7 +1269,7 @@
 	    let rafId = 0;
 	    let transitionSpan = 1;
 	    let transitionDistance = 1;
-	    let lowerLayerStartShift = 58;
+	    let lowerLayerStartShift = 28;
 	    let lastBackdropSuppression = "";
 	    const atmosphereTargets = {
       htmlWarm: 0.08,
@@ -1298,8 +1298,13 @@
         stageReference * 1.78,
         viewportHeight * 1.42
       );
-      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.07, 36), 84);
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.032, 18), 34);
+      const lowerLayerOverlap = Math.max(
+        Math.min(viewportHeight * 0.72, stageReference * 1.02),
+        viewportHeight * 0.56
+      );
       hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
+      root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
     };
 
     const setAtmosphere = (amount) => {
@@ -1320,26 +1325,26 @@
       rafId = 0;
 
       const progress = clamp(getScrollTop() / transitionDistance, 0, 1);
-      const uiOpacity = 1 - range(progress, 0.02, 0.7, linear);
-      const imageScale = lerp(1, 1.12, range(progress, 0, 0.8, easeOutCubic));
-      const baseFade = 1 - range(progress, 0.06, 0.76, linear);
-      const baseBrightness = lerp(1, 0.7, range(progress, 0.08, 0.72, easeInOutCubic));
-      const baseContrast = lerp(1, 0.93, range(progress, 0.08, 0.72, easeInOutCubic));
-      const silhouetteAppear = range(progress, 0.16, 0.44, easeInOutCubic);
-      const silhouetteFade = 1 - range(progress, 0.46, 0.76, easeInOutCubic);
-      const silhouetteOpacity = 0.8 * silhouetteAppear * silhouetteFade;
-      const gradientOpacity = Math.max(0, baseFade);
-      const atmosphereProgress = range(progress, 0.42, 0.74, easeInOutCubic);
-      const nextLayerProgress = range(progress, 0.38, 0.76, easeInOutCubic);
-      const backdropSuppression = progress < 0.78 ? "1" : "0";
+      const uiOpacity = 1 - range(progress, 0.06, 0.62, linear);
+      const imageScale = lerp(1, 1.125, range(progress, 0, 0.74, easeOutCubic));
+      const baseFade = 1 - range(progress, 0.08, 0.56, linear);
+      const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.54, easeInOutCubic));
+      const baseContrast = lerp(1, 0.92, range(progress, 0.12, 0.54, easeInOutCubic));
+      const silhouetteAppear = range(progress, 0.2, 0.34, easeInOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
+      const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
+      const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
+      const atmosphereProgress = range(progress, 0.62, 0.88, easeInOutCubic);
+      const nextLayerProgress = range(progress, 0.58, 0.84, easeInOutCubic);
+      const backdropSuppression = progress < 0.88 ? "1" : "0";
 
 	      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
 	      root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
+      root.style.setProperty("--home-image-unit-opacity", Math.max(0, heroUnitOpacity).toFixed(4));
       root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
       root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
       root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
-      root.style.setProperty("--home-image-gradient-opacity", Math.max(0, gradientOpacity).toFixed(4));
       setAtmosphere(atmosphereProgress);
       setLowerLayer(nextLayerProgress);
 
@@ -1370,11 +1375,11 @@
     if (prefersReducedMotion) {
       root.style.setProperty("--home-ui-opacity", "1");
       root.style.setProperty("--home-image-scroll-scale", "1");
+      root.style.setProperty("--home-image-unit-opacity", "1");
       root.style.setProperty("--home-image-base-layer-opacity", "1");
       root.style.setProperty("--home-image-base-brightness", "1");
       root.style.setProperty("--home-image-base-contrast", "1");
       root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
-      root.style.setProperty("--home-image-gradient-opacity", "1");
       setAtmosphere(1);
       setLowerLayer(1);
       body.dataset.homeBackdropSuppressed = "0";
