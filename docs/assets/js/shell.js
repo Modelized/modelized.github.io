@@ -1317,8 +1317,8 @@
       const scrollTop = getScrollTop();
       const progress = clamp(scrollTop / transitionDistance, 0, 1);
       const uiOpacity = 1 - range(progress, 0.06, 0.56, linear);
-      const imageScale = lerp(1, 1.125, range(progress, 0, 0.68, easeOutCubic));
-      const baseFade = 1 - range(progress, 0.08, 0.48, linear);
+      const imageScale = lerp(1, 1.125, range(progress, 0, 0.72, easeOutCubic));
+      const baseFade = 1 - range(progress, 0.08, 0.52, linear);
       const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.48, easeInOutCubic));
       const baseContrast = lerp(1, 0.92, range(progress, 0.12, 0.48, easeInOutCubic));
       const silhouetteAppear = range(progress, 0.2, 0.28, easeInOutCubic);
