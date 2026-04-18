@@ -54,7 +54,6 @@
   --home-next-layer-shift: 18px;
   --home-next-layer-overlap: clamp(34rem, 68vh, 46rem);
   --site-atmosphere-opacity: 1;
-  --site-atmosphere-offset: 0px;
 }
 
 * {
@@ -81,28 +80,35 @@ body {
   background-color: var(--bg);
 }
 
-body::before {
-  content: "";
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) * -1 - 48px);
-  right: 0;
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1 - 48px);
-  left: 0;
-  z-index: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(78% 62% at 22% 24%, rgba(224, 124, 54, 0.17), rgba(224, 124, 54, 0) 74%),
-    radial-gradient(70% 56% at 79% 34%, rgba(66, 88, 201, 0.16), rgba(66, 88, 201, 0) 76%),
-    radial-gradient(86% 72% at 56% 100%, rgba(255, 255, 255, 0.008), rgba(255, 255, 255, 0) 74%),
-    linear-gradient(180deg, rgba(6, 6, 8, 0.1) 0%, rgba(6, 6, 8, 0.035) 40%, rgba(6, 6, 8, 0.16) 100%);
-  opacity: var(--site-atmosphere-opacity);
-  will-change: opacity, transform;
-  transform: translate3d(0, var(--site-atmosphere-offset), 0);
-  backface-visibility: hidden;
-}
-
 body.page-home {
   --site-atmosphere-opacity: 0;
+}
+
+.site-atmosphere {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  margin-bottom: -100svh;
+  z-index: 0;
+  pointer-events: none;
+  overflow: clip;
+}
+
+.site-atmosphere__layer {
+  position: absolute;
+  inset:
+    calc(env(safe-area-inset-top, 0px) * -1 - 24px)
+    0
+    calc(env(safe-area-inset-bottom, 0px) * -1 - 24px);
+  background:
+    radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.11), rgba(255, 157, 77, 0) 70%),
+    radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.1), rgba(82, 104, 255, 0) 72%),
+    radial-gradient(78% 66% at 56% 100%, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 72%),
+    linear-gradient(180deg, rgba(6, 6, 8, 0.1) 0%, rgba(6, 6, 8, 0.035) 40%, rgba(6, 6, 8, 0.16) 100%);
+  opacity: var(--site-atmosphere-opacity);
+  will-change: opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 body.no-scroll {
@@ -179,6 +185,8 @@ a {
 
 .page-wrap {
   padding-top: var(--page-top-offset);
+  position: relative;
+  z-index: 1;
 }
 
 .container {
@@ -196,7 +204,13 @@ a {
 
 .section {
   position: relative;
+  z-index: 1;
   padding: clamp(4.4rem, 9vw, 8.4rem) 0;
+}
+
+.site-footer {
+  position: relative;
+  z-index: 1;
 }
 
 .section::before {

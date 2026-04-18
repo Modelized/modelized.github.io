@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260419a';
+  const assetVersion = '20260419b';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1301,9 +1301,8 @@
       root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
     };
 
-    const setAtmosphere = (amount, scrollTop) => {
+    const setAtmosphere = (amount) => {
       body.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
-      body.style.setProperty("--site-atmosphere-offset", `${scrollTop.toFixed(2)}px`);
     };
 
     const setLowerLayer = (opacityAmount, motionAmount) => {
@@ -1327,8 +1326,8 @@
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
       const atmosphereProgress = range(progress, 0.64, 0.95, easeInOutCubic);
-      const nextLayerMotionProgress = range(progress, 0.34, 0.86, easeInOutCubic);
-      const nextLayerOpacityProgress = range(progress, 0.64, 0.9, easeInOutCubic);
+      const nextLayerMotionProgress = range(progress, 0.39, 0.86, easeInOutCubic);
+      const nextLayerOpacityProgress = range(progress, 0.64, 0.88, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
@@ -1338,7 +1337,7 @@
       root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
       root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
-      setAtmosphere(atmosphereProgress, scrollTop);
+      setAtmosphere(atmosphereProgress);
       setLowerLayer(nextLayerOpacityProgress, nextLayerMotionProgress);
 
       if (backdropSuppression !== lastBackdropSuppression) {
@@ -1373,7 +1372,7 @@
       root.style.setProperty("--home-image-base-brightness", "1");
       root.style.setProperty("--home-image-base-contrast", "1");
       root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
-      setAtmosphere(1, getScrollTop());
+      setAtmosphere(1);
       setLowerLayer(1, 1);
       body.dataset.homeBackdropSuppressed = "0";
       lastBackdropSuppression = "0";
