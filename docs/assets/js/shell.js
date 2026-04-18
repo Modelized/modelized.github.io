@@ -1271,13 +1271,6 @@
 	    let transitionDistance = 1;
 	    let lowerLayerStartShift = 28;
 	    let lastBackdropSuppression = "";
-	    const atmosphereTargets = {
-      htmlWarm: 0.08,
-      htmlCool: 0.08,
-      bodyWarm: 0.11,
-      bodyCool: 0.10,
-      bodyBottom: 0.012
-    };
 
     const readMetrics = () => {
       const styles = getComputedStyle(hero);
@@ -1298,21 +1291,17 @@
         stageReference * 1.78,
         viewportHeight * 1.42
       );
-      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.032, 18), 34);
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.022, 12), 22);
       const lowerLayerOverlap = Math.max(
-        Math.min(viewportHeight * 0.72, stageReference * 1.02),
-        viewportHeight * 0.56
+        Math.min(viewportHeight * 0.82, stageReference * 1.14),
+        viewportHeight * 0.66
       );
       hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
       root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
     };
 
     const setAtmosphere = (amount) => {
-      root.style.setProperty("--site-html-warm-alpha", (atmosphereTargets.htmlWarm * amount).toFixed(4));
-      root.style.setProperty("--site-html-cool-alpha", (atmosphereTargets.htmlCool * amount).toFixed(4));
-      body.style.setProperty("--site-body-warm-alpha", (atmosphereTargets.bodyWarm * amount).toFixed(4));
-      body.style.setProperty("--site-body-cool-alpha", (atmosphereTargets.bodyCool * amount).toFixed(4));
-      body.style.setProperty("--site-body-bottom-alpha", (atmosphereTargets.bodyBottom * amount).toFixed(4));
+      root.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
     };
 
     const setLowerLayer = (amount) => {
@@ -1334,8 +1323,8 @@
       const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const atmosphereProgress = range(progress, 0.62, 0.88, easeInOutCubic);
-      const nextLayerProgress = range(progress, 0.58, 0.84, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.64, 0.9, easeInOutCubic);
+      const nextLayerProgress = range(progress, 0.5, 0.76, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
 	      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
