@@ -52,7 +52,7 @@
   --home-image-gradient-opacity: 1;
   --home-next-layer-opacity: 0;
   --home-next-layer-shift: 28vh;
-  --home-next-layer-overlap: clamp(10rem, 18vh, 15.5rem);
+  --home-next-layer-overlap: clamp(23rem, 40vh, 29rem);
   --site-html-warm-alpha: 0.08;
   --site-html-cool-alpha: 0.08;
   --site-body-warm-alpha: 0.11;
@@ -1028,12 +1028,14 @@ body.page-home .page-wrap {
 
 .hero {
   --hero-top-clearance: var(--page-top-offset);
-  --hero-top-pad: clamp(1rem, 1.45vw, 1.65rem);
-  --hero-content-bottom-gap: clamp(3rem, 4.1vw, 4.2rem);
+  --hero-top-pad: clamp(1.3rem, 1.9vw, 2rem);
+  --hero-content-bottom-gap: clamp(1.55rem, 2.35vw, 2.25rem);
   --hero-stage-min: 0px;
   --home-transition-span: clamp(9rem, 16vh, 13rem);
+  --home-transition-distance: var(--home-transition-span);
   --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-top-clearance) - var(--hero-top-pad) - var(--hero-content-bottom-gap));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
+  --hero-visual-height: calc(var(--hero-top-pad) + var(--hero-stage-reference) + var(--hero-content-bottom-gap));
   --hero-image-size: clamp(30rem, calc(var(--hero-stage-reference) * 1.06), 60rem);
   --hero-image-max-inline: 100%;
   --hero-tagline-base-size: clamp(2.75rem, min(calc(var(--hero-stage-reference) * 0.106), 12.6cqi), 4.45rem);
@@ -1041,9 +1043,9 @@ body.page-home .page-wrap {
   --hero-unseen-size: var(--hero-tagline-base-size);
   --hero-tagline-max-width: 100%;
   position: relative;
-  min-height: calc(var(--hero-top-clearance) + var(--hero-stage-reference) + var(--home-transition-span));
+  min-height: calc(var(--hero-top-clearance) + var(--hero-visual-height) + var(--home-transition-distance));
   padding-top: 0;
-  padding-bottom: var(--hero-content-bottom-gap);
+  padding-bottom: 0;
   background: transparent;
   overflow: clip;
   isolation: isolate;
@@ -1051,7 +1053,7 @@ body.page-home .page-wrap {
 
 .hero-layout {
   position: relative;
-  min-height: calc(var(--hero-top-clearance) + var(--hero-stage-reference) + var(--home-transition-span));
+  min-height: calc(var(--hero-top-clearance) + var(--hero-visual-height) + var(--home-transition-distance));
   z-index: 2;
   isolation: isolate;
 }
@@ -1059,15 +1061,17 @@ body.page-home .page-wrap {
 .hero-stage {
   position: absolute;
   inset: var(--hero-top-clearance) 0 auto;
-  min-height: var(--hero-stage-reference);
+  min-height: var(--hero-visual-height);
+  padding-top: var(--hero-top-pad);
+  padding-bottom: var(--hero-content-bottom-gap);
   z-index: 3;
   isolation: isolate;
 }
 
 .hero-visual {
   position: sticky;
-  top: 0;
-  height: calc(var(--hero-top-clearance) + var(--hero-stage-reference));
+  top: var(--hero-top-clearance);
+  height: var(--hero-visual-height);
   z-index: 1;
   pointer-events: none;
   overflow: visible;
@@ -1076,7 +1080,7 @@ body.page-home .page-wrap {
 .hero-image-wrap {
   position: absolute;
   left: 50%;
-  top: 46.8%;
+  top: 50.4%;
   z-index: 1;
   display: grid;
   place-items: center;
@@ -1440,6 +1444,12 @@ body.page-home .page-wrap {
 
 .js body.page-home .page-wrap > .section:not(.hero),
 .js body.page-home .site-footer {
+  opacity: 1;
+  transform: none;
+}
+
+.js body.page-home .page-wrap > .section:not(.hero) > .container,
+.js body.page-home .site-footer > .container {
   opacity: var(--home-next-layer-opacity);
   transform: translate3d(0, var(--home-next-layer-shift), 0);
   will-change: opacity, transform;
@@ -2389,8 +2399,8 @@ body.page-home #about {
   }
 
   .hero {
-    --hero-top-pad: clamp(0.8rem, 1.55vw, 1.2rem);
-    --hero-content-bottom-gap: clamp(2.7rem, 4vw, 3.35rem);
+    --hero-top-pad: clamp(1rem, 1.7vw, 1.4rem);
+    --hero-content-bottom-gap: clamp(1.45rem, 2.25vw, 2rem);
   }
 
   .hero-copy {
@@ -2454,8 +2464,8 @@ body.page-home #about {
   }
 
   .hero {
-    --hero-top-pad: 0.9rem;
-    --hero-content-bottom-gap: 2.12rem;
+    --hero-top-pad: 1.05rem;
+    --hero-content-bottom-gap: 1.25rem;
     --home-transition-span: clamp(8.5rem, 15vh, 11.5rem);
     --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
     --hero-image-max-inline: 110vw;
@@ -2463,7 +2473,7 @@ body.page-home #about {
   }
 
   .hero-image-wrap {
-    top: 42.8%;
+    top: 47.4%;
   }
 
   .hero-kicker {
