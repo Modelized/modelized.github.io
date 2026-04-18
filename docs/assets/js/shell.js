@@ -1322,12 +1322,12 @@
       const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.54, easeInOutCubic));
       const baseContrast = lerp(1, 0.92, range(progress, 0.12, 0.54, easeInOutCubic));
       const silhouetteAppear = range(progress, 0.2, 0.34, easeInOutCubic);
-      const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.34, 0.56, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const atmosphereProgress = range(progress, 0.58, 0.92, easeInOutCubic);
-      const nextLayerMotionProgress = range(progress, 0.58, 0.88, easeInOutCubic);
-      const nextLayerOpacityProgress = range(progress, 0.58, 0.76, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.56, 0.92, easeInOutCubic);
+      const nextLayerMotionProgress = range(progress, 0.56, 0.88, easeInOutCubic);
+      const nextLayerOpacityProgress = range(progress, 0.56, 0.72, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
