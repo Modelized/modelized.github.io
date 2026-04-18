@@ -1027,11 +1027,11 @@ a {
   --hero-stage-offset: var(--page-top-offset);
   --hero-top-pad: clamp(1.3rem, 1.9vw, 2rem);
   --hero-stage-bottom-pad: clamp(1.55rem, 2.35vw, 2.25rem);
-  --hero-copy-bottom-offset: clamp(2.1rem, 3vw, 2.9rem);
+  --hero-copy-bottom-offset: clamp(2.45rem, 3.35vw, 3.3rem);
   --hero-stage-min: 0px;
   --home-transition-span: clamp(9rem, 16vh, 13rem);
   --home-transition-distance: var(--home-transition-span);
-  --hero-image-anchor-y: 47.7%;
+  --hero-image-anchor-y: 46.35%;
   --hero-stage-height: calc(var(--hero-initial-viewport-height, 100svh) - var(--hero-stage-offset) - var(--hero-top-pad) - var(--hero-stage-bottom-pad));
   --hero-stage-reference: max(var(--hero-stage-height), var(--hero-stage-min));
   --hero-visual-height: calc(var(--hero-top-pad) + var(--hero-stage-reference) + var(--hero-stage-bottom-pad));
@@ -2401,7 +2401,7 @@ body.page-home #about {
   .hero {
     --hero-top-pad: clamp(1rem, 1.7vw, 1.4rem);
     --hero-stage-bottom-pad: clamp(1.4rem, 2.15vw, 1.95rem);
-    --hero-copy-bottom-offset: clamp(1.8rem, 2.9vw, 2.35rem);
+    --hero-copy-bottom-offset: clamp(2.05rem, 3.05vw, 2.6rem);
   }
 
   .hero-copy {
@@ -2467,11 +2467,11 @@ body.page-home #about {
   .hero {
     --hero-top-pad: 1.05rem;
     --hero-stage-bottom-pad: 1.1rem;
-    --hero-copy-bottom-offset: 1.72rem;
+    --hero-copy-bottom-offset: 1.98rem;
     --home-transition-span: clamp(8.5rem, 15vh, 11.5rem);
     --hero-image-size: clamp(29rem, calc(var(--hero-stage-reference) * 0.96), 52rem);
     --hero-image-max-inline: 110vw;
-    --hero-image-anchor-y: 43.95%;
+    --hero-image-anchor-y: 42.15%;
     --hero-tagline-base-size: clamp(2.25rem, min(calc(var(--hero-stage-reference) * 0.1), 11.2cqi), 3.35rem);
   }
 

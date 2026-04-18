@@ -1291,17 +1291,17 @@
         stageReference * 1.78,
         viewportHeight * 1.42
       );
-      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.022, 12), 22);
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.016, 8), 16);
       const lowerLayerOverlap = Math.max(
-        Math.min(viewportHeight * 0.82, stageReference * 1.14),
-        viewportHeight * 0.66
+        Math.min(viewportHeight * 0.94, stageReference * 1.2),
+        viewportHeight * 0.78
       );
       hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
       root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
     };
 
     const setAtmosphere = (amount) => {
-      root.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
+      body.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
     };
 
     const setLowerLayer = (amount) => {
@@ -1323,8 +1323,8 @@
       const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const atmosphereProgress = range(progress, 0.64, 0.9, easeInOutCubic);
-      const nextLayerProgress = range(progress, 0.5, 0.76, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.62, 0.84, easeInOutCubic);
+      const nextLayerProgress = range(progress, 0.76, 0.94, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
 	      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
