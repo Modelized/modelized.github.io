@@ -3,7 +3,7 @@
 
   const body = document.body;
   const base = (body?.getAttribute('data-base') || '.').trim();
-  const assetVersion = '20260418c';
+  const assetVersion = '20260419c';
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -1292,17 +1292,17 @@
         stageReference * 1.78,
         viewportHeight * 1.42
       );
-      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.015, 8), 14);
+      lowerLayerStartShift = Math.min(Math.max(viewportHeight * 0.024, 14), 24);
       const lowerLayerOverlap = Math.max(
-        Math.min(transitionDistance + viewportHeight * 0.18, viewportHeight * 1.58),
-        viewportHeight * 1.36
+        Math.min(transitionDistance + viewportHeight * 0.28, viewportHeight * 1.74),
+        viewportHeight * 1.5
       );
       hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
       root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
     };
 
     const setAtmosphere = (amount) => {
-      root.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
+      body.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
     };
 
     const setLowerLayer = (opacityAmount, motionAmount) => {
@@ -1324,9 +1324,9 @@
       const silhouetteFade = 1 - range(progress, 0.34, 0.58, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const nextLayerMotionProgress = range(progress, 0.38, 0.88, easeInOutCubic);
-      const nextLayerOpacityProgress = range(progress, 0.63, 0.94, easeInOutSine);
-      const atmosphereProgress = range(progress, 0.63, 0.985, easeInOutSine);
+      const nextLayerMotionProgress = range(progress, 0.24, 0.84, easeInOutCubic);
+      const nextLayerOpacityProgress = range(progress, 0.64, 0.94, easeInOutSine);
+      const atmosphereProgress = range(progress, 0.64, 0.985, easeInOutSine);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
 	      root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
@@ -1812,7 +1812,7 @@
         window.clearTimeout(revealTimer);
         revealTimer = window.setTimeout(() => {
           stack.dataset.stackReady = "true";
-        }, 760 + Math.max(0, total - 1) * 88);
+        }, 900 + Math.max(0, total - 1) * 420);
       }, 280);
     };
 
@@ -1947,7 +1947,7 @@
       stack.classList.toggle("is-dragging", isDragging);
 
     cards.forEach((card, index) => {
-        card.style.setProperty("--stack-reveal-order", String(index));
+        card.style.setProperty("--stack-reveal-order", String(Math.max(0, index - activeIndex)));
         const offset = index - activeIndex;
         let visual = getLayoutForOffset(offset);
         let zIndex = getZIndex(offset);
