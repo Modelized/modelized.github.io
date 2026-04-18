@@ -1316,18 +1316,18 @@
 
       const scrollTop = getScrollTop();
       const progress = clamp(scrollTop / transitionDistance, 0, 1);
-      const uiOpacity = 1 - range(progress, 0.06, 0.62, linear);
-      const imageScale = lerp(1, 1.125, range(progress, 0, 0.74, easeOutCubic));
-      const baseFade = 1 - range(progress, 0.08, 0.56, linear);
-      const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.54, easeInOutCubic));
-      const baseContrast = lerp(1, 0.92, range(progress, 0.12, 0.54, easeInOutCubic));
-      const silhouetteAppear = range(progress, 0.2, 0.34, easeInOutCubic);
-      const silhouetteFade = 1 - range(progress, 0.34, 0.56, easeInOutCubic);
+      const uiOpacity = 1 - range(progress, 0.06, 0.56, linear);
+      const imageScale = lerp(1, 1.125, range(progress, 0, 0.68, easeOutCubic));
+      const baseFade = 1 - range(progress, 0.08, 0.48, linear);
+      const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.48, easeInOutCubic));
+      const baseContrast = lerp(1, 0.92, range(progress, 0.12, 0.48, easeInOutCubic));
+      const silhouetteAppear = range(progress, 0.2, 0.28, easeInOutCubic);
+      const silhouetteFade = 1 - range(progress, 0.28, 0.48, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
       const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
-      const atmosphereProgress = range(progress, 0.56, 0.92, easeInOutCubic);
-      const nextLayerMotionProgress = range(progress, 0.56, 0.88, easeInOutCubic);
-      const nextLayerOpacityProgress = range(progress, 0.56, 0.72, easeInOutCubic);
+      const atmosphereProgress = range(progress, 0.48, 0.88, easeInOutCubic);
+      const nextLayerMotionProgress = range(progress, 0.48, 0.86, easeInOutCubic);
+      const nextLayerOpacityProgress = range(progress, 0.48, 0.72, easeInOutCubic);
       const backdropSuppression = progress < 0.88 ? "1" : "0";
 
       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
