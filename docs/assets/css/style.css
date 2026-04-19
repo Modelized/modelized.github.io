@@ -76,7 +76,6 @@ body {
   color: var(--text);
   background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
   overflow-x: hidden;
-  overflow-y: visible;
   background-color: var(--bg);
 }
 
@@ -86,24 +85,18 @@ body.page-home {
 
 .site-atmosphere {
   position: fixed;
-  inset: 0;
+  top: calc(env(safe-area-inset-top, 0px) * -1 - 18svh);
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) * -1 - 18svh);
+  left: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  isolation: isolate;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: opacity;
 }
 
 .site-atmosphere__layer {
   position: absolute;
-  inset:
-    calc(env(safe-area-inset-top, 0px) * -1 - 28px)
-    0
-    calc(env(safe-area-inset-bottom, 0px) * -1 - 28px);
+  inset: 0;
   background:
     radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.11), rgba(255, 157, 77, 0) 70%),
     radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.1), rgba(82, 104, 255, 0) 72%),
@@ -111,10 +104,6 @@ body.page-home {
     linear-gradient(180deg, rgba(6, 6, 8, 0.1) 0%, rgba(6, 6, 8, 0.035) 40%, rgba(6, 6, 8, 0.16) 100%);
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 body.no-scroll {
