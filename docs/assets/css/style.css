@@ -76,6 +76,7 @@ body {
   color: var(--text);
   background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
   overflow-x: hidden;
+  overflow-y: visible;
   background-color: var(--bg);
 }
 
@@ -84,21 +85,25 @@ body.page-home {
 }
 
 .site-atmosphere {
-  position: sticky;
-  top: 0;
-  height: 100svh;
-  margin-bottom: -100svh;
+  position: fixed;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  overflow: clip;
+  overflow: hidden;
+  isolation: isolate;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: opacity;
 }
 
 .site-atmosphere__layer {
   position: absolute;
   inset:
-    calc(env(safe-area-inset-top, 0px) * -1 - 24px)
+    calc(env(safe-area-inset-top, 0px) * -1 - 28px)
     0
-    calc(env(safe-area-inset-bottom, 0px) * -1 - 24px);
+    calc(env(safe-area-inset-bottom, 0px) * -1 - 28px);
   background:
     radial-gradient(72% 58% at 22% 26%, rgba(255, 157, 77, 0.11), rgba(255, 157, 77, 0) 70%),
     radial-gradient(64% 54% at 78% 34%, rgba(82, 104, 255, 0.1), rgba(82, 104, 255, 0) 72%),
@@ -107,7 +112,9 @@ body.page-home {
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 body.no-scroll {
@@ -1151,7 +1158,7 @@ a {
   z-index: 3;
   height: clamp(9rem, 28%, 16rem);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.12) 18%, rgba(0, 0, 0, 0.42) 54%, rgba(0, 0, 0, 0.82) 82%, #000 100%);
-  opacity: var(--home-image-base-layer-opacity);
+  opacity: clamp(0, calc(var(--home-image-base-layer-opacity) + (var(--home-image-silhouette-layer-opacity) * 0.35)), 1);
   pointer-events: none;
   will-change: opacity;
 }
@@ -1469,8 +1476,13 @@ a {
 .js body.page-home .page-wrap > .section:not(.hero) > .container,
 .js body.page-home .site-footer > .container {
   opacity: var(--home-next-layer-opacity);
-  transform: translate3d(0, var(--home-next-layer-shift), 0);
-  will-change: opacity, transform;
+  transform: none;
+  will-change: opacity;
+}
+
+.js body.page-home .page-wrap > .section:not(.hero)::before,
+.js body.page-home .site-footer::before {
+  opacity: calc(0.88 * var(--home-next-layer-opacity));
 }
 
 body.page-home #about {
