@@ -1324,7 +1324,6 @@
       const silhouetteAppear = range(progress, 0.2, 0.28, easeInOutCubic);
       const silhouetteFade = 1 - range(progress, 0.28, 0.48, easeInOutCubic);
       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
-      const heroUnitOpacity = Math.max(baseFade, silhouetteOpacity);
       const atmosphereProgress = range(progress, 0.48, 0.88, easeInOutCubic);
       const nextLayerMotionProgress = range(progress, 0.48, 0.86, easeInOutCubic);
       const nextLayerOpacityProgress = range(progress, 0.48, 0.72, easeInOutCubic);
@@ -1332,7 +1331,6 @@
 
       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
       root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
-      root.style.setProperty("--home-image-unit-opacity", Math.max(0, heroUnitOpacity).toFixed(4));
       root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
       root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
@@ -1367,7 +1365,6 @@
     if (prefersReducedMotion) {
       root.style.setProperty("--home-ui-opacity", "1");
       root.style.setProperty("--home-image-scroll-scale", "1");
-      root.style.setProperty("--home-image-unit-opacity", "1");
       root.style.setProperty("--home-image-base-layer-opacity", "1");
       root.style.setProperty("--home-image-base-brightness", "1");
       root.style.setProperty("--home-image-base-contrast", "1");
