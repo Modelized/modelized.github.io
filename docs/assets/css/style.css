@@ -85,13 +85,15 @@ body.page-home {
 
 .site-atmosphere {
   position: fixed;
-  top: calc(env(safe-area-inset-top, 0px) * -1 - 18svh);
-  right: 0;
-  bottom: calc(env(safe-area-inset-bottom, 0px) * -1 - 18svh);
+  top: 50%;
   left: 0;
+  right: 0;
+  width: 100%;
+  height: 170lvh;
+  transform: translateY(-50%);
   z-index: 0;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .site-atmosphere__layer {
@@ -104,6 +106,12 @@ body.page-home {
     linear-gradient(180deg, rgba(6, 6, 8, 0.1) 0%, rgba(6, 6, 8, 0.035) 40%, rgba(6, 6, 8, 0.16) 100%);
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .site-atmosphere {
+    height: 182lvh;
+  }
 }
 
 body.no-scroll {
