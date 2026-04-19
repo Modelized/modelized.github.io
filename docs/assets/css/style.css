@@ -43,7 +43,6 @@
   --page-top-offset: calc(env(safe-area-inset-top, 0px) + 12px + var(--nav-pill-height-desktop) + 28px);
   --home-ui-opacity: 1;
   --home-image-scroll-scale: 1;
-  --home-image-unit-opacity: 1;
   --home-image-base-layer-opacity: 1;
   --home-image-base-brightness: 1;
   --home-image-base-contrast: 1;
@@ -1114,7 +1113,7 @@ a {
   display: grid;
   place-items: center;
   width: 100%;
-  opacity: var(--home-image-unit-opacity);
+  opacity: 1;
   will-change: transform;
 }
 
@@ -1152,7 +1151,7 @@ a {
   z-index: 3;
   height: clamp(9rem, 28%, 16rem);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.12) 18%, rgba(0, 0, 0, 0.42) 54%, rgba(0, 0, 0, 0.82) 82%, #000 100%);
-  opacity: 1;
+  opacity: var(--home-image-base-layer-opacity);
   pointer-events: none;
   will-change: opacity;
 }
