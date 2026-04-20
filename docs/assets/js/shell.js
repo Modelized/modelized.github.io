@@ -1271,6 +1271,8 @@
        atmosphere.style.removeProperty('bottom');
        atmosphere.style.removeProperty('margin-top');
        atmosphere.style.removeProperty('margin-bottom');
+       atmosphere.style.removeProperty('height');
+       atmosphere.style.removeProperty('min-height');
 
        layer.style.removeProperty('transform');
        layer.style.removeProperty('translate');
@@ -1282,10 +1284,38 @@
        layer.style.removeProperty('margin-bottom');
        layer.style.removeProperty('transition');
        layer.style.removeProperty('animation');
+       layer.style.removeProperty('height');
+       layer.style.removeProperty('min-height');
+       layer.style.removeProperty('max-height');
+     };
+
+     const syncViewportVars = () => {
+       const vv = window.visualViewport;
+       const viewportHeight = Math.max(
+         1,
+         Math.round(vv?.height || window.innerHeight || document.documentElement.clientHeight || 0)
+       );
+       const viewportWidth = Math.max(
+         1,
+         Math.round(vv?.width || window.innerWidth || document.documentElement.clientWidth || 0)
+       );
+       const viewportTop = Math.max(0, Math.round(vv?.offsetTop || 0));
+       const viewportBottomInset = Math.max(
+         0,
+         Math.round((window.innerHeight || viewportHeight) - (viewportTop + viewportHeight))
+       );
+
+       root.style.setProperty('--site-atmosphere-viewport-height', `${viewportHeight}px`);
+       root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth}px`);
+       root.style.setProperty('--site-atmosphere-safe-top', `${viewportTop}px`);
+       root.style.setProperty('--site-atmosphere-safe-bottom', `${viewportBottomInset}px`);
+       root.style.setProperty('--site-atmosphere-render-height', `${viewportHeight}px`);
+       root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth}px`);
      };
 
      const sync = () => {
        clearInlineMotion();
+       syncViewportVars();
        root.style.removeProperty('--site-atmosphere-shift-y');
        body.dataset.siteAtmosphereLocked = '1';
      };
@@ -2388,6 +2418,7 @@
 
    async function boot() {
      initHeroViewportLock();
+     initSiteAtmosphereLock();
 
      await Promise.all([
        injectPartial('#nav-slot', 'nav.html'),
@@ -2403,7 +2434,6 @@
      initSectionSpy();
      initReveal();
      initHeroIntro();
-     initSiteAtmosphereLock();
      initHomeScrollTransition();
      initRockSaltSafeAreas();
      initAboutCreator();
