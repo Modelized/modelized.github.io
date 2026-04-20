@@ -53,6 +53,9 @@
   --home-next-layer-shift: 18px;
   --home-next-layer-overlap: clamp(34rem, 68vh, 46rem);
   --site-atmosphere-opacity: 1;
+  --site-atmosphere-width: 144vw;
+  --site-atmosphere-height: 172svh;
+  --site-atmosphere-offset-y: clamp(3.5rem, 8vh, 7rem);
 }
 
 * {
@@ -85,43 +88,43 @@ body.page-home {
 
 .site-atmosphere {
   position: absolute;
-  inset: 0;
+  inset: 0 0 auto 0;
   z-index: 0;
   pointer-events: none;
   isolation: isolate;
-  overflow: visible;
+  overflow: hidden;
+  min-height: 100%;
 }
 
 .site-atmosphere__layer {
-  position: sticky;
-  top: calc(env(safe-area-inset-top, 0px) * -1);
-  display: block;
-  width: 100%;
-  height: calc(100svh + env(safe-area-inset-top, 0px));
-  margin-bottom: calc(env(safe-area-inset-top, 0px) * -1);
+  position: absolute;
+  left: 50%;
+  top: var(--site-atmosphere-offset-y);
+  width: var(--site-atmosphere-width);
+  height: var(--site-atmosphere-height);
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
-  overflow: clip;
   isolation: isolate;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  pointer-events: none;
+  transform: translate3d(-50%, 0, 0);
+  -webkit-transform: translate3d(-50%, 0, 0);
   backface-visibility: hidden;
   background:
-    radial-gradient(72% 56% at 36% 28%, rgba(255, 157, 77, 0.118) 0%, rgba(255, 157, 77, 0.084) 30%, rgba(255, 157, 77, 0.026) 54%, rgba(255, 157, 77, 0) 72%),
-    radial-gradient(66% 52% at 64% 30%, rgba(82, 104, 255, 0.108) 0%, rgba(82, 104, 255, 0.076) 30%, rgba(82, 104, 255, 0.022) 54%, rgba(82, 104, 255, 0) 72%),
-    radial-gradient(78% 60% at 52% 92%, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.013) 36%, rgba(255, 255, 255, 0) 66%),
+    radial-gradient(72% 56% at 36% 30%, rgba(255, 157, 77, 0.118) 0%, rgba(255, 157, 77, 0.084) 30%, rgba(255, 157, 77, 0.026) 54%, rgba(255, 157, 77, 0) 72%),
+    radial-gradient(66% 52% at 64% 32%, rgba(82, 104, 255, 0.108) 0%, rgba(82, 104, 255, 0.076) 30%, rgba(82, 104, 255, 0.022) 54%, rgba(82, 104, 255, 0) 72%),
+    radial-gradient(78% 60% at 52% 94%, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.013) 36%, rgba(255, 255, 255, 0) 66%),
     linear-gradient(180deg, rgba(6, 6, 8, 0.082) 0%, rgba(6, 6, 8, 0.03) 42%, rgba(6, 6, 8, 0.145) 100%);
   background-repeat: no-repeat;
   background-size:
-    132% 100%,
-    132% 100%,
-    116% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
     100% 100%;
   background-position:
-    46% 0,
-    54% 0,
-    50% 0,
-    0 0;
+    center top,
+    center top,
+    center top,
+    center top;
 }
 
 body.no-scroll {
@@ -991,6 +994,17 @@ a {
 
   body.nav-menu-closing .mobile-menu {
     pointer-events: none;
+  }
+
+  .site-atmosphere__layer {
+    width: 156vw;
+    height: 182svh;
+    top: clamp(4.5rem, 10vh, 8.5rem);
+    background:
+      radial-gradient(74% 58% at 38% 31%, rgba(255, 157, 77, 0.118) 0%, rgba(255, 157, 77, 0.084) 30%, rgba(255, 157, 77, 0.026) 54%, rgba(255, 157, 77, 0) 72%),
+      radial-gradient(68% 54% at 62% 34%, rgba(82, 104, 255, 0.108) 0%, rgba(82, 104, 255, 0.076) 30%, rgba(82, 104, 255, 0.022) 54%, rgba(82, 104, 255, 0) 72%),
+      radial-gradient(82% 62% at 52% 96%, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.013) 36%, rgba(255, 255, 255, 0) 66%),
+      linear-gradient(180deg, rgba(6, 6, 8, 0.082) 0%, rgba(6, 6, 8, 0.03) 42%, rgba(6, 6, 8, 0.145) 100%);
   }
 }
 
@@ -2466,6 +2480,12 @@ body.page-home #about {
   .connect-grid {
     grid-template-columns: 1fr;
   }
+
+  .site-atmosphere__layer {
+    width: 150vw;
+    height: 178svh;
+    top: clamp(4rem, 9vh, 7.5rem);
+  }
 }
 
 /* Mobile portrait nav */
@@ -2642,6 +2662,17 @@ body.page-home #about {
     width: min(100%, 18rem);
     margin-bottom: -0.55rem;
   }
+
+  .site-atmosphere__layer {
+    width: 164vw;
+    height: 188svh;
+    top: clamp(5rem, 11vh, 9rem);
+    background:
+      radial-gradient(76% 60% at 39% 33%, rgba(255, 157, 77, 0.118) 0%, rgba(255, 157, 77, 0.084) 30%, rgba(255, 157, 77, 0.026) 54%, rgba(255, 157, 77, 0) 72%),
+      radial-gradient(70% 56% at 61% 36%, rgba(82, 104, 255, 0.108) 0%, rgba(82, 104, 255, 0.076) 30%, rgba(82, 104, 255, 0.022) 54%, rgba(82, 104, 255, 0) 72%),
+      radial-gradient(84% 64% at 52% 97%, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.013) 36%, rgba(255, 255, 255, 0) 66%),
+      linear-gradient(180deg, rgba(6, 6, 8, 0.082) 0%, rgba(6, 6, 8, 0.03) 42%, rgba(6, 6, 8, 0.145) 100%);
+  }
 }
 
 @media (max-width: 980px) and (orientation: landscape) {
@@ -2683,6 +2714,12 @@ body.page-home #about {
 
   .project-stack-card__image {
     width: min(100%, 15.8rem);
+  }
+
+  .site-atmosphere__layer {
+    width: 148vw;
+    height: 176svh;
+    top: clamp(3rem, 8vh, 6rem);
   }
 }
 
@@ -2789,6 +2826,7 @@ body.page-home #about {
   .site-atmosphere__layer {
     animation: none !important;
     transition: none !important;
+    transform: translate3d(-50%, 0, 0) !important;
   }
 
   .stack-loading-overlay {
