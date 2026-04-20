@@ -88,37 +88,38 @@ body.page-home {
 
 .site-atmosphere {
   position: absolute;
-  inset: 0 0 auto 0;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
   isolation: isolate;
-  overflow: hidden;
-  min-height: 100%;
+  overflow: visible;
 }
 
 .site-atmosphere__layer {
-  position: absolute;
+  position: sticky;
+  top: 0;
   left: 50%;
-  top: var(--site-atmosphere-offset-y);
-  width: var(--site-atmosphere-width);
-  height: var(--site-atmosphere-height);
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
   isolation: isolate;
   pointer-events: none;
-  transform: translate3d(-50%, 0, 0);
-  -webkit-transform: translate3d(-50%, 0, 0);
+  overflow: hidden;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   backface-visibility: hidden;
   background:
     radial-gradient(74% 58% at 37% 31%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
     radial-gradient(68% 54% at 63% 33%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
   background-repeat: no-repeat;
   background-size:
-    100% 100%,
-    100% 100%;
+    var(--site-atmosphere-width) var(--site-atmosphere-height),
+    var(--site-atmosphere-width) var(--site-atmosphere-height);
   background-position:
-    center top,
-    center top;
+    center var(--site-atmosphere-offset-y),
+    center var(--site-atmosphere-offset-y);
 }
 
 body.no-scroll {
@@ -991,12 +992,19 @@ a {
   }
 
   .site-atmosphere__layer {
-    width: 176vw;
-    height: 272svh;
-    top: clamp(6rem, 13vh, 10.5rem);
+    --site-atmosphere-width: 176vw;
+    --site-atmosphere-height: 272svh;
+    --site-atmosphere-offset-y: clamp(6rem, 13vh, 10.5rem);
     background:
       radial-gradient(78% 62% at 39% 34%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
       radial-gradient(72% 58% at 61% 37%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
+    background-repeat: no-repeat;
+    background-size:
+      var(--site-atmosphere-width) var(--site-atmosphere-height),
+      var(--site-atmosphere-width) var(--site-atmosphere-height);
+    background-position:
+      center var(--site-atmosphere-offset-y),
+      center var(--site-atmosphere-offset-y);
   }
 }
 
@@ -2474,9 +2482,9 @@ body.page-home #about {
   }
 
   .site-atmosphere__layer {
-    width: 164vw;
-    height: 258svh;
-    top: clamp(8rem, 16vh, 13rem);
+    --site-atmosphere-width: 164vw;
+    --site-atmosphere-height: 258svh;
+    --site-atmosphere-offset-y: clamp(8rem, 16vh, 13rem);
   }
 }
 
@@ -2656,12 +2664,19 @@ body.page-home #about {
   }
 
   .site-atmosphere__layer {
-    width: 184vw;
-    height: 286svh;
-    top: clamp(6.5rem, 14vh, 11.5rem);
+    --site-atmosphere-width: 184vw;
+    --site-atmosphere-height: 286svh;
+    --site-atmosphere-offset-y: clamp(6.5rem, 14vh, 11.5rem);
     background:
       radial-gradient(80% 64% at 40% 35%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
       radial-gradient(74% 60% at 60% 38%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
+    background-repeat: no-repeat;
+    background-size:
+      var(--site-atmosphere-width) var(--site-atmosphere-height),
+      var(--site-atmosphere-width) var(--site-atmosphere-height);
+    background-position:
+      center var(--site-atmosphere-offset-y),
+      center var(--site-atmosphere-offset-y);
   }
 }
 
@@ -2707,9 +2722,9 @@ body.page-home #about {
   }
 
   .site-atmosphere__layer {
-    width: 160vw;
-    height: 246svh;
-    top: clamp(5rem, 11vh, 8rem);
+    --site-atmosphere-width: 160vw;
+    --site-atmosphere-height: 246svh;
+    --site-atmosphere-offset-y: clamp(5rem, 11vh, 8rem);
   }
 }
 
@@ -2816,7 +2831,7 @@ body.page-home #about {
   .site-atmosphere__layer {
     animation: none !important;
     transition: none !important;
-    transform: translate3d(-50%, 0, 0) !important;
+    transform: none !important;
   }
 
   .stack-loading-overlay {
