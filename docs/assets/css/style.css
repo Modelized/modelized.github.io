@@ -84,7 +84,7 @@ body.page-home {
 }
 
 .site-atmosphere {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
@@ -93,6 +93,23 @@ body.page-home {
 }
 
 .site-atmosphere__layer {
+  position: sticky;
+  top: 0;
+  display: block;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  opacity: var(--site-atmosphere-opacity);
+  will-change: opacity;
+  overflow: hidden;
+  isolation: isolate;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.site-atmosphere__layer::before {
+  content: "";
   position: absolute;
   top: 0;
   bottom: 0;
@@ -103,8 +120,9 @@ body.page-home {
     radial-gradient(62% 50% at 66% 30%, rgba(82, 104, 255, 0.105) 0%, rgba(82, 104, 255, 0.074) 30%, rgba(82, 104, 255, 0.022) 54%, rgba(82, 104, 255, 0) 72%),
     radial-gradient(76% 60% at 52% 92%, rgba(255, 255, 255, 0.032) 0%, rgba(255, 255, 255, 0.014) 36%, rgba(255, 255, 255, 0) 66%),
     linear-gradient(180deg, rgba(6, 6, 8, 0.085) 0%, rgba(6, 6, 8, 0.032) 42%, rgba(6, 6, 8, 0.145) 100%);
-  opacity: var(--site-atmosphere-opacity);
-  will-change: opacity;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 body.no-scroll {
