@@ -1236,7 +1236,6 @@
    }
 
    function initSiteAtmosphereLock() {
-     const root = document.documentElement;
      const atmosphere = document.querySelector('.site-atmosphere');
      const layer = document.querySelector('.site-atmosphere__layer');
 
@@ -1244,47 +1243,85 @@
        return;
      }
 
-     [
-       '--site-atmosphere-viewport-height',
-       '--site-atmosphere-viewport-width',
-       '--site-atmosphere-render-height',
-       '--site-atmosphere-render-width',
-       '--site-atmosphere-safe-top',
-       '--site-atmosphere-safe-bottom',
-       '--site-atmosphere-computed-width',
-       '--site-atmosphere-computed-height',
-       '--site-atmosphere-computed-offset-y',
-       '--site-atmosphere-shift-y'
-     ].forEach((name) => {
-       root.style.removeProperty(name);
+     let rafId = 0;
+
+     const clearInlineOverrides = () => {
+       atmosphere.style.removeProperty('transform');
+       atmosphere.style.removeProperty('translate');
+       atmosphere.style.removeProperty('left');
+       atmosphere.style.removeProperty('right');
+       atmosphere.style.removeProperty('bottom');
+       atmosphere.style.removeProperty('margin-top');
+       atmosphere.style.removeProperty('margin-bottom');
+       atmosphere.style.removeProperty('min-height');
+
+       layer.style.removeProperty('transform');
+       layer.style.removeProperty('translate');
+       layer.style.removeProperty('left');
+       layer.style.removeProperty('right');
+       layer.style.removeProperty('bottom');
+       layer.style.removeProperty('margin-top');
+       layer.style.removeProperty('margin-bottom');
+       layer.style.removeProperty('min-height');
+       layer.style.removeProperty('max-height');
+       layer.style.removeProperty('transition');
+       layer.style.removeProperty('animation');
+     };
+
+     const getDocumentHeight = () => {
+       const docEl = document.documentElement;
+       const bodyEl = document.body;
+
+       return Math.max(
+         docEl.scrollHeight || 0,
+         docEl.offsetHeight || 0,
+         docEl.clientHeight || 0,
+         bodyEl?.scrollHeight || 0,
+         bodyEl?.offsetHeight || 0,
+         bodyEl?.clientHeight || 0,
+         window.innerHeight || 0
+       );
+     };
+
+     const sync = () => {
+       rafId = 0;
+       clearInlineOverrides();
+
+       const fullHeight = Math.ceil(getDocumentHeight());
+       atmosphere.style.height = `${fullHeight}px`;
+       atmosphere.style.top = '0px';
+
+       body.dataset.siteAtmosphereLocked = '1';
+     };
+
+     const requestSync = () => {
+       if (rafId) return;
+       rafId = requestAnimationFrame(sync);
+     };
+
+     const settledSync = createSettledScheduler(sync);
+
+     sync();
+
+     window.addEventListener('resize', () => {
+       requestSync();
+       settledSync.schedule(80);
      });
 
-     atmosphere.style.removeProperty('transform');
-     atmosphere.style.removeProperty('translate');
-     atmosphere.style.removeProperty('top');
-     atmosphere.style.removeProperty('left');
-     atmosphere.style.removeProperty('right');
-     atmosphere.style.removeProperty('bottom');
-     atmosphere.style.removeProperty('margin-top');
-     atmosphere.style.removeProperty('margin-bottom');
-     atmosphere.style.removeProperty('height');
-     atmosphere.style.removeProperty('min-height');
+     window.addEventListener('orientationchange', () => {
+       requestSync();
+       settledSync.schedule(140);
+     });
 
-     layer.style.removeProperty('transform');
-     layer.style.removeProperty('translate');
-     layer.style.removeProperty('top');
-     layer.style.removeProperty('left');
-     layer.style.removeProperty('right');
-     layer.style.removeProperty('bottom');
-     layer.style.removeProperty('margin-top');
-     layer.style.removeProperty('margin-bottom');
-     layer.style.removeProperty('height');
-     layer.style.removeProperty('min-height');
-     layer.style.removeProperty('max-height');
-     layer.style.removeProperty('transition');
-     layer.style.removeProperty('animation');
+     window.addEventListener('pageshow', () => {
+       requestSync();
+       settledSync.schedule(80);
+     });
 
-     body.dataset.siteAtmosphereLocked = '1';
+     window.addEventListener('load', () => {
+       requestSync();
+       settledSync.schedule(120);
+     });
    }
 
    function initHomeScrollTransition() {

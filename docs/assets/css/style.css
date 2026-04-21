@@ -54,7 +54,6 @@
   --home-next-layer-overlap: clamp(34rem, 68vh, 46rem);
   --site-atmosphere-opacity: 1;
 
-  /* simplified static atmosphere box */
   --site-atmosphere-top: clamp(4.75rem, 10.5svh, 8.25rem);
   --site-atmosphere-box-height: clamp(15rem, 35svh, 25rem);
   --site-atmosphere-width: 152vw;
@@ -90,30 +89,43 @@ body.page-home {
 
 .site-atmosphere {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--site-atmosphere-top) + var(--site-atmosphere-box-height));
+  inset: 0 0 auto;
   z-index: 0;
   pointer-events: none;
   isolation: isolate;
   overflow: clip;
+  contain: layout paint;
 }
 
 .site-atmosphere__layer {
-  position: absolute;
-  top: var(--site-atmosphere-top);
-  left: 50%;
-  width: 100vw;
-  height: var(--site-atmosphere-box-height);
-  transform: translateX(-50%) translateZ(0);
-  -webkit-transform: translateX(-50%) translateZ(0);
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100svh;
+  min-height: 100svh;
+  max-height: 100svh;
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
   isolation: isolate;
   pointer-events: none;
   overflow: clip;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   backface-visibility: hidden;
+  contain: paint;
+}
+
+.site-atmosphere__layer::before {
+  content: "";
+  position: absolute;
+  top: var(--site-atmosphere-top);
+  left: 50%;
+  width: 100vw;
+  height: var(--site-atmosphere-box-height);
+  transform: translateX(-50%);
+  -webkit-transform: translateX(-50%);
+  pointer-events: none;
   background:
     radial-gradient(74% 58% at 37% 30%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
     radial-gradient(68% 54% at 63% 33%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
@@ -995,7 +1007,7 @@ a {
     pointer-events: none;
   }
 
-  .site-atmosphere__layer {
+  .site-atmosphere__layer::before {
     --site-atmosphere-width: 174vw;
     background:
       radial-gradient(78% 62% at 39% 31%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
@@ -2665,7 +2677,7 @@ body.page-home #about {
     margin-bottom: -0.55rem;
   }
 
-  .site-atmosphere__layer {
+  .site-atmosphere__layer::before {
     background:
       radial-gradient(80% 64% at 40% 32%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
       radial-gradient(74% 60% at 60% 35%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
@@ -2830,6 +2842,11 @@ body.page-home #about {
   .site-atmosphere__layer {
     animation: none !important;
     transition: none !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+  }
+
+  .site-atmosphere__layer::before {
     transform: translateX(-50%) !important;
     -webkit-transform: translateX(-50%) !important;
   }
