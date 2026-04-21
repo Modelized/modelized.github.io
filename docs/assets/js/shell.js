@@ -1262,6 +1262,8 @@
        return;
      }
 
+     let syncRaf = 0;
+
      const clearInlineMotion = () => {
        atmosphere.style.removeProperty('transform');
        atmosphere.style.removeProperty('translate');
@@ -1289,6 +1291,38 @@
        layer.style.removeProperty('max-height');
      };
 
+     const getAtmosphereProfile = () => {
+       const portraitMobile = window.matchMedia("(max-width: 980px) and (orientation: portrait)").matches;
+       const compact = window.matchMedia("(max-width: 980px)").matches;
+       const landscapeMobile = window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches;
+
+       if (portraitMobile) {
+         return {
+           preferredCenterY: 0.312,
+           topEnvelopeFactor: 0.018
+         };
+       }
+
+       if (landscapeMobile) {
+         return {
+           preferredCenterY: 0.316,
+           topEnvelopeFactor: 0.012
+         };
+       }
+
+       if (compact) {
+         return {
+           preferredCenterY: 0.314,
+           topEnvelopeFactor: 0.012
+         };
+       }
+
+       return {
+         preferredCenterY: 0.318,
+         topEnvelopeFactor: 0.01
+       };
+     };
+
      const syncViewportVars = () => {
        const vv = window.visualViewport;
        const viewportHeight = Math.max(
@@ -1305,12 +1339,22 @@
          Math.round((window.innerHeight || viewportHeight) - (viewportTop + viewportHeight))
        );
 
+       const { preferredCenterY, topEnvelopeFactor } = getAtmosphereProfile();
+       const renderHeight = viewportHeight;
+       const desiredCenter = viewportHeight / 3;
+       const desiredOffset = desiredCenter - renderHeight * preferredCenterY;
+       const safeTopBoundary = viewportTop + 2;
+       const minAllowedOffset = safeTopBoundary - renderHeight * topEnvelopeFactor;
+       const resolvedOffset = Math.max(desiredOffset, minAllowedOffset);
+
        root.style.setProperty('--site-atmosphere-viewport-height', `${viewportHeight}px`);
        root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth}px`);
        root.style.setProperty('--site-atmosphere-safe-top', `${viewportTop}px`);
        root.style.setProperty('--site-atmosphere-safe-bottom', `${viewportBottomInset}px`);
-       root.style.setProperty('--site-atmosphere-render-height', `${viewportHeight}px`);
+       root.style.setProperty('--site-atmosphere-render-height', `${renderHeight}px`);
        root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth}px`);
+       root.style.setProperty('--site-atmosphere-height', `${renderHeight}px`);
+       root.style.setProperty('--site-atmosphere-offset-y', `${resolvedOffset.toFixed(2)}px`);
      };
 
      const sync = () => {
@@ -1320,15 +1364,29 @@
        body.dataset.siteAtmosphereLocked = '1';
      };
 
+     const requestImmediateSync = () => {
+       if (syncRaf) return;
+       syncRaf = requestAnimationFrame(() => {
+         syncRaf = 0;
+         sync();
+       });
+     };
+
      const settledSync = createSettledScheduler(sync);
 
+     const syncNowAndSettle = (baseDelay = 100) => {
+       requestImmediateSync();
+       settledSync.schedule(baseDelay);
+     };
+
      sync();
-     window.addEventListener('resize', () => settledSync.schedule(80));
-     window.addEventListener('orientationchange', () => settledSync.schedule(140));
-     window.addEventListener('pageshow', () => settledSync.schedule(80));
+     window.addEventListener('resize', () => syncNowAndSettle(80));
+     window.addEventListener('orientationchange', () => syncNowAndSettle(140));
+     window.addEventListener('pageshow', () => syncNowAndSettle(80));
+
      if (window.visualViewport) {
-       window.visualViewport.addEventListener('resize', () => settledSync.schedule(100));
-       window.visualViewport.addEventListener('scroll', () => settledSync.schedule(100));
+       window.visualViewport.addEventListener('resize', () => syncNowAndSettle(100));
+       window.visualViewport.addEventListener('scroll', () => syncNowAndSettle(100));
      }
    }
 

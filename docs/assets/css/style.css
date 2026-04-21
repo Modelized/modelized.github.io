@@ -61,13 +61,9 @@
   --site-atmosphere-safe-top: 0px;
   --site-atmosphere-safe-bottom: 0px;
 
-  --site-atmosphere-width: 148vw;
-  --site-atmosphere-height: clamp(
-    calc(var(--site-atmosphere-render-height) * 1.04),
-    calc(var(--site-atmosphere-render-height) * 1.12),
-    calc(var(--site-atmosphere-render-height) * 1.18)
-  );
-  --site-atmosphere-offset-y: clamp(0.2rem, 1.2dvh, 1.2rem);
+  --site-atmosphere-width: var(--site-atmosphere-computed-width, 148vw);
+  --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.06));
+  --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
 }
 
 * {
@@ -1005,13 +1001,9 @@ a {
   }
 
   .site-atmosphere__layer {
-    --site-atmosphere-width: 170vw;
-    --site-atmosphere-height: clamp(
-      calc(var(--site-atmosphere-render-height) * 1.05),
-      calc(var(--site-atmosphere-render-height) * 1.13),
-      calc(var(--site-atmosphere-render-height) * 1.2)
-    );
-    --site-atmosphere-offset-y: clamp(0.35rem, 1.6dvh, 1.4rem);
+    --site-atmosphere-width: var(--site-atmosphere-computed-width, 170vw);
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.07));
+    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
     background:
       radial-gradient(78% 62% at 39% 31%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
       radial-gradient(72% 58% at 61% 34%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
@@ -2499,13 +2491,9 @@ body.page-home #about {
   }
 
   .site-atmosphere__layer {
-    --site-atmosphere-width: 156vw;
-    --site-atmosphere-height: clamp(
-      calc(var(--site-atmosphere-render-height) * 1.03),
-      calc(var(--site-atmosphere-render-height) * 1.1),
-      calc(var(--site-atmosphere-render-height) * 1.16)
-    );
-    --site-atmosphere-offset-y: clamp(0.25rem, 1.4dvh, 1.4rem);
+    --site-atmosphere-width: var(--site-atmosphere-computed-width, 156vw);
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.05));
+    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
   }
 }
 
@@ -2685,13 +2673,9 @@ body.page-home #about {
   }
 
   .site-atmosphere__layer {
-    --site-atmosphere-width: 178vw;
-    --site-atmosphere-height: clamp(
-      calc(var(--site-atmosphere-render-height) * 1.04),
-      calc(var(--site-atmosphere-render-height) * 1.1),
-      calc(var(--site-atmosphere-render-height) * 1.16)
-    );
-    --site-atmosphere-offset-y: clamp(0.3rem, 1.5dvh, 1.2rem);
+    --site-atmosphere-width: var(--site-atmosphere-computed-width, 178vw);
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.06));
+    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
     background:
       radial-gradient(80% 64% at 40% 32%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
       radial-gradient(74% 60% at 60% 35%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
@@ -2747,13 +2731,9 @@ body.page-home #about {
   }
 
   .site-atmosphere__layer {
-    --site-atmosphere-width: 154vw;
-    --site-atmosphere-height: clamp(
-      calc(var(--site-atmosphere-render-height) * 1.02),
-      calc(var(--site-atmosphere-render-height) * 1.08),
-      calc(var(--site-atmosphere-render-height) * 1.14)
-    );
-    --site-atmosphere-offset-y: clamp(0.1rem, 1dvh, 0.9rem);
+    --site-atmosphere-width: var(--site-atmosphere-computed-width, 154vw);
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.04));
+    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
   }
 }
 
