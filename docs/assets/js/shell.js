@@ -415,11 +415,10 @@
      const root = document.documentElement;
      if (!isPortraitMobile()) return null;
 
-     const vv = window.visualViewport;
      const scrollTop = Math.round(window.scrollY || window.pageYOffset || 0);
-     const viewportTop = Math.round(vv?.offsetTop ?? 0);
-     const viewportHeight = Math.round(vv?.height ?? window.innerHeight);
-     const viewportWidth = Math.round(vv?.width ?? window.innerWidth);
+     const viewportTop = 0;
+     const viewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
+     const viewportWidth = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
      const viewportBottom = viewportTop + viewportHeight;
 
      root.style.setProperty('--menu-blur-top', `${scrollTop + viewportTop}px`);
@@ -914,20 +913,6 @@
        window.addEventListener('resize', syncMobileNavState);
        window.addEventListener('orientationchange', syncMobileNavState);
        window.addEventListener('pageshow', syncMobileNavState);
-
-       if (window.visualViewport){
-         let viewportSyncRaf = 0;
-         const syncViewportLayout = () => {
-           if (!isPortraitMenuActive(nav) || !nav.classList.contains('nav--opening')) return;
-           if (viewportSyncRaf) return;
-           viewportSyncRaf = requestAnimationFrame(() => {
-             viewportSyncRaf = 0;
-             syncPortraitMenuBlurViewport();
-           });
-         };
-         window.visualViewport.addEventListener('resize', syncViewportLayout);
-         window.visualViewport.addEventListener('scroll', syncViewportLayout);
-       }
      }
 
      const brand = document.querySelector('.brand');
@@ -1299,13 +1284,6 @@
      layer.style.removeProperty('transition');
      layer.style.removeProperty('animation');
 
-     const viewportWidth = Math.max(
-       1,
-       Math.round(window.innerWidth || document.documentElement.clientWidth || 0)
-     );
-
-     root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth}px`);
-     root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth}px`);
      body.dataset.siteAtmosphereLocked = '1';
    }
 
