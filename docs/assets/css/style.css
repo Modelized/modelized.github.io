@@ -54,16 +54,10 @@
   --home-next-layer-overlap: clamp(34rem, 68vh, 46rem);
   --site-atmosphere-opacity: 1;
 
-  --site-atmosphere-viewport-height: 100svh;
-  --site-atmosphere-viewport-width: 100vw;
-  --site-atmosphere-render-height: 100svh;
-  --site-atmosphere-render-width: 100vw;
-  --site-atmosphere-safe-top: 0px;
-  --site-atmosphere-safe-bottom: 0px;
-
-  --site-atmosphere-width: var(--site-atmosphere-computed-width, 148vw);
-  --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.88));
-  --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
+  /* simplified static atmosphere box */
+  --site-atmosphere-top: clamp(4.5rem, 10svh, 8rem);
+  --site-atmosphere-box-height: clamp(14rem, 34svh, 24rem);
+  --site-atmosphere-width: 148vw;
 }
 
 * {
@@ -96,22 +90,22 @@ body.page-home {
 
 .site-atmosphere {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--site-atmosphere-top) + var(--site-atmosphere-box-height));
   z-index: 0;
   pointer-events: none;
   isolation: isolate;
   overflow: clip;
-  contain: layout paint;
 }
 
 .site-atmosphere__layer {
-  position: sticky;
-  top: 0;
+  position: absolute;
+  top: var(--site-atmosphere-top);
   left: 50%;
   width: 100vw;
-  height: var(--site-atmosphere-render-height);
-  min-height: var(--site-atmosphere-render-height);
-  max-height: var(--site-atmosphere-render-height);
+  height: var(--site-atmosphere-box-height);
   margin-left: -50vw;
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
@@ -121,17 +115,16 @@ body.page-home {
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   backface-visibility: hidden;
-  contain: paint;
   background:
     radial-gradient(74% 58% at 37% 30%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
     radial-gradient(68% 54% at 63% 33%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
   background-repeat: no-repeat;
   background-size:
-    var(--site-atmosphere-width) var(--site-atmosphere-height),
-    var(--site-atmosphere-width) var(--site-atmosphere-height);
+    var(--site-atmosphere-width) 100%,
+    var(--site-atmosphere-width) 100%;
   background-position:
-    center var(--site-atmosphere-offset-y),
-    center var(--site-atmosphere-offset-y);
+    center center,
+    center center;
 }
 
 body.no-scroll {
@@ -1004,19 +997,17 @@ a {
   }
 
   .site-atmosphere__layer {
-    --site-atmosphere-width: var(--site-atmosphere-computed-width, 170vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.82));
-    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
+    --site-atmosphere-width: 170vw;
     background:
       radial-gradient(78% 62% at 39% 31%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
       radial-gradient(72% 58% at 61% 34%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
     background-repeat: no-repeat;
     background-size:
-      var(--site-atmosphere-width) var(--site-atmosphere-height),
-      var(--site-atmosphere-width) var(--site-atmosphere-height);
+      var(--site-atmosphere-width) 100%,
+      var(--site-atmosphere-width) 100%;
     background-position:
-      center var(--site-atmosphere-offset-y),
-      center var(--site-atmosphere-offset-y);
+      center center,
+      center center;
   }
 }
 
@@ -2444,6 +2435,9 @@ body.page-home #about {
 @media (max-width: 980px) {
   :root {
     --page-top-offset: calc(env(safe-area-inset-top, 0px) + 5.35rem);
+    --site-atmosphere-top: clamp(4rem, 9.5svh, 6.8rem);
+    --site-atmosphere-box-height: clamp(12.5rem, 32svh, 20rem);
+    --site-atmosphere-width: 156vw;
   }
 
   .page-wrap {
@@ -2492,18 +2486,15 @@ body.page-home #about {
   .connect-grid {
     grid-template-columns: 1fr;
   }
-
-  .site-atmosphere__layer {
-    --site-atmosphere-width: var(--site-atmosphere-computed-width, 156vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.84));
-    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
-  }
 }
 
 /* Mobile portrait nav */
 @media (max-width: 980px) and (orientation: portrait) {
   :root {
     --page-top-offset: calc(env(safe-area-inset-top, 0px) + 8px + var(--nav-pill-height-mobile) + 14px);
+    --site-atmosphere-top: clamp(4.6rem, 10.5svh, 7.2rem);
+    --site-atmosphere-box-height: clamp(12rem, 31svh, 18rem);
+    --site-atmosphere-width: 178vw;
   }
 
   .nav {
@@ -2676,23 +2667,26 @@ body.page-home #about {
   }
 
   .site-atmosphere__layer {
-    --site-atmosphere-width: var(--site-atmosphere-computed-width, 178vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.80));
-    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
     background:
       radial-gradient(80% 64% at 40% 32%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
       radial-gradient(74% 60% at 60% 35%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
     background-repeat: no-repeat;
     background-size:
-      var(--site-atmosphere-width) var(--site-atmosphere-height),
-      var(--site-atmosphere-width) var(--site-atmosphere-height);
+      var(--site-atmosphere-width) 100%,
+      var(--site-atmosphere-width) 100%;
     background-position:
-      center var(--site-atmosphere-offset-y),
-      center var(--site-atmosphere-offset-y);
+      center center,
+      center center;
   }
 }
 
 @media (max-width: 980px) and (orientation: landscape) {
+  :root {
+    --site-atmosphere-top: clamp(3.8rem, 8.5svh, 5.8rem);
+    --site-atmosphere-box-height: clamp(11rem, 29svh, 16rem);
+    --site-atmosphere-width: 154vw;
+  }
+
   .nav-toggle {
     display: none !important;
   }
@@ -2731,12 +2725,6 @@ body.page-home #about {
 
   .project-stack-card__image {
     width: min(100%, 15.8rem);
-  }
-
-  .site-atmosphere__layer {
-    --site-atmosphere-width: var(--site-atmosphere-computed-width, 154vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.82));
-    --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
   }
 }
 

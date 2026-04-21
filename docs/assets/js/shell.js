@@ -671,10 +671,6 @@
      window.addEventListener('orientationchange', () => scheduleSettledChange(140));
      window.addEventListener('pageshow', () => scheduleSettledChange(80));
      window.addEventListener('home-transition-sync', onChange);
-     if (window.visualViewport){
-       window.visualViewport.addEventListener('resize', () => scheduleSettledChange(100));
-       window.visualViewport.addEventListener('scroll', () => scheduleSettledChange(100));
-     }
    }
 
    function initMenuThumb(){
@@ -918,6 +914,7 @@
        window.addEventListener('resize', syncMobileNavState);
        window.addEventListener('orientationchange', syncMobileNavState);
        window.addEventListener('pageshow', syncMobileNavState);
+
        if (window.visualViewport){
          let viewportSyncRaf = 0;
          const syncViewportLayout = () => {
@@ -1247,7 +1244,7 @@
      const root = document.documentElement;
      const viewportHeight = Math.max(
        1,
-       Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0)
+       Math.round(window.innerHeight || document.documentElement.clientHeight || 0)
      );
 
      root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
@@ -1262,245 +1259,54 @@
        return;
      }
 
-     let syncRaf = 0;
-     let committedRenderHeight = 0;
-
-     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-     const clearInlineMotion = () => {
-       atmosphere.style.removeProperty('transform');
-       atmosphere.style.removeProperty('translate');
-       atmosphere.style.removeProperty('top');
-       atmosphere.style.removeProperty('left');
-       atmosphere.style.removeProperty('right');
-       atmosphere.style.removeProperty('bottom');
-       atmosphere.style.removeProperty('margin-top');
-       atmosphere.style.removeProperty('margin-bottom');
-       atmosphere.style.removeProperty('height');
-       atmosphere.style.removeProperty('min-height');
-
-       layer.style.removeProperty('transform');
-       layer.style.removeProperty('translate');
-       layer.style.removeProperty('top');
-       layer.style.removeProperty('left');
-       layer.style.removeProperty('right');
-       layer.style.removeProperty('bottom');
-       layer.style.removeProperty('margin-top');
-       layer.style.removeProperty('margin-bottom');
-       layer.style.removeProperty('transition');
-       layer.style.removeProperty('animation');
-       layer.style.removeProperty('height');
-       layer.style.removeProperty('min-height');
-       layer.style.removeProperty('max-height');
-     };
-
-     const getAtmosphereProfile = () => {
-       const portraitMobile = window.matchMedia("(max-width: 980px) and (orientation: portrait)").matches;
-       const compact = window.matchMedia("(max-width: 980px)").matches;
-       const landscapeMobile = window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches;
-
-       if (portraitMobile) {
-         return {
-           width: 178,
-           centerY1: 0.32,
-           radiusV1: 0.64,
-           centerY2: 0.35,
-           radiusV2: 0.60,
-           topClearPx: 10,
-           bottomClearPx: 20,
-           preferredTopPx: 132,
-           minEffectScale: 0.64,
-           maxEffectScale: 0.94
-         };
-       }
-
-       if (landscapeMobile) {
-         return {
-           width: 154,
-           centerY1: 0.30,
-           radiusV1: 0.58,
-           centerY2: 0.33,
-           radiusV2: 0.54,
-           topClearPx: 8,
-           bottomClearPx: 18,
-           preferredTopPx: 120,
-           minEffectScale: 0.60,
-           maxEffectScale: 0.92
-         };
-       }
-
-       if (compact) {
-         return {
-           width: 156,
-           centerY1: 0.30,
-           radiusV1: 0.58,
-           centerY2: 0.33,
-           radiusV2: 0.54,
-           topClearPx: 8,
-           bottomClearPx: 18,
-           preferredTopPx: 122,
-           minEffectScale: 0.60,
-           maxEffectScale: 0.93
-         };
-       }
-
-       return {
-         width: 148,
-         centerY1: 0.30,
-         radiusV1: 0.58,
-         centerY2: 0.33,
-         radiusV2: 0.54,
-         topClearPx: 8,
-         bottomClearPx: 18,
-         preferredTopPx: 118,
-         minEffectScale: 0.58,
-         maxEffectScale: 0.94
-       };
-     };
-
-     const readViewportMetrics = () => {
-       const vv = window.visualViewport;
-       const viewportHeight = Math.max(
-         1,
-         vv?.height || window.innerHeight || document.documentElement.clientHeight || 0
-       );
-       const viewportWidth = Math.max(
-         1,
-         vv?.width || window.innerWidth || document.documentElement.clientWidth || 0
-       );
-       const viewportTop = Math.max(0, vv?.offsetTop || 0);
-       const layoutHeight = Math.max(
-         viewportHeight,
-         window.innerHeight || 0,
-         document.documentElement.clientHeight || 0
-       );
-       const viewportBottomInset = Math.max(
-         0,
-         layoutHeight - (viewportTop + viewportHeight)
-       );
-
-       return {
-         viewportHeight,
-         viewportWidth,
-         viewportTop,
-         viewportBottomInset,
-         layoutHeight
-       };
-     };
-
-     const commitRenderHeight = (metrics, { force = false } = {}) => {
-       const candidate = Math.max(metrics.layoutHeight, metrics.viewportHeight);
-
-       if (force || committedRenderHeight <= 0) {
-         committedRenderHeight = candidate;
-         return;
-       }
-
-       committedRenderHeight = Math.max(committedRenderHeight, candidate);
-     };
-
-     const syncViewportVars = ({ forceRenderHeight = false } = {}) => {
-       const metrics = readViewportMetrics();
-       const profile = getAtmosphereProfile();
-
-       commitRenderHeight(metrics, { force: forceRenderHeight });
-
-       const renderHeight = Math.max(1, committedRenderHeight);
-       const topReach = Math.max(
-         profile.centerY1 / profile.radiusV1,
-         profile.centerY2 / profile.radiusV2
-       );
-       const bottomReach = Math.max(
-         (1 - profile.centerY1) / profile.radiusV1,
-         (1 - profile.centerY2) / profile.radiusV2
-       );
-       const reachSpan = Math.max(0.16, bottomReach - topReach);
-
-       const safeTopEnd = metrics.viewportTop + profile.topClearPx;
-       const preferredTopEnd = clamp(
-         profile.preferredTopPx,
-         safeTopEnd,
-         renderHeight * 0.34
-       );
-       const safeBottomEnd = renderHeight - Math.max(profile.bottomClearPx, metrics.viewportBottomInset + profile.bottomClearPx);
-
-       const maxEffectHeightForFit = Math.max(
-         64,
-         (safeBottomEnd - safeTopEnd) / reachSpan
-       );
-       const preferredEffectHeight = Math.max(
-         64,
-         (safeBottomEnd - preferredTopEnd) / reachSpan
-       );
-
-       const effectHeight = clamp(
-         preferredEffectHeight,
-         renderHeight * profile.minEffectScale,
-         Math.min(renderHeight * profile.maxEffectScale, maxEffectHeightForFit)
-       );
-
-       const resolvedOffset = safeTopEnd - (topReach * effectHeight);
-
-       root.style.setProperty('--site-atmosphere-viewport-height', `${metrics.viewportHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-viewport-width', `${metrics.viewportWidth.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-safe-top', `${metrics.viewportTop.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-safe-bottom', `${metrics.viewportBottomInset.toFixed(2)}px`);
-
-       root.style.setProperty('--site-atmosphere-render-height', `${renderHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-render-width', `${metrics.viewportWidth.toFixed(2)}px`);
-
-       root.style.setProperty('--site-atmosphere-computed-width', `${profile.width}vw`);
-       root.style.setProperty('--site-atmosphere-computed-height', `${effectHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-computed-offset-y', `${resolvedOffset.toFixed(2)}px`);
-     };
-
-     const sync = ({ forceRenderHeight = false } = {}) => {
-       clearInlineMotion();
-       syncViewportVars({ forceRenderHeight });
-       root.style.removeProperty('--site-atmosphere-shift-y');
-       body.dataset.siteAtmosphereLocked = '1';
-     };
-
-     const requestImmediateEffectSync = () => {
-       if (syncRaf) return;
-       syncRaf = requestAnimationFrame(() => {
-         syncRaf = 0;
-         sync({ forceRenderHeight: false });
-       });
-     };
-
-     const settledSync = createSettledScheduler(() => {
-       sync({ forceRenderHeight: false });
+     [
+       '--site-atmosphere-viewport-height',
+       '--site-atmosphere-viewport-width',
+       '--site-atmosphere-render-height',
+       '--site-atmosphere-render-width',
+       '--site-atmosphere-safe-top',
+       '--site-atmosphere-safe-bottom',
+       '--site-atmosphere-computed-width',
+       '--site-atmosphere-computed-height',
+       '--site-atmosphere-computed-offset-y',
+       '--site-atmosphere-shift-y'
+     ].forEach((name) => {
+       root.style.removeProperty(name);
      });
 
-     const syncNowAndSettle = (baseDelay = 100) => {
-       requestImmediateEffectSync();
-       settledSync.schedule(baseDelay);
-     };
+     atmosphere.style.removeProperty('transform');
+     atmosphere.style.removeProperty('translate');
+     atmosphere.style.removeProperty('top');
+     atmosphere.style.removeProperty('left');
+     atmosphere.style.removeProperty('right');
+     atmosphere.style.removeProperty('bottom');
+     atmosphere.style.removeProperty('margin-top');
+     atmosphere.style.removeProperty('margin-bottom');
+     atmosphere.style.removeProperty('height');
+     atmosphere.style.removeProperty('min-height');
 
-     sync({ forceRenderHeight: true });
+     layer.style.removeProperty('transform');
+     layer.style.removeProperty('translate');
+     layer.style.removeProperty('top');
+     layer.style.removeProperty('left');
+     layer.style.removeProperty('right');
+     layer.style.removeProperty('bottom');
+     layer.style.removeProperty('margin-top');
+     layer.style.removeProperty('margin-bottom');
+     layer.style.removeProperty('height');
+     layer.style.removeProperty('min-height');
+     layer.style.removeProperty('max-height');
+     layer.style.removeProperty('transition');
+     layer.style.removeProperty('animation');
 
-     window.addEventListener('resize', () => {
-       sync({ forceRenderHeight: true });
-       settledSync.schedule(80);
-     });
+     const viewportWidth = Math.max(
+       1,
+       Math.round(window.innerWidth || document.documentElement.clientWidth || 0)
+     );
 
-     window.addEventListener('orientationchange', () => {
-       window.setTimeout(() => {
-         sync({ forceRenderHeight: true });
-         settledSync.schedule(140);
-       }, 40);
-     });
-
-     window.addEventListener('pageshow', () => {
-       sync({ forceRenderHeight: true });
-       settledSync.schedule(80);
-     });
-
-     if (window.visualViewport) {
-       window.visualViewport.addEventListener('resize', () => syncNowAndSettle(100));
-       window.visualViewport.addEventListener('scroll', () => syncNowAndSettle(100));
-     }
+     root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth}px`);
+     root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth}px`);
+     body.dataset.siteAtmosphereLocked = '1';
    }
 
    function initHomeScrollTransition() {
@@ -1536,7 +1342,7 @@
        const styles = getComputedStyle(hero);
        const viewportHeight = Math.max(
          1,
-         window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0
+         window.innerHeight || document.documentElement.clientHeight || 0
        );
        const stageReference =
          parseFloat(styles.getPropertyValue("--hero-stage-reference")) ||
@@ -1643,7 +1449,6 @@
        window.setTimeout(handleViewportChange, 80);
      });
      window.addEventListener("pageshow", handleViewportChange);
-     window.visualViewport?.addEventListener?.("resize", handleViewportChange);
    }
 
    const rockSaltCanvas = document.createElement("canvas");
