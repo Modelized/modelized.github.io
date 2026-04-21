@@ -62,7 +62,7 @@
   --site-atmosphere-safe-bottom: 0px;
 
   --site-atmosphere-width: var(--site-atmosphere-computed-width, 148vw);
-  --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.06));
+  --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.88));
   --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
 }
 
@@ -101,24 +101,27 @@ body.page-home {
   pointer-events: none;
   isolation: isolate;
   overflow: clip;
+  contain: layout paint;
 }
 
 .site-atmosphere__layer {
   position: sticky;
   top: 0;
   left: 50%;
-  width: 100%;
+  width: 100vw;
   height: var(--site-atmosphere-render-height);
   min-height: var(--site-atmosphere-render-height);
   max-height: var(--site-atmosphere-render-height);
+  margin-left: -50vw;
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
   isolation: isolate;
   pointer-events: none;
-  overflow: hidden;
+  overflow: clip;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   backface-visibility: hidden;
+  contain: paint;
   background:
     radial-gradient(74% 58% at 37% 30%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
     radial-gradient(68% 54% at 63% 33%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
@@ -1002,7 +1005,7 @@ a {
 
   .site-atmosphere__layer {
     --site-atmosphere-width: var(--site-atmosphere-computed-width, 170vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.07));
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.82));
     --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
     background:
       radial-gradient(78% 62% at 39% 31%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
@@ -2492,7 +2495,7 @@ body.page-home #about {
 
   .site-atmosphere__layer {
     --site-atmosphere-width: var(--site-atmosphere-computed-width, 156vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.05));
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.84));
     --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
   }
 }
@@ -2674,7 +2677,7 @@ body.page-home #about {
 
   .site-atmosphere__layer {
     --site-atmosphere-width: var(--site-atmosphere-computed-width, 178vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.06));
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.80));
     --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
     background:
       radial-gradient(80% 64% at 40% 32%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
@@ -2732,7 +2735,7 @@ body.page-home #about {
 
   .site-atmosphere__layer {
     --site-atmosphere-width: var(--site-atmosphere-computed-width, 154vw);
-    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 1.04));
+    --site-atmosphere-height: var(--site-atmosphere-computed-height, calc(var(--site-atmosphere-render-height) * 0.82));
     --site-atmosphere-offset-y: var(--site-atmosphere-computed-offset-y, 0px);
   }
 }

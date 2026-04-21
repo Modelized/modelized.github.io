@@ -1263,6 +1263,9 @@
      }
 
      let syncRaf = 0;
+     let committedRenderHeight = 0;
+
+     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
      const clearInlineMotion = () => {
        atmosphere.style.removeProperty('transform');
@@ -1299,81 +1302,63 @@
        if (portraitMobile) {
          return {
            width: 178,
-           centerX1: 0.40,
            centerY1: 0.32,
-           radiusH1: 0.80,
            radiusV1: 0.64,
-           centerX2: 0.60,
            centerY2: 0.35,
-           radiusH2: 0.74,
            radiusV2: 0.60,
-           targetTopClearPx: 10,
-           targetTopVisualPx: 132,
-           minOffsetY: -10,
-           maxOffsetY: 16,
-           maxHeightScale: 1.16
+           topClearPx: 10,
+           bottomClearPx: 20,
+           preferredTopPx: 132,
+           minEffectScale: 0.64,
+           maxEffectScale: 0.94
          };
        }
 
        if (landscapeMobile) {
          return {
            width: 154,
-           centerX1: 0.37,
            centerY1: 0.30,
-           radiusH1: 0.74,
            radiusV1: 0.58,
-           centerX2: 0.63,
            centerY2: 0.33,
-           radiusH2: 0.68,
            radiusV2: 0.54,
-           targetTopClearPx: 8,
-           targetTopVisualPx: 120,
-           minOffsetY: -8,
-           maxOffsetY: 14,
-           maxHeightScale: 1.14
+           topClearPx: 8,
+           bottomClearPx: 18,
+           preferredTopPx: 120,
+           minEffectScale: 0.60,
+           maxEffectScale: 0.92
          };
        }
 
        if (compact) {
          return {
            width: 156,
-           centerX1: 0.37,
            centerY1: 0.30,
-           radiusH1: 0.74,
            radiusV1: 0.58,
-           centerX2: 0.63,
            centerY2: 0.33,
-           radiusH2: 0.68,
            radiusV2: 0.54,
-           targetTopClearPx: 8,
-           targetTopVisualPx: 122,
-           minOffsetY: -8,
-           maxOffsetY: 14,
-           maxHeightScale: 1.16
+           topClearPx: 8,
+           bottomClearPx: 18,
+           preferredTopPx: 122,
+           minEffectScale: 0.60,
+           maxEffectScale: 0.93
          };
        }
 
        return {
          width: 148,
-         centerX1: 0.37,
          centerY1: 0.30,
-         radiusH1: 0.74,
          radiusV1: 0.58,
-         centerX2: 0.63,
          centerY2: 0.33,
-         radiusH2: 0.68,
          radiusV2: 0.54,
-         targetTopClearPx: 8,
-         targetTopVisualPx: 118,
-         minOffsetY: -8,
-         maxOffsetY: 12,
-         maxHeightScale: 1.18
+         topClearPx: 8,
+         bottomClearPx: 18,
+         preferredTopPx: 118,
+         minEffectScale: 0.58,
+         maxEffectScale: 0.94
        };
      };
 
-     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-     const syncViewportVars = () => {
+     const readViewportMetrics = () => {
        const vv = window.visualViewport;
        const viewportHeight = Math.max(
          1,
@@ -1384,78 +1369,133 @@
          vv?.width || window.innerWidth || document.documentElement.clientWidth || 0
        );
        const viewportTop = Math.max(0, vv?.offsetTop || 0);
+       const layoutHeight = Math.max(
+         viewportHeight,
+         window.innerHeight || 0,
+         document.documentElement.clientHeight || 0
+       );
        const viewportBottomInset = Math.max(
          0,
-         (window.innerHeight || viewportHeight) - (viewportTop + viewportHeight)
+         layoutHeight - (viewportTop + viewportHeight)
        );
 
+       return {
+         viewportHeight,
+         viewportWidth,
+         viewportTop,
+         viewportBottomInset,
+         layoutHeight
+       };
+     };
+
+     const commitRenderHeight = (metrics, { force = false } = {}) => {
+       const candidate = Math.max(metrics.layoutHeight, metrics.viewportHeight);
+
+       if (force || committedRenderHeight <= 0) {
+         committedRenderHeight = candidate;
+         return;
+       }
+
+       committedRenderHeight = Math.max(committedRenderHeight, candidate);
+     };
+
+     const syncViewportVars = ({ forceRenderHeight = false } = {}) => {
+       const metrics = readViewportMetrics();
        const profile = getAtmosphereProfile();
 
-       const dominantTopReach =
-         Math.max(
-           profile.centerY1 / profile.radiusV1,
-           profile.centerY2 / profile.radiusV2
-         );
+       commitRenderHeight(metrics, { force: forceRenderHeight });
 
-       const targetVisualTop = clamp(
-         profile.targetTopVisualPx,
-         profile.targetTopClearPx + 24,
-         viewportHeight * 0.32
+       const renderHeight = Math.max(1, committedRenderHeight);
+       const topReach = Math.max(
+         profile.centerY1 / profile.radiusV1,
+         profile.centerY2 / profile.radiusV2
+       );
+       const bottomReach = Math.max(
+         (1 - profile.centerY1) / profile.radiusV1,
+         (1 - profile.centerY2) / profile.radiusV2
+       );
+       const reachSpan = Math.max(0.16, bottomReach - topReach);
+
+       const safeTopEnd = metrics.viewportTop + profile.topClearPx;
+       const preferredTopEnd = clamp(
+         profile.preferredTopPx,
+         safeTopEnd,
+         renderHeight * 0.34
+       );
+       const safeBottomEnd = renderHeight - Math.max(profile.bottomClearPx, metrics.viewportBottomInset + profile.bottomClearPx);
+
+       const maxEffectHeightForFit = Math.max(
+         64,
+         (safeBottomEnd - safeTopEnd) / reachSpan
+       );
+       const preferredEffectHeight = Math.max(
+         64,
+         (safeBottomEnd - preferredTopEnd) / reachSpan
        );
 
-       const idealRenderHeight = targetVisualTop / dominantTopReach;
-       const maxRenderHeight = viewportHeight * profile.maxHeightScale;
-       const renderHeight = clamp(
-         idealRenderHeight,
-         viewportHeight * 0.86,
-         maxRenderHeight
+       const effectHeight = clamp(
+         preferredEffectHeight,
+         renderHeight * profile.minEffectScale,
+         Math.min(renderHeight * profile.maxEffectScale, maxEffectHeightForFit)
        );
 
-       const safeTopBoundary = viewportTop + profile.targetTopClearPx;
-       const desiredOffset = targetVisualTop - (dominantTopReach * renderHeight);
-       const resolvedOffset = clamp(
-         desiredOffset,
-         Math.max(profile.minOffsetY, safeTopBoundary - 2),
-         profile.maxOffsetY
-       );
+       const resolvedOffset = safeTopEnd - (topReach * effectHeight);
 
-       root.style.setProperty('--site-atmosphere-viewport-height', `${viewportHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-safe-top', `${viewportTop.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-safe-bottom', `${viewportBottomInset.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-render-height', `${viewportHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-viewport-height', `${metrics.viewportHeight.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-viewport-width', `${metrics.viewportWidth.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-safe-top', `${metrics.viewportTop.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-safe-bottom', `${metrics.viewportBottomInset.toFixed(2)}px`);
+
+       root.style.setProperty('--site-atmosphere-render-height', `${renderHeight.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-render-width', `${metrics.viewportWidth.toFixed(2)}px`);
+
        root.style.setProperty('--site-atmosphere-computed-width', `${profile.width}vw`);
-       root.style.setProperty('--site-atmosphere-computed-height', `${renderHeight.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-computed-height', `${effectHeight.toFixed(2)}px`);
        root.style.setProperty('--site-atmosphere-computed-offset-y', `${resolvedOffset.toFixed(2)}px`);
      };
 
-     const sync = () => {
+     const sync = ({ forceRenderHeight = false } = {}) => {
        clearInlineMotion();
-       syncViewportVars();
+       syncViewportVars({ forceRenderHeight });
        root.style.removeProperty('--site-atmosphere-shift-y');
        body.dataset.siteAtmosphereLocked = '1';
      };
 
-     const requestImmediateSync = () => {
+     const requestImmediateEffectSync = () => {
        if (syncRaf) return;
        syncRaf = requestAnimationFrame(() => {
          syncRaf = 0;
-         sync();
+         sync({ forceRenderHeight: false });
        });
      };
 
-     const settledSync = createSettledScheduler(sync);
+     const settledSync = createSettledScheduler(() => {
+       sync({ forceRenderHeight: false });
+     });
 
      const syncNowAndSettle = (baseDelay = 100) => {
-       requestImmediateSync();
+       requestImmediateEffectSync();
        settledSync.schedule(baseDelay);
      };
 
-     sync();
-     window.addEventListener('resize', () => syncNowAndSettle(80));
-     window.addEventListener('orientationchange', () => syncNowAndSettle(140));
-     window.addEventListener('pageshow', () => syncNowAndSettle(80));
+     sync({ forceRenderHeight: true });
+
+     window.addEventListener('resize', () => {
+       sync({ forceRenderHeight: true });
+       settledSync.schedule(80);
+     });
+
+     window.addEventListener('orientationchange', () => {
+       window.setTimeout(() => {
+         sync({ forceRenderHeight: true });
+         settledSync.schedule(140);
+       }, 40);
+     });
+
+     window.addEventListener('pageshow', () => {
+       sync({ forceRenderHeight: true });
+       settledSync.schedule(80);
+     });
 
      if (window.visualViewport) {
        window.visualViewport.addEventListener('resize', () => syncNowAndSettle(100));
