@@ -1298,63 +1298,136 @@
 
        if (portraitMobile) {
          return {
-           preferredCenterY: 0.312,
-           topEnvelopeFactor: 0.018
+           width: 178,
+           centerX1: 0.40,
+           centerY1: 0.32,
+           radiusH1: 0.80,
+           radiusV1: 0.64,
+           centerX2: 0.60,
+           centerY2: 0.35,
+           radiusH2: 0.74,
+           radiusV2: 0.60,
+           targetTopClearPx: 10,
+           targetTopVisualPx: 132,
+           minOffsetY: -10,
+           maxOffsetY: 16,
+           maxHeightScale: 1.16
          };
        }
 
        if (landscapeMobile) {
          return {
-           preferredCenterY: 0.316,
-           topEnvelopeFactor: 0.012
+           width: 154,
+           centerX1: 0.37,
+           centerY1: 0.30,
+           radiusH1: 0.74,
+           radiusV1: 0.58,
+           centerX2: 0.63,
+           centerY2: 0.33,
+           radiusH2: 0.68,
+           radiusV2: 0.54,
+           targetTopClearPx: 8,
+           targetTopVisualPx: 120,
+           minOffsetY: -8,
+           maxOffsetY: 14,
+           maxHeightScale: 1.14
          };
        }
 
        if (compact) {
          return {
-           preferredCenterY: 0.314,
-           topEnvelopeFactor: 0.012
+           width: 156,
+           centerX1: 0.37,
+           centerY1: 0.30,
+           radiusH1: 0.74,
+           radiusV1: 0.58,
+           centerX2: 0.63,
+           centerY2: 0.33,
+           radiusH2: 0.68,
+           radiusV2: 0.54,
+           targetTopClearPx: 8,
+           targetTopVisualPx: 122,
+           minOffsetY: -8,
+           maxOffsetY: 14,
+           maxHeightScale: 1.16
          };
        }
 
        return {
-         preferredCenterY: 0.318,
-         topEnvelopeFactor: 0.01
+         width: 148,
+         centerX1: 0.37,
+         centerY1: 0.30,
+         radiusH1: 0.74,
+         radiusV1: 0.58,
+         centerX2: 0.63,
+         centerY2: 0.33,
+         radiusH2: 0.68,
+         radiusV2: 0.54,
+         targetTopClearPx: 8,
+         targetTopVisualPx: 118,
+         minOffsetY: -8,
+         maxOffsetY: 12,
+         maxHeightScale: 1.18
        };
      };
+
+     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
      const syncViewportVars = () => {
        const vv = window.visualViewport;
        const viewportHeight = Math.max(
          1,
-         Math.round(vv?.height || window.innerHeight || document.documentElement.clientHeight || 0)
+         vv?.height || window.innerHeight || document.documentElement.clientHeight || 0
        );
        const viewportWidth = Math.max(
          1,
-         Math.round(vv?.width || window.innerWidth || document.documentElement.clientWidth || 0)
+         vv?.width || window.innerWidth || document.documentElement.clientWidth || 0
        );
-       const viewportTop = Math.max(0, Math.round(vv?.offsetTop || 0));
+       const viewportTop = Math.max(0, vv?.offsetTop || 0);
        const viewportBottomInset = Math.max(
          0,
-         Math.round((window.innerHeight || viewportHeight) - (viewportTop + viewportHeight))
+         (window.innerHeight || viewportHeight) - (viewportTop + viewportHeight)
        );
 
-       const { preferredCenterY, topEnvelopeFactor } = getAtmosphereProfile();
-       const renderHeight = viewportHeight;
-       const desiredCenter = viewportHeight / 3;
-       const desiredOffset = desiredCenter - renderHeight * preferredCenterY;
-       const safeTopBoundary = viewportTop + 2;
-       const minAllowedOffset = safeTopBoundary - renderHeight * topEnvelopeFactor;
-       const resolvedOffset = Math.max(desiredOffset, minAllowedOffset);
+       const profile = getAtmosphereProfile();
 
-       root.style.setProperty('--site-atmosphere-viewport-height', `${viewportHeight}px`);
-       root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth}px`);
-       root.style.setProperty('--site-atmosphere-safe-top', `${viewportTop}px`);
-       root.style.setProperty('--site-atmosphere-safe-bottom', `${viewportBottomInset}px`);
-       root.style.setProperty('--site-atmosphere-render-height', `${renderHeight}px`);
-       root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth}px`);
-       root.style.setProperty('--site-atmosphere-height', `${renderHeight}px`);
-       root.style.setProperty('--site-atmosphere-offset-y', `${resolvedOffset.toFixed(2)}px`);
+       const dominantTopReach =
+         Math.max(
+           profile.centerY1 / profile.radiusV1,
+           profile.centerY2 / profile.radiusV2
+         );
+
+       const targetVisualTop = clamp(
+         profile.targetTopVisualPx,
+         profile.targetTopClearPx + 24,
+         viewportHeight * 0.32
+       );
+
+       const idealRenderHeight = targetVisualTop / dominantTopReach;
+       const maxRenderHeight = viewportHeight * profile.maxHeightScale;
+       const renderHeight = clamp(
+         idealRenderHeight,
+         viewportHeight * 0.86,
+         maxRenderHeight
+       );
+
+       const safeTopBoundary = viewportTop + profile.targetTopClearPx;
+       const desiredOffset = targetVisualTop - (dominantTopReach * renderHeight);
+       const resolvedOffset = clamp(
+         desiredOffset,
+         Math.max(profile.minOffsetY, safeTopBoundary - 2),
+         profile.maxOffsetY
+       );
+
+       root.style.setProperty('--site-atmosphere-viewport-height', `${viewportHeight.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-safe-top', `${viewportTop.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-safe-bottom', `${viewportBottomInset.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-render-height', `${viewportHeight.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-computed-width', `${profile.width}vw`);
+       root.style.setProperty('--site-atmosphere-computed-height', `${renderHeight.toFixed(2)}px`);
+       root.style.setProperty('--site-atmosphere-computed-offset-y', `${resolvedOffset.toFixed(2)}px`);
      };
 
      const sync = () => {
