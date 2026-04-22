@@ -54,7 +54,7 @@
   --site-atmosphere-opacity: 1;
 
   --site-atmosphere-top: clamp(4.75rem, 10svh, 8.25rem);
-  --site-atmosphere-box-height: clamp(17rem, 35svh, 25rem);
+  --site-atmosphere-box-height: clamp(15rem, 33svh, 23rem);
   --site-atmosphere-width: 152vw;
 }
 
@@ -2444,7 +2444,7 @@ body.page-home #about {
   :root {
     --page-top-offset: calc(env(safe-area-inset-top, 0px) + 5.35rem);
     --site-atmosphere-top: clamp(4.2rem, 9.5svh, 7rem);
-    --site-atmosphere-box-height: clamp(15rem, 33svh, 22rem);
+    --site-atmosphere-box-height: clamp(13.5rem, 32svh, 20.5rem);
     --site-atmosphere-width: 160vw;
   }
 
@@ -2500,8 +2500,8 @@ body.page-home #about {
 @media (max-width: 980px) and (orientation: portrait) {
   :root {
     --page-top-offset: calc(env(safe-area-inset-top, 0px) + 8px + var(--nav-pill-height-mobile) + 14px);
-    --site-atmosphere-top: clamp(4.9rem, 10.5svh, 7.6rem);
-    --site-atmosphere-box-height: clamp(14.5rem, 32svh, 20.5rem);
+    --site-atmosphere-top: clamp(4.9rem, 10svh, 7.6rem);
+    --site-atmosphere-box-height: clamp(13rem, 31svh, 19rem);
     --site-atmosphere-width: 182vw;
   }
 
@@ -2690,8 +2690,8 @@ body.page-home #about {
 
 @media (max-width: 980px) and (orientation: landscape) {
   :root {
-    --site-atmosphere-top: clamp(3.6rem, 8.8svh, 5.8rem);
-    --site-atmosphere-box-height: clamp(12.5rem, 29svh, 17rem);
+    --site-atmosphere-top: clamp(3.9rem, 10svh, 6rem);
+    --site-atmosphere-box-height: clamp(11.5rem, 30svh, 16.5rem);
     --site-atmosphere-width: 156vw;
   }
 
