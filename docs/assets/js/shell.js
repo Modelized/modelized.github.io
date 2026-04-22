@@ -1238,12 +1238,15 @@
    function initSiteAtmosphereLock() {
      const atmosphere = document.querySelector('.site-atmosphere');
      const layer = document.querySelector('.site-atmosphere__layer');
+     const root = document.documentElement;
 
      if (!atmosphere || !layer) {
        return;
      }
 
      let rafId = 0;
+
+     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
      const clearInlineOverrides = () => {
        atmosphere.style.removeProperty('transform');
@@ -1254,6 +1257,8 @@
        atmosphere.style.removeProperty('margin-top');
        atmosphere.style.removeProperty('margin-bottom');
        atmosphere.style.removeProperty('min-height');
+       atmosphere.style.removeProperty('height');
+       atmosphere.style.removeProperty('top');
 
        layer.style.removeProperty('transform');
        layer.style.removeProperty('translate');
@@ -1268,28 +1273,46 @@
        layer.style.removeProperty('animation');
      };
 
-     const getDocumentHeight = () => {
-       const docEl = document.documentElement;
-       const bodyEl = document.body;
-
-       return Math.max(
-         docEl.scrollHeight || 0,
-         docEl.offsetHeight || 0,
-         docEl.clientHeight || 0,
-         bodyEl?.scrollHeight || 0,
-         bodyEl?.offsetHeight || 0,
-         bodyEl?.clientHeight || 0,
-         window.innerHeight || 0
-       );
-     };
-
      const sync = () => {
        rafId = 0;
        clearInlineOverrides();
 
-       const fullHeight = Math.ceil(getDocumentHeight());
-       atmosphere.style.height = `${fullHeight}px`;
+       const viewportHeight = Math.max(
+         1,
+         Math.round(window.innerHeight || document.documentElement.clientHeight || 0)
+       );
+       const viewportWidth = Math.max(
+         1,
+         Math.round(window.innerWidth || document.documentElement.clientWidth || 0)
+       );
+       const portraitMobile = window.matchMedia('(max-width: 980px) and (orientation: portrait)').matches;
+       const landscapeMobile = window.matchMedia('(max-width: 980px) and (orientation: landscape)').matches;
+
+       const totalEffectHeight = portraitMobile
+         ? clamp(viewportHeight * 0.44, 260, 430)
+         : landscapeMobile
+           ? clamp(viewportHeight * 0.4, 210, 320)
+           : clamp(viewportHeight * 0.41, 240, 390);
+
+       const topOffset = portraitMobile
+         ? clamp(viewportHeight * 0.028, 12, 26)
+         : landscapeMobile
+           ? clamp(viewportHeight * 0.045, 14, 26)
+           : clamp(viewportHeight * 0.05, 18, 34);
+
+       const boxHeight = Math.max(160, Math.round(totalEffectHeight - topOffset));
+       const width = portraitMobile
+         ? clamp(viewportWidth * 1.88, 580, 1200)
+         : landscapeMobile
+           ? clamp(viewportWidth * 1.58, 900, 1800)
+           : clamp(viewportWidth * 1.52, 1100, 2200);
+
+       root.style.setProperty('--site-atmosphere-top', `${Math.round(topOffset)}px`);
+       root.style.setProperty('--site-atmosphere-box-height', `${Math.round(boxHeight)}px`);
+       root.style.setProperty('--site-atmosphere-width', `${Math.round(width)}px`);
+
        atmosphere.style.top = '0px';
+       atmosphere.style.height = `${Math.round(topOffset + boxHeight)}px`;
 
        body.dataset.siteAtmosphereLocked = '1';
      };
@@ -1399,7 +1422,6 @@
        const imageScale = lerp(1, 1.125, range(progress, 0, 0.72, easeOutCubic));
        const baseFade = 1 - range(progress, 0.08, 0.52, linear);
        const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.48, easeInOutCubic));
-       const baseContrast = lerp(1, 0.92, range(progress, 0.12, 0.48, easeInOutCubic));
        const silhouetteAppear = range(progress, 0.2, 0.28, easeInOutCubic);
        const silhouetteFade = 1 - range(progress, 0.28, 0.48, easeInOutCubic);
        const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
@@ -1411,7 +1433,6 @@
        root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
        root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
        root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
-       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
        root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
        setAtmosphere(atmosphereProgress);
        setLowerLayer(nextLayerOpacityProgress);
@@ -1445,7 +1466,6 @@
        root.style.setProperty("--home-image-scroll-scale", "1");
        root.style.setProperty("--home-image-base-layer-opacity", "1");
        root.style.setProperty("--home-image-base-brightness", "1");
-       root.style.setProperty("--home-image-base-contrast", "1");
        root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
        setAtmosphere(1);
        setLowerLayer(1);
