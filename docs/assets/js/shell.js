@@ -3,7 +3,7 @@
 
    const body = document.body;
    const base = (body?.getAttribute('data-base') || '.').trim();
-   const assetVersion = '20260419b';
+   const assetVersion = '20260422a';
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
    const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
    const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -415,11 +415,10 @@
      const root = document.documentElement;
      if (!isPortraitMobile()) return null;
 
-     const vv = window.visualViewport;
      const scrollTop = Math.round(window.scrollY || window.pageYOffset || 0);
-     const viewportTop = Math.round(vv?.offsetTop ?? 0);
-     const viewportHeight = Math.round(vv?.height ?? window.innerHeight);
-     const viewportWidth = Math.round(vv?.width ?? window.innerWidth);
+     const viewportTop = 0;
+     const viewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
+     const viewportWidth = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
      const viewportBottom = viewportTop + viewportHeight;
 
      root.style.setProperty('--menu-blur-top', `${scrollTop + viewportTop}px`);
@@ -671,10 +670,6 @@
      window.addEventListener('orientationchange', () => scheduleSettledChange(140));
      window.addEventListener('pageshow', () => scheduleSettledChange(80));
      window.addEventListener('home-transition-sync', onChange);
-     if (window.visualViewport){
-       window.visualViewport.addEventListener('resize', () => scheduleSettledChange(100));
-       window.visualViewport.addEventListener('scroll', () => scheduleSettledChange(100));
-     }
    }
 
    function initMenuThumb(){
@@ -918,19 +913,6 @@
        window.addEventListener('resize', syncMobileNavState);
        window.addEventListener('orientationchange', syncMobileNavState);
        window.addEventListener('pageshow', syncMobileNavState);
-       if (window.visualViewport){
-         let viewportSyncRaf = 0;
-         const syncViewportLayout = () => {
-           if (!isPortraitMenuActive(nav) || !nav.classList.contains('nav--opening')) return;
-           if (viewportSyncRaf) return;
-           viewportSyncRaf = requestAnimationFrame(() => {
-             viewportSyncRaf = 0;
-             syncPortraitMenuBlurViewport();
-           });
-         };
-         window.visualViewport.addEventListener('resize', syncViewportLayout);
-         window.visualViewport.addEventListener('scroll', syncViewportLayout);
-       }
      }
 
      const brand = document.querySelector('.brand');
@@ -1247,220 +1229,10 @@
      const root = document.documentElement;
      const viewportHeight = Math.max(
        1,
-       Math.round(window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0)
+       Math.round(window.innerHeight || document.documentElement.clientHeight || 0)
      );
 
      root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
-   }
-
-   function initSiteAtmosphereLock() {
-     const root = document.documentElement;
-     const atmosphere = document.querySelector('.site-atmosphere');
-     const layer = document.querySelector('.site-atmosphere__layer');
-
-     if (!atmosphere || !layer) {
-       return;
-     }
-
-     let syncRaf = 0;
-
-     const clearInlineMotion = () => {
-       atmosphere.style.removeProperty('transform');
-       atmosphere.style.removeProperty('translate');
-       atmosphere.style.removeProperty('top');
-       atmosphere.style.removeProperty('left');
-       atmosphere.style.removeProperty('right');
-       atmosphere.style.removeProperty('bottom');
-       atmosphere.style.removeProperty('margin-top');
-       atmosphere.style.removeProperty('margin-bottom');
-       atmosphere.style.removeProperty('height');
-       atmosphere.style.removeProperty('min-height');
-
-       layer.style.removeProperty('transform');
-       layer.style.removeProperty('translate');
-       layer.style.removeProperty('top');
-       layer.style.removeProperty('left');
-       layer.style.removeProperty('right');
-       layer.style.removeProperty('bottom');
-       layer.style.removeProperty('margin-top');
-       layer.style.removeProperty('margin-bottom');
-       layer.style.removeProperty('transition');
-       layer.style.removeProperty('animation');
-       layer.style.removeProperty('height');
-       layer.style.removeProperty('min-height');
-       layer.style.removeProperty('max-height');
-     };
-
-     const getAtmosphereProfile = () => {
-       const portraitMobile = window.matchMedia("(max-width: 980px) and (orientation: portrait)").matches;
-       const compact = window.matchMedia("(max-width: 980px)").matches;
-       const landscapeMobile = window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches;
-
-       if (portraitMobile) {
-         return {
-           width: 178,
-           centerX1: 0.40,
-           centerY1: 0.32,
-           radiusH1: 0.80,
-           radiusV1: 0.64,
-           centerX2: 0.60,
-           centerY2: 0.35,
-           radiusH2: 0.74,
-           radiusV2: 0.60,
-           targetTopClearPx: 10,
-           targetTopVisualPx: 132,
-           minOffsetY: -10,
-           maxOffsetY: 16,
-           maxHeightScale: 1.16
-         };
-       }
-
-       if (landscapeMobile) {
-         return {
-           width: 154,
-           centerX1: 0.37,
-           centerY1: 0.30,
-           radiusH1: 0.74,
-           radiusV1: 0.58,
-           centerX2: 0.63,
-           centerY2: 0.33,
-           radiusH2: 0.68,
-           radiusV2: 0.54,
-           targetTopClearPx: 8,
-           targetTopVisualPx: 120,
-           minOffsetY: -8,
-           maxOffsetY: 14,
-           maxHeightScale: 1.14
-         };
-       }
-
-       if (compact) {
-         return {
-           width: 156,
-           centerX1: 0.37,
-           centerY1: 0.30,
-           radiusH1: 0.74,
-           radiusV1: 0.58,
-           centerX2: 0.63,
-           centerY2: 0.33,
-           radiusH2: 0.68,
-           radiusV2: 0.54,
-           targetTopClearPx: 8,
-           targetTopVisualPx: 122,
-           minOffsetY: -8,
-           maxOffsetY: 14,
-           maxHeightScale: 1.16
-         };
-       }
-
-       return {
-         width: 148,
-         centerX1: 0.37,
-         centerY1: 0.30,
-         radiusH1: 0.74,
-         radiusV1: 0.58,
-         centerX2: 0.63,
-         centerY2: 0.33,
-         radiusH2: 0.68,
-         radiusV2: 0.54,
-         targetTopClearPx: 8,
-         targetTopVisualPx: 118,
-         minOffsetY: -8,
-         maxOffsetY: 12,
-         maxHeightScale: 1.18
-       };
-     };
-
-     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-     const syncViewportVars = () => {
-       const vv = window.visualViewport;
-       const viewportHeight = Math.max(
-         1,
-         vv?.height || window.innerHeight || document.documentElement.clientHeight || 0
-       );
-       const viewportWidth = Math.max(
-         1,
-         vv?.width || window.innerWidth || document.documentElement.clientWidth || 0
-       );
-       const viewportTop = Math.max(0, vv?.offsetTop || 0);
-       const viewportBottomInset = Math.max(
-         0,
-         (window.innerHeight || viewportHeight) - (viewportTop + viewportHeight)
-       );
-
-       const profile = getAtmosphereProfile();
-
-       const dominantTopReach =
-         Math.max(
-           profile.centerY1 / profile.radiusV1,
-           profile.centerY2 / profile.radiusV2
-         );
-
-       const targetVisualTop = clamp(
-         profile.targetTopVisualPx,
-         profile.targetTopClearPx + 24,
-         viewportHeight * 0.32
-       );
-
-       const idealRenderHeight = targetVisualTop / dominantTopReach;
-       const maxRenderHeight = viewportHeight * profile.maxHeightScale;
-       const renderHeight = clamp(
-         idealRenderHeight,
-         viewportHeight * 0.86,
-         maxRenderHeight
-       );
-
-       const safeTopBoundary = viewportTop + profile.targetTopClearPx;
-       const desiredOffset = targetVisualTop - (dominantTopReach * renderHeight);
-       const resolvedOffset = clamp(
-         desiredOffset,
-         Math.max(profile.minOffsetY, safeTopBoundary - 2),
-         profile.maxOffsetY
-       );
-
-       root.style.setProperty('--site-atmosphere-viewport-height', `${viewportHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-viewport-width', `${viewportWidth.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-safe-top', `${viewportTop.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-safe-bottom', `${viewportBottomInset.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-render-height', `${viewportHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-render-width', `${viewportWidth.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-computed-width', `${profile.width}vw`);
-       root.style.setProperty('--site-atmosphere-computed-height', `${renderHeight.toFixed(2)}px`);
-       root.style.setProperty('--site-atmosphere-computed-offset-y', `${resolvedOffset.toFixed(2)}px`);
-     };
-
-     const sync = () => {
-       clearInlineMotion();
-       syncViewportVars();
-       root.style.removeProperty('--site-atmosphere-shift-y');
-       body.dataset.siteAtmosphereLocked = '1';
-     };
-
-     const requestImmediateSync = () => {
-       if (syncRaf) return;
-       syncRaf = requestAnimationFrame(() => {
-         syncRaf = 0;
-         sync();
-       });
-     };
-
-     const settledSync = createSettledScheduler(sync);
-
-     const syncNowAndSettle = (baseDelay = 100) => {
-       requestImmediateSync();
-       settledSync.schedule(baseDelay);
-     };
-
-     sync();
-     window.addEventListener('resize', () => syncNowAndSettle(80));
-     window.addEventListener('orientationchange', () => syncNowAndSettle(140));
-     window.addEventListener('pageshow', () => syncNowAndSettle(80));
-
-     if (window.visualViewport) {
-       window.visualViewport.addEventListener('resize', () => syncNowAndSettle(100));
-       window.visualViewport.addEventListener('scroll', () => syncNowAndSettle(100));
-     }
    }
 
    function initHomeScrollTransition() {
@@ -1496,7 +1268,7 @@
        const styles = getComputedStyle(hero);
        const viewportHeight = Math.max(
          1,
-         window.visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0
+         window.innerHeight || document.documentElement.clientHeight || 0
        );
        const stageReference =
          parseFloat(styles.getPropertyValue("--hero-stage-reference")) ||
@@ -1538,7 +1310,6 @@
        const imageScale = lerp(1, 1.125, range(progress, 0, 0.72, easeOutCubic));
        const baseFade = 1 - range(progress, 0.08, 0.52, linear);
        const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.48, easeInOutCubic));
-       const baseContrast = lerp(1, 0.92, range(progress, 0.12, 0.48, easeInOutCubic));
        const silhouetteAppear = range(progress, 0.2, 0.28, easeInOutCubic);
        const silhouetteFade = 1 - range(progress, 0.28, 0.48, easeInOutCubic);
        const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
@@ -1550,7 +1321,6 @@
        root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
        root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
        root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
-       root.style.setProperty("--home-image-base-contrast", baseContrast.toFixed(4));
        root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
        setAtmosphere(atmosphereProgress);
        setLowerLayer(nextLayerOpacityProgress);
@@ -1584,7 +1354,6 @@
        root.style.setProperty("--home-image-scroll-scale", "1");
        root.style.setProperty("--home-image-base-layer-opacity", "1");
        root.style.setProperty("--home-image-base-brightness", "1");
-       root.style.setProperty("--home-image-base-contrast", "1");
        root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
        setAtmosphere(1);
        setLowerLayer(1);
@@ -1603,7 +1372,6 @@
        window.setTimeout(handleViewportChange, 80);
      });
      window.addEventListener("pageshow", handleViewportChange);
-     window.visualViewport?.addEventListener?.("resize", handleViewportChange);
    }
 
    const rockSaltCanvas = document.createElement("canvas");
@@ -2549,7 +2317,6 @@
 
    async function boot() {
      initHeroViewportLock();
-     initSiteAtmosphereLock();
 
      await Promise.all([
        injectPartial('#nav-slot', 'nav.html'),
