@@ -1235,118 +1235,6 @@
      root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
    }
 
-   function initSiteAtmosphereLock() {
-     const atmosphere = document.querySelector('.site-atmosphere');
-     const layer = document.querySelector('.site-atmosphere__layer');
-     const root = document.documentElement;
-
-     if (!atmosphere || !layer) {
-       return;
-     }
-
-     let rafId = 0;
-
-     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-     const clearInlineOverrides = () => {
-       atmosphere.style.removeProperty('transform');
-       atmosphere.style.removeProperty('translate');
-       atmosphere.style.removeProperty('left');
-       atmosphere.style.removeProperty('right');
-       atmosphere.style.removeProperty('bottom');
-       atmosphere.style.removeProperty('margin-top');
-       atmosphere.style.removeProperty('margin-bottom');
-       atmosphere.style.removeProperty('min-height');
-       atmosphere.style.removeProperty('height');
-       atmosphere.style.removeProperty('top');
-
-       layer.style.removeProperty('transform');
-       layer.style.removeProperty('translate');
-       layer.style.removeProperty('left');
-       layer.style.removeProperty('right');
-       layer.style.removeProperty('bottom');
-       layer.style.removeProperty('margin-top');
-       layer.style.removeProperty('margin-bottom');
-       layer.style.removeProperty('min-height');
-       layer.style.removeProperty('max-height');
-       layer.style.removeProperty('transition');
-       layer.style.removeProperty('animation');
-     };
-
-     const sync = () => {
-       rafId = 0;
-       clearInlineOverrides();
-
-       const viewportHeight = Math.max(
-         1,
-         Math.round(window.innerHeight || document.documentElement.clientHeight || 0)
-       );
-       const viewportWidth = Math.max(
-         1,
-         Math.round(window.innerWidth || document.documentElement.clientWidth || 0)
-       );
-       const portraitMobile = window.matchMedia('(max-width: 980px) and (orientation: portrait)').matches;
-       const landscapeMobile = window.matchMedia('(max-width: 980px) and (orientation: landscape)').matches;
-
-       const totalEffectHeight = portraitMobile
-         ? clamp(viewportHeight * 0.44, 260, 430)
-         : landscapeMobile
-           ? clamp(viewportHeight * 0.4, 210, 320)
-           : clamp(viewportHeight * 0.41, 240, 390);
-
-       const topOffset = portraitMobile
-         ? clamp(viewportHeight * 0.028, 12, 26)
-         : landscapeMobile
-           ? clamp(viewportHeight * 0.045, 14, 26)
-           : clamp(viewportHeight * 0.05, 18, 34);
-
-       const boxHeight = Math.max(160, Math.round(totalEffectHeight - topOffset));
-       const width = portraitMobile
-         ? clamp(viewportWidth * 1.88, 580, 1200)
-         : landscapeMobile
-           ? clamp(viewportWidth * 1.58, 900, 1800)
-           : clamp(viewportWidth * 1.52, 1100, 2200);
-
-       root.style.setProperty('--site-atmosphere-top', `${Math.round(topOffset)}px`);
-       root.style.setProperty('--site-atmosphere-box-height', `${Math.round(boxHeight)}px`);
-       root.style.setProperty('--site-atmosphere-width', `${Math.round(width)}px`);
-
-       atmosphere.style.top = '0px';
-       atmosphere.style.height = `${Math.round(topOffset + boxHeight)}px`;
-
-       body.dataset.siteAtmosphereLocked = '1';
-     };
-
-     const requestSync = () => {
-       if (rafId) return;
-       rafId = requestAnimationFrame(sync);
-     };
-
-     const settledSync = createSettledScheduler(sync);
-
-     sync();
-
-     window.addEventListener('resize', () => {
-       requestSync();
-       settledSync.schedule(80);
-     });
-
-     window.addEventListener('orientationchange', () => {
-       requestSync();
-       settledSync.schedule(140);
-     });
-
-     window.addEventListener('pageshow', () => {
-       requestSync();
-       settledSync.schedule(80);
-     });
-
-     window.addEventListener('load', () => {
-       requestSync();
-       settledSync.schedule(120);
-     });
-   }
-
    function initHomeScrollTransition() {
      const root = document.documentElement;
      const hero = document.querySelector("#hero");
@@ -2429,7 +2317,6 @@
 
    async function boot() {
      initHeroViewportLock();
-     initSiteAtmosphereLock();
 
      await Promise.all([
        injectPartial('#nav-slot', 'nav.html'),
