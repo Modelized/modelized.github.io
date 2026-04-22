@@ -3,7 +3,7 @@
 
    const body = document.body;
    const base = (body?.getAttribute('data-base') || '.').trim();
-   const assetVersion = '20260419b';
+   const assetVersion = '20260422a';
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
    const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
    const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;

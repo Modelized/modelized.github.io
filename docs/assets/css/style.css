@@ -87,9 +87,10 @@ body.page-home {
 }
 
 .site-atmosphere {
-  position: absolute;
-  inset: 0 0 auto;
+  position: sticky;
+  top: 0;
   height: 100svh;
+  margin-bottom: -100svh;
   z-index: 0;
   pointer-events: none;
   isolation: isolate;
@@ -98,13 +99,8 @@ body.page-home {
 }
 
 .site-atmosphere__layer {
-  position: sticky;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100svh;
-  min-height: 100svh;
-  max-height: 100svh;
+  position: absolute;
+  inset: 0;
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
   isolation: isolate;
@@ -127,8 +123,8 @@ body.page-home {
   -webkit-transform: translateX(-50%);
   pointer-events: none;
   background:
-    radial-gradient(74% 58% at 37% 30%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
-    radial-gradient(68% 54% at 63% 33%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
+    radial-gradient(74% 58% at 37% 30%, rgba(255, 157, 77, 0.18) 0%, rgba(255, 157, 77, 0.13) 28%, rgba(255, 157, 77, 0.048) 52%, rgba(255, 157, 77, 0) 72%),
+    radial-gradient(68% 54% at 63% 33%, rgba(82, 104, 255, 0.165) 0%, rgba(82, 104, 255, 0.118) 28%, rgba(82, 104, 255, 0.042) 52%, rgba(82, 104, 255, 0) 72%);
   background-repeat: no-repeat;
   background-size:
     var(--site-atmosphere-width) 100%,
@@ -1010,8 +1006,8 @@ a {
   .site-atmosphere__layer::before {
     --site-atmosphere-width: 174vw;
     background:
-      radial-gradient(78% 62% at 39% 31%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
-      radial-gradient(72% 58% at 61% 34%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
+      radial-gradient(78% 62% at 39% 31%, rgba(255, 157, 77, 0.18) 0%, rgba(255, 157, 77, 0.13) 28%, rgba(255, 157, 77, 0.048) 52%, rgba(255, 157, 77, 0) 72%),
+      radial-gradient(72% 58% at 61% 34%, rgba(82, 104, 255, 0.165) 0%, rgba(82, 104, 255, 0.118) 28%, rgba(82, 104, 255, 0.042) 52%, rgba(82, 104, 255, 0) 72%);
     background-repeat: no-repeat;
     background-size:
       var(--site-atmosphere-width) 100%,
@@ -2673,8 +2669,8 @@ body.page-home #about {
 
   .site-atmosphere__layer::before {
     background:
-      radial-gradient(80% 64% at 40% 32%, rgba(255, 157, 77, 0.13) 0%, rgba(255, 157, 77, 0.094) 28%, rgba(255, 157, 77, 0.03) 52%, rgba(255, 157, 77, 0) 72%),
-      radial-gradient(74% 60% at 60% 35%, rgba(82, 104, 255, 0.12) 0%, rgba(82, 104, 255, 0.086) 28%, rgba(82, 104, 255, 0.026) 52%, rgba(82, 104, 255, 0) 72%);
+      radial-gradient(80% 64% at 40% 32%, rgba(255, 157, 77, 0.18) 0%, rgba(255, 157, 77, 0.13) 28%, rgba(255, 157, 77, 0.048) 52%, rgba(255, 157, 77, 0) 72%),
+      radial-gradient(74% 60% at 60% 35%, rgba(82, 104, 255, 0.165) 0%, rgba(82, 104, 255, 0.118) 28%, rgba(82, 104, 255, 0.042) 52%, rgba(82, 104, 255, 0) 72%);
     background-repeat: no-repeat;
     background-size:
       var(--site-atmosphere-width) 100%,
