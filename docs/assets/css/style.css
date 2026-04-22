@@ -54,7 +54,7 @@
   --site-atmosphere-opacity: 1;
 
   --site-atmosphere-top: 10svh;
-  --site-atmosphere-box-height: 36svh;
+  --site-atmosphere-box-height: 50svh;
   --site-atmosphere-width: 152vw;
 }
 
@@ -93,9 +93,7 @@ body.page-home {
   margin-bottom: -100svh;
   z-index: 0;
   pointer-events: none;
-  isolation: isolate;
-  overflow: clip;
-  contain: layout paint;
+  overflow: hidden;
 }
 
 .site-atmosphere__layer {
@@ -103,13 +101,8 @@ body.page-home {
   inset: 0;
   opacity: var(--site-atmosphere-opacity);
   will-change: opacity;
-  isolation: isolate;
   pointer-events: none;
-  overflow: clip;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  backface-visibility: hidden;
-  contain: paint;
+  overflow: visible;
 }
 
 .site-atmosphere__layer::before {
@@ -122,6 +115,8 @@ body.page-home {
   transform: translateX(-50%);
   -webkit-transform: translateX(-50%);
   pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 16%, #000 84%, transparent 100%);
   background:
     radial-gradient(74% 58% at 37% 30%, rgba(255, 157, 77, 0.18) 0%, rgba(255, 157, 77, 0.13) 28%, rgba(255, 157, 77, 0.048) 52%, rgba(255, 157, 77, 0) 72%),
     radial-gradient(68% 54% at 63% 33%, rgba(82, 104, 255, 0.165) 0%, rgba(82, 104, 255, 0.118) 28%, rgba(82, 104, 255, 0.042) 52%, rgba(82, 104, 255, 0) 72%);
@@ -690,6 +685,7 @@ a {
     transition-delay: 0s, 0s;
   }
 
+  .site-atmosphere,
   .page-wrap,
   .site-footer {
     transition:
@@ -697,6 +693,7 @@ a {
       filter .52s cubic-bezier(.22,1,.36,1);
   }
 
+  body.nav-menu-open .site-atmosphere,
   body.nav-menu-open .page-wrap,
   body.nav-menu-open .site-footer {
     opacity: 1;
@@ -2830,8 +2827,6 @@ body.page-home #about {
   .site-atmosphere__layer {
     animation: none !important;
     transition: none !important;
-    transform: none !important;
-    -webkit-transform: none !important;
   }
 
   .site-atmosphere__layer::before {
