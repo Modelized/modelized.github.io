@@ -1211,29 +1211,83 @@
      });
    }
 
-   function initHeroIntro() {
-     if (prefersReducedMotion) {
-       body.classList.add("hero-ready");
-       return;
-     }
+  function initHeroIntro() {
+    if (prefersReducedMotion) {
+      body.classList.add("hero-ready");
+      return;
+    }
 
      requestAnimationFrame(() => {
-       body.classList.add("hero-ready");
-     });
-   }
+      body.classList.add("hero-ready");
+    });
+  }
 
-   function initHeroViewportLock() {
-     const hero = document.querySelector('#hero');
-     if (!hero) return;
+  const viewportHeightCache = {
+    portrait: 0,
+    landscape: 0
+  };
+  let activeViewportOrientation = "";
+  let activeViewportHeight = 0;
 
-     const root = document.documentElement;
-     const viewportHeight = Math.max(
-       1,
-       Math.round(window.innerHeight || document.documentElement.clientHeight || 0)
-     );
+  function getViewportOrientationKey() {
+    if (window.matchMedia("(orientation: portrait)").matches) {
+      return "portrait";
+    }
 
-     root.style.setProperty('--hero-initial-viewport-height', `${viewportHeight}px`);
-   }
+    const width = window.innerWidth || document.documentElement.clientWidth || 0;
+    const height = window.innerHeight || document.documentElement.clientHeight || 0;
+    return height >= width ? "portrait" : "landscape";
+  }
+
+  function measureViewportHeight() {
+    return Math.max(
+      1,
+      Math.round(window.innerHeight || document.documentElement.clientHeight || 0)
+    );
+  }
+
+  function syncStableViewportHeight({ measure = false } = {}) {
+    const root = document.documentElement;
+    const orientation = getViewportOrientationKey();
+
+    if (measure || !viewportHeightCache[orientation]) {
+      viewportHeightCache[orientation] = measureViewportHeight();
+    }
+
+    const height = viewportHeightCache[orientation];
+    const changed = orientation !== activeViewportOrientation || height !== activeViewportHeight;
+
+    activeViewportOrientation = orientation;
+    activeViewportHeight = height;
+    root.style.setProperty("--hero-initial-viewport-height", `${height}px`);
+    root.style.setProperty("--layout-viewport-height", `${height}px`);
+
+    return { orientation, height, changed };
+  }
+
+  function applyStableAtmosphereGeometry() {
+    if (!activeViewportHeight) {
+      syncStableViewportHeight();
+    }
+
+    const root = document.documentElement;
+    const isMobilePortrait = window.matchMedia("(max-width: 980px) and (orientation: portrait)").matches;
+    const centerRatio = isMobilePortrait ? 0.42 : 0.455;
+    const halfHeightRatio = isMobilePortrait ? 0.38 : 0.44;
+    const heightRatio = halfHeightRatio * 2;
+
+    root.style.setProperty("--site-atmosphere-center-y", `${(activeViewportHeight * centerRatio).toFixed(2)}px`);
+    root.style.setProperty("--site-atmosphere-box-half-height", `${(activeViewportHeight * halfHeightRatio).toFixed(2)}px`);
+    root.style.setProperty("--site-atmosphere-box-height", `${(activeViewportHeight * heightRatio).toFixed(2)}px`);
+  }
+
+  function initHeroViewportLock() {
+    const hero = document.querySelector('#hero');
+    if (!hero) return;
+
+    syncStableViewportHeight({ measure: true });
+    applyStableAtmosphereGeometry();
+  }
 
    function initHomeScrollTransition() {
      const root = document.documentElement;
@@ -1266,10 +1320,7 @@
 
      const readMetrics = () => {
        const styles = getComputedStyle(hero);
-       const viewportHeight = Math.max(
-         1,
-         window.innerHeight || document.documentElement.clientHeight || 0
-       );
+       const viewportHeight = activeViewportHeight || syncStableViewportHeight().height;
        const stageReference =
          parseFloat(styles.getPropertyValue("--hero-stage-reference")) ||
          Math.max(1, viewportHeight * 0.72);
@@ -1340,7 +1391,15 @@
        rafId = requestAnimationFrame(sync);
      };
 
-     const handleViewportChange = () => {
+     const handleViewportChange = ({ measureNewOrientation = false } = {}) => {
+       const previousOrientation = activeViewportOrientation;
+       const nextOrientation = getViewportOrientationKey();
+
+       if (measureNewOrientation || nextOrientation !== previousOrientation) {
+         syncStableViewportHeight({ measure: !viewportHeightCache[nextOrientation] });
+         applyStableAtmosphereGeometry();
+       }
+
        readMetrics();
        requestSync();
      };
@@ -1367,11 +1426,23 @@
      sync();
 
      window.addEventListener("scroll", requestSync, { passive: true });
-     window.addEventListener("resize", handleViewportChange);
-     window.addEventListener("orientationchange", () => {
-       window.setTimeout(handleViewportChange, 80);
+     window.addEventListener("resize", () => {
+       if (getViewportOrientationKey() !== activeViewportOrientation) {
+         window.setTimeout(() => handleViewportChange({ measureNewOrientation: true }), 80);
+       } else {
+         requestSync();
+       }
      });
-     window.addEventListener("pageshow", handleViewportChange);
+     window.addEventListener("orientationchange", () => {
+       window.setTimeout(() => handleViewportChange({ measureNewOrientation: true }), 80);
+     });
+     window.addEventListener("pageshow", () => {
+       if (getViewportOrientationKey() !== activeViewportOrientation) {
+         handleViewportChange({ measureNewOrientation: true });
+       } else {
+         requestSync();
+       }
+     });
    }
 
    const rockSaltCanvas = document.createElement("canvas");
