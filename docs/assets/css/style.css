@@ -53,9 +53,9 @@
   --home-next-layer-overlap: clamp(34rem, 68vh, 46rem);
   --site-atmosphere-opacity: 1;
 
-  --site-atmosphere-center-y: 48svh;
-  --site-atmosphere-box-half-height: 38svh;
-  --site-atmosphere-box-height: 76svh;
+  --site-atmosphere-center-y: 46.5svh;
+  --site-atmosphere-box-half-height: 39.5svh;
+  --site-atmosphere-box-height: 79svh;
   --site-atmosphere-width: 260vw;
 }
 
@@ -117,8 +117,8 @@ body.page-home {
   -webkit-transform: translateX(-50%);
   pointer-events: none;
   background:
-    radial-gradient(74% 58% at 37% 50%, rgba(255, 157, 77, 0.18) 0%, rgba(255, 157, 77, 0.13) 28%, rgba(255, 157, 77, 0.048) 52%, rgba(255, 157, 77, 0) 72%),
-    radial-gradient(68% 54% at 63% 52%, rgba(82, 104, 255, 0.165) 0%, rgba(82, 104, 255, 0.118) 28%, rgba(82, 104, 255, 0.042) 52%, rgba(82, 104, 255, 0) 72%);
+    radial-gradient(74% 58% at 37% 50%, rgba(255, 157, 77, 0.165) 0%, rgba(255, 157, 77, 0.118) 28%, rgba(255, 157, 77, 0.042) 52%, rgba(255, 157, 77, 0) 72%),
+    radial-gradient(68% 54% at 63% 52%, rgba(82, 104, 255, 0.152) 0%, rgba(82, 104, 255, 0.108) 28%, rgba(82, 104, 255, 0.038) 52%, rgba(82, 104, 255, 0) 72%);
   background-repeat: no-repeat;
   background-size:
     var(--site-atmosphere-width) 100%,
@@ -1002,8 +1002,8 @@ a {
   .site-atmosphere__layer::before {
     --site-atmosphere-width: 230vw;
     background:
-      radial-gradient(78% 62% at 39% 50%, rgba(255, 157, 77, 0.18) 0%, rgba(255, 157, 77, 0.13) 28%, rgba(255, 157, 77, 0.048) 52%, rgba(255, 157, 77, 0) 72%),
-      radial-gradient(72% 58% at 61% 52%, rgba(82, 104, 255, 0.165) 0%, rgba(82, 104, 255, 0.118) 28%, rgba(82, 104, 255, 0.042) 52%, rgba(82, 104, 255, 0) 72%);
+      radial-gradient(78% 62% at 39% 50%, rgba(255, 157, 77, 0.165) 0%, rgba(255, 157, 77, 0.118) 28%, rgba(255, 157, 77, 0.042) 52%, rgba(255, 157, 77, 0) 72%),
+      radial-gradient(72% 58% at 61% 52%, rgba(82, 104, 255, 0.152) 0%, rgba(82, 104, 255, 0.108) 28%, rgba(82, 104, 255, 0.038) 52%, rgba(82, 104, 255, 0) 72%);
     background-repeat: no-repeat;
     background-size:
       var(--site-atmosphere-width) 100%,
@@ -2491,9 +2491,9 @@ body.page-home #about {
 @media (max-width: 980px) and (orientation: portrait) {
   :root {
     --page-top-offset: calc(env(safe-area-inset-top, 0px) + 8px + var(--nav-pill-height-mobile) + 14px);
-    --site-atmosphere-center-y: 44svh;
-    --site-atmosphere-box-half-height: 34svh;
-    --site-atmosphere-box-height: 68svh;
+    --site-atmosphere-center-y: 43svh;
+    --site-atmosphere-box-half-height: 35svh;
+    --site-atmosphere-box-height: 70svh;
     --site-atmosphere-width: 230vw;
   }
 
@@ -2668,8 +2668,8 @@ body.page-home #about {
 
   .site-atmosphere__layer::before {
     background:
-      radial-gradient(80% 64% at 40% 50%, rgba(255, 157, 77, 0.18) 0%, rgba(255, 157, 77, 0.13) 28%, rgba(255, 157, 77, 0.048) 52%, rgba(255, 157, 77, 0) 72%),
-      radial-gradient(74% 60% at 60% 52%, rgba(82, 104, 255, 0.165) 0%, rgba(82, 104, 255, 0.118) 28%, rgba(82, 104, 255, 0.042) 52%, rgba(82, 104, 255, 0) 72%);
+      radial-gradient(80% 64% at 40% 50%, rgba(255, 157, 77, 0.165) 0%, rgba(255, 157, 77, 0.118) 28%, rgba(255, 157, 77, 0.042) 52%, rgba(255, 157, 77, 0) 72%),
+      radial-gradient(74% 60% at 60% 52%, rgba(82, 104, 255, 0.152) 0%, rgba(82, 104, 255, 0.108) 28%, rgba(82, 104, 255, 0.038) 52%, rgba(82, 104, 255, 0) 72%);
     background-repeat: no-repeat;
     background-size:
       var(--site-atmosphere-width) 100%,
