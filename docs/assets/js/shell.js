@@ -3,7 +3,7 @@
 
    const body = document.body;
    const base = (body?.getAttribute('data-base') || '.').trim();
-   const assetVersion = '20260422a';
+   const assetVersion = '20260827b';
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
    const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
    const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
@@ -323,6 +323,15 @@
      const year = String(new Date().getFullYear());
      document.querySelectorAll("[data-year]").forEach((node) => {
        node.textContent = year;
+     });
+     document.querySelectorAll("[data-year-prefix]").forEach((node) => {
+       node.textContent = year.slice(0, 2);
+     });
+     document.querySelectorAll("[data-year-suffix]").forEach((node) => {
+       node.textContent = year.slice(-2);
+     });
+     document.querySelectorAll("[data-year-label]").forEach((node) => {
+       node.setAttribute("aria-label", year);
      });
    }
 
@@ -669,7 +678,6 @@
      window.addEventListener('resize', () => scheduleSettledChange(80));
      window.addEventListener('orientationchange', () => scheduleSettledChange(140));
      window.addEventListener('pageshow', () => scheduleSettledChange(80));
-     window.addEventListener('home-transition-sync', onChange);
    }
 
    function initMenuThumb(){
@@ -1211,239 +1219,719 @@
      });
    }
 
-  function initHeroIntro() {
-    if (prefersReducedMotion) {
-      body.classList.add("hero-ready");
+  async function initHeroIntro() {
+    const shouldSkipIntro =
+      prefersReducedMotion ||
+      getScrollTop() > 8 ||
+      (window.location.hash && window.location.hash !== "#hero");
+
+    if (shouldSkipIntro) {
+      body.classList.add("hero-handoff", "hero-ready");
+      window.dispatchEvent(new Event("hero:ready"));
       return;
     }
 
-     requestAnimationFrame(() => {
-      body.classList.add("hero-ready");
+    if (document.fonts?.ready) {
+      await Promise.race([
+        document.fonts.ready,
+        new Promise((resolve) => window.setTimeout(resolve, 1400))
+      ]);
+    }
+
+    requestAnimationFrame(() => {
+      body.classList.add("hero-intro-running");
+      window.dispatchEvent(new Event("hero:intro"));
+
+      window.setTimeout(() => {
+        body.classList.add("hero-handoff");
+        window.dispatchEvent(new Event("hero:handoff"));
+      }, 1480);
+
+      window.setTimeout(() => {
+        body.classList.add("hero-ready");
+        body.classList.remove("hero-intro-running", "hero-handoff");
+        window.dispatchEvent(new Event("hero:ready"));
+      }, 3100);
     });
   }
 
-  const viewportHeightCache = {
-    portrait: 0,
-    landscape: 0
-  };
-  let activeViewportOrientation = "";
-  let activeViewportHeight = 0;
+  function initGridFittedTypography() {
+    const cells = Array.from(document.querySelectorAll(".hero-fit-cell"));
+    if (!cells.length) return;
 
-  function getViewportOrientationKey() {
-    if (window.matchMedia("(orientation: portrait)").matches) {
-      return "portrait";
-    }
+    const measuringCanvas = document.createElement("canvas");
+    const measuringContext = measuringCanvas.getContext("2d");
+    const measuringSpan = document.createElement("span");
+    measuringSpan.setAttribute("aria-hidden", "true");
+    measuringSpan.style.cssText = [
+      "position:fixed",
+      "left:-10000px",
+      "top:-10000px",
+      "display:inline-block",
+      "visibility:hidden",
+      "pointer-events:none",
+      "contain:layout style paint",
+      "font-family:Anybody,Arial Narrow,sans-serif",
+      "font-size:100px",
+      "font-optical-sizing:auto",
+      "font-style:normal",
+      "line-height:1",
+      "text-transform:uppercase",
+      "white-space:nowrap"
+    ].join(";");
+    document.body.append(measuringSpan);
 
-    const width = window.innerWidth || document.documentElement.clientWidth || 0;
-    const height = window.innerHeight || document.documentElement.clientHeight || 0;
-    return height >= width ? "portrait" : "landscape";
-  }
+    const svgNamespace = "http://www.w3.org/2000/svg";
+    const measuringSvg = document.createElementNS(svgNamespace, "svg");
+    const measuringText = document.createElementNS(svgNamespace, "text");
+    measuringSvg.setAttribute("aria-hidden", "true");
+    measuringSvg.style.cssText = [
+      "position:fixed",
+      "left:-10000px",
+      "top:-10000px",
+      "width:2000px",
+      "height:400px",
+      "overflow:visible",
+      "visibility:hidden",
+      "pointer-events:none"
+    ].join(";");
+    measuringText.setAttribute("x", "0");
+    measuringText.setAttribute("y", "150");
+    measuringSvg.append(measuringText);
+    document.body.append(measuringSvg);
 
-  function measureViewportHeight() {
-    return Math.max(
-      1,
-      Math.round(window.innerHeight || document.documentElement.clientHeight || 0)
+    let rafId = 0;
+    let fontsAreReady = false;
+    const fitConfigurations = new WeakMap();
+    const activeWeightAnimations = new Map();
+    const fitSignatures = new WeakMap();
+
+    const measureGlyph = (word, weight, width, trackingEm) => {
+      if (!measuringContext) {
+        return {
+          width: 100,
+          inkWidth: 100,
+          height: 72,
+          centerOffsetY: 0
+        };
+      }
+
+      const text = word.textContent.trim();
+      const tracking = `${trackingEm * 100}px`;
+
+      measuringSpan.textContent = text;
+      measuringSpan.style.fontWeight = String(weight);
+      measuringSpan.style.fontVariationSettings = `"wght" ${weight}, "wdth" ${width}`;
+      measuringSpan.style.letterSpacing = tracking;
+      const measuredWidth = measuringSpan.getBoundingClientRect().width;
+
+      measuringText.textContent = text;
+      measuringText.style.fontFamily = '"Anybody", "Arial Narrow", sans-serif';
+      measuringText.style.fontSize = "100px";
+      measuringText.style.fontWeight = String(weight);
+      measuringText.style.fontVariationSettings = `"wght" ${weight}, "wdth" ${width}`;
+      measuringText.style.letterSpacing = tracking;
+      let inkWidth = measuredWidth;
+      try {
+        inkWidth = measuringText.getBBox().width || measuredWidth;
+      } catch {
+        inkWidth = measuredWidth;
+      }
+
+      measuringContext.font = `${weight} 100px "Anybody", "Arial Narrow", sans-serif`;
+      if ("fontKerning" in measuringContext) {
+        measuringContext.fontKerning = "normal";
+      }
+      if ("textRendering" in measuringContext) {
+        measuringContext.textRendering = "geometricPrecision";
+      }
+
+      const verticalMetrics = measuringContext.measureText(text);
+      const ascent = verticalMetrics.actualBoundingBoxAscent || 72;
+      const descent = verticalMetrics.actualBoundingBoxDescent || 0;
+      const fontAscent = verticalMetrics.fontBoundingBoxAscent || ascent;
+      const fontDescent = verticalMetrics.fontBoundingBoxDescent || descent;
+      const baseline = ((100 - fontAscent - fontDescent) / 2) + fontAscent;
+      const inkCenter = baseline + ((descent - ascent) / 2);
+
+      return {
+        width: Math.max(1, measuredWidth),
+        inkWidth: Math.max(1, inkWidth),
+        height: ascent + descent,
+        centerOffsetY: inkCenter - 50
+      };
+    };
+
+    const findWidthAxis = (
+      word,
+      weight,
+      trackingEm,
+      targetRatio,
+      minimumWidth = 50,
+      maximumWidth = 150
+    ) => {
+      let low = minimumWidth;
+      let high = maximumWidth;
+      const lowMetrics = measureGlyph(word, weight, low, trackingEm);
+      const highMetrics = measureGlyph(word, weight, high, trackingEm);
+      const lowRatio = lowMetrics.width / lowMetrics.height;
+      const highRatio = highMetrics.width / highMetrics.height;
+
+      if (targetRatio <= lowRatio) return { width: low, metrics: lowMetrics };
+      if (targetRatio >= highRatio) return { width: high, metrics: highMetrics };
+
+      let bestWidth = low;
+      let bestMetrics = lowMetrics;
+      let bestDelta = Math.abs((bestMetrics.width / bestMetrics.height) - targetRatio);
+
+      for (let index = 0; index < 7; index += 1) {
+        const candidate = (low + high) / 2;
+        const metrics = measureGlyph(word, weight, candidate, trackingEm);
+        const ratio = metrics.width / metrics.height;
+        const delta = Math.abs(ratio - targetRatio);
+
+        if (delta < bestDelta) {
+          bestWidth = candidate;
+          bestMetrics = metrics;
+          bestDelta = delta;
+        }
+
+        if (ratio < targetRatio) {
+          low = candidate;
+        } else {
+          high = candidate;
+        }
+      }
+
+      return { width: bestWidth, metrics: bestMetrics };
+    };
+
+    const cubicCoordinate = (time, firstControl, secondControl) => {
+      const inverse = 1 - time;
+      return (
+        (3 * inverse * inverse * time * firstControl) +
+        (3 * inverse * time * time * secondControl) +
+        (time * time * time)
+      );
+    };
+    const solveBezierParameter = (target, firstControl, secondControl) => {
+      if (target <= 0 || target >= 1) return target;
+
+      let low = 0;
+      let high = 1;
+      for (let index = 0; index < 16; index += 1) {
+        const candidate = (low + high) / 2;
+        if (cubicCoordinate(candidate, firstControl, secondControl) < target) {
+          low = candidate;
+        } else {
+          high = candidate;
+        }
+      }
+
+      return (low + high) / 2;
+    };
+    const arrivalEase = (progress) => {
+      if (progress <= 0 || progress >= 1) return progress;
+      const parameter = solveBezierParameter(progress, 0.16, 0.3);
+      return cubicCoordinate(parameter, 1, 1);
+    };
+
+    const measureFittedState = (word, configuration, weight) => {
+      const metrics = measureGlyph(
+        word,
+        weight,
+        configuration.widthAxis,
+        configuration.trackingEm
+      );
+      if (!metrics.width || !metrics.height) return null;
+
+      const fontScale = configuration.targetHeight / metrics.height;
+      return {
+        weight,
+        width: configuration.widthAxis,
+        fontSize: 100 * fontScale,
+        scaleX:
+          configuration.targetInkWidth /
+          (metrics.inkWidth * fontScale),
+        shiftY: -metrics.centerOffsetY * fontScale
+      };
+    };
+
+    const buildFittedStates = (word, configuration) => {
+      const weights = [];
+      for (let weight = 180; weight <= 900; weight += 10) {
+        weights.push(weight);
+      }
+      if (!weights.includes(configuration.finalWeight)) {
+        weights.push(configuration.finalWeight);
+        weights.sort((first, second) => first - second);
+      }
+
+      return weights
+        .map((weight) => measureFittedState(word, configuration, weight))
+        .filter(Boolean);
+    };
+
+    const solveFittedState = (configuration, weight) => {
+      if (
+        configuration.finalState &&
+        Math.abs(weight - configuration.finalWeight) < 0.001
+      ) {
+        return configuration.finalState;
+      }
+
+      const states = configuration.states;
+      if (!states?.length) {
+        return configuration.finalState;
+      }
+
+      const clampedWeight = Math.min(900, Math.max(180, weight));
+      let upperIndex = states.findIndex(
+        (state) => state.weight >= clampedWeight
+      );
+      if (upperIndex <= 0) return states[Math.max(0, upperIndex)];
+      if (upperIndex < 0) return states[states.length - 1];
+
+      const lower = states[upperIndex - 1];
+      const upper = states[upperIndex];
+      if (upper.weight === clampedWeight) return upper;
+
+      const progress =
+        (clampedWeight - lower.weight) /
+        (upper.weight - lower.weight);
+      const interpolate = (from, to) => from + ((to - from) * progress);
+      return {
+        weight: clampedWeight,
+        width: configuration.widthAxis,
+        fontSize: interpolate(lower.fontSize, upper.fontSize),
+        scaleX: interpolate(lower.scaleX, upper.scaleX),
+        shiftY: interpolate(lower.shiftY, upper.shiftY)
+      };
+    };
+
+    const applyFittedState = (word, state) => {
+      if (!state) return;
+      word.style.setProperty("--fit-wdth", state.width.toFixed(3));
+      word.style.setProperty("--fit-wght", state.weight.toFixed(3));
+      word.style.setProperty("--fit-font-size", `${state.fontSize.toFixed(3)}px`);
+      word.style.setProperty("--fit-shift-y", `${state.shiftY.toFixed(3)}px`);
+      word.style.setProperty("--fit-scale-x", state.scaleX.toFixed(5));
+    };
+
+    const fit = () => {
+      rafId = 0;
+
+      cells.forEach((cell) => {
+        const word = cell.querySelector(".hero-fit-word");
+        if (!word) return;
+
+        const cellRect = cell.getBoundingClientRect();
+        if (!cellRect.width || !cellRect.height) return;
+
+        const targetWidth = cellRect.width;
+        const targetHeight = cellRect.height;
+        const targetRatio = targetWidth / targetHeight;
+        const computed = getComputedStyle(word);
+        const weight = Number.parseFloat(
+          computed.getPropertyValue("--word-wght")
+        ) || 850;
+        const fitSignature = [
+          cellRect.width.toFixed(2),
+          cellRect.height.toFixed(2),
+          weight.toFixed(1),
+          fontsAreReady ? "ready" : "loading",
+          word.textContent.trim()
+        ].join(":");
+        if (fitSignatures.get(word) === fitSignature) return;
+
+        const trackingEm = 0.017;
+        const widthResult = findWidthAxis(
+          word,
+          weight,
+          trackingEm,
+          targetRatio,
+          50,
+          150
+        );
+        const configuration = {
+          targetWidth,
+          targetHeight,
+          trackingEm,
+          finalWeight: weight,
+          widthAxis: widthResult.width,
+          targetInkWidth: 0,
+          finalState: null,
+          states: null
+        };
+        const finalMetrics = widthResult.metrics;
+        const finalFontScale = targetHeight / finalMetrics.height;
+        const finalState = {
+          weight,
+          width: widthResult.width,
+          fontSize: 100 * finalFontScale,
+          scaleX:
+            targetWidth /
+            (finalMetrics.width * finalFontScale),
+          shiftY: -finalMetrics.centerOffsetY * finalFontScale
+        };
+        configuration.targetInkWidth =
+          finalMetrics.inkWidth *
+          finalFontScale *
+          finalState.scaleX;
+        configuration.finalState = finalState;
+        configuration.states = fontsAreReady
+          ? buildFittedStates(word, configuration)
+          : null;
+
+        word.style.setProperty("--fit-tracking", `${trackingEm.toFixed(5)}em`);
+        applyFittedState(word, finalState);
+        fitConfigurations.set(word, configuration);
+        fitSignatures.set(word, fitSignature);
+      });
+    };
+
+    const heroMotionIsActive = () => (
+      body.classList.contains("hero-intro-running") ||
+      body.classList.contains("hero-handoff")
     );
-  }
 
-  function syncStableViewportHeight({ measure = false } = {}) {
-    const root = document.documentElement;
-    const orientation = getViewportOrientationKey();
+    const requestFit = (force = false) => {
+      if (!force && heroMotionIsActive()) return;
+      if (!rafId) rafId = requestAnimationFrame(fit);
+    };
 
-    if (measure || !viewportHeightCache[orientation]) {
-      viewportHeightCache[orientation] = measureViewportHeight();
+    const fitImmediately = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      fit();
+    };
+
+    const invalidateFits = () => {
+      cells.forEach((cell) => {
+        const word = cell.querySelector(".hero-fit-word");
+        if (word) fitSignatures.delete(word);
+      });
+    };
+
+    let settledFitTimer = 0;
+    let lastViewportWidth = window.innerWidth;
+    let lastViewportHeight = window.innerHeight;
+    let lastOrientation = window.matchMedia("(orientation: portrait)").matches;
+    const touchViewport = navigator.maxTouchPoints > 0;
+    let invalidateOnSettledFit = false;
+    let responsiveRefitPending = false;
+
+    const setMetalPlaybackRate = (animations, rate) => {
+      animations.forEach((animation) => {
+        if (typeof animation.updatePlaybackRate === "function") {
+          animation.updatePlaybackRate(rate);
+        } else {
+          animation.playbackRate = rate;
+        }
+      });
+    };
+
+    const cancelWeightAnimation = (word) => {
+      const controller = activeWeightAnimations.get(word);
+      if (!controller) return;
+
+      controller.cancelled = true;
+      window.clearTimeout(controller.timerId);
+      cancelAnimationFrame(controller.rafId);
+      setMetalPlaybackRate(controller.metalAnimations, 1);
+      word.style.setProperty("--fit-stroke-width", "0px");
+      activeWeightAnimations.delete(word);
+    };
+
+    const animateFittedWeight = (
+      word,
+      {
+        duration,
+        delay = 0,
+        weightAtProgress,
+        opacityAtProgress = null,
+        metalRateAtProgress = null,
+        strokeAtProgress = null
+      }
+    ) => {
+      const configuration = fitConfigurations.get(word);
+      if (!configuration) return;
+
+      if (!configuration.states?.length) {
+        configuration.states = buildFittedStates(word, configuration);
+      }
+
+      cancelWeightAnimation(word);
+      const metalAnimations = typeof word.getAnimations === "function"
+        ? word.getAnimations().filter(
+          (animation) => animation.animationName === "metal-stream"
+        )
+        : [];
+      const controller = {
+        cancelled: false,
+        timerId: 0,
+        rafId: 0,
+        metalAnimations
+      };
+      activeWeightAnimations.set(word, controller);
+
+      controller.timerId = window.setTimeout(() => {
+        let startedAt = null;
+        const tick = (now) => {
+          if (controller.cancelled) return;
+          if (startedAt === null) startedAt = now;
+
+          const progress = Math.min(1, (now - startedAt) / duration);
+          const weight = weightAtProgress(progress, configuration);
+          const state = solveFittedState(configuration, weight);
+          applyFittedState(word, state);
+
+          word.style.opacity = opacityAtProgress
+            ? String(opacityAtProgress(progress))
+            : "1";
+
+          if (metalRateAtProgress) {
+            setMetalPlaybackRate(
+              controller.metalAnimations,
+              metalRateAtProgress(progress)
+            );
+          }
+          if (strokeAtProgress) {
+            word.style.setProperty(
+              "--fit-stroke-width",
+              `${strokeAtProgress(progress).toFixed(3)}px`
+            );
+          }
+
+          if (progress < 1) {
+            controller.rafId = requestAnimationFrame(tick);
+            return;
+          }
+
+          applyFittedState(
+            word,
+            solveFittedState(configuration, configuration.finalWeight)
+          );
+          word.style.opacity = "1";
+          word.style.setProperty("--fit-stroke-width", "0px");
+          setMetalPlaybackRate(controller.metalAnimations, 1);
+          activeWeightAnimations.delete(word);
+        };
+
+        controller.rafId = requestAnimationFrame(tick);
+      }, delay);
+    };
+
+    const playArrival = (
+      selector,
+      duration,
+      delayForWord,
+      reveal,
+      accelerateMetal = false
+    ) => {
+      document.querySelectorAll(selector).forEach((word) => {
+        animateFittedWeight(word, {
+          duration,
+          delay: delayForWord(word),
+          weightAtProgress: (progress, configuration) => (
+            180 +
+            ((configuration.finalWeight - 180) * arrivalEase(progress))
+          ),
+          opacityAtProgress: reveal
+            ? (progress) => Math.min(1, progress / 0.16)
+            : null,
+          metalRateAtProgress: accelerateMetal
+            ? (progress) => 1 + (3.2 * (1 - arrivalEase(progress)))
+            : null
+        });
+      });
+    };
+
+    const playTouchPulse = (word) => {
+      const configuration = fitConfigurations.get(word);
+      if (!configuration) return;
+
+      const peakAt = 0.42;
+      const peakWeight = Math.min(900, configuration.finalWeight + 70);
+      const needsStroke = peakWeight - configuration.finalWeight < 18;
+      const pulseIntensity = (progress) => {
+        if (progress <= peakAt) {
+          return arrivalEase(progress / peakAt);
+        }
+        return 1 - arrivalEase((progress - peakAt) / (1 - peakAt));
+      };
+
+      animateFittedWeight(word, {
+        duration: 560,
+        weightAtProgress: (progress) => (
+          configuration.finalWeight +
+          ((peakWeight - configuration.finalWeight) * pulseIntensity(progress))
+        ),
+        metalRateAtProgress: (progress) => {
+          if (progress <= peakAt) {
+            return 3.4 - (0.4 * arrivalEase(progress / peakAt));
+          }
+          return 1 + (
+            2 *
+            (1 - arrivalEase((progress - peakAt) / (1 - peakAt)))
+          );
+        },
+        strokeAtProgress: needsStroke
+          ? (progress) => 0.48 * pulseIntensity(progress)
+          : null
+      });
+    };
+
+    const clearArrivalAnimations = () => {
+      Array.from(activeWeightAnimations.keys()).forEach(cancelWeightAnimation);
+    };
+
+    const beginResponsiveRefit = () => {
+      if (prefersReducedMotion || !body.classList.contains("hero-ready")) return;
+      responsiveRefitPending = true;
+      body.classList.add("hero-refitting");
+      clearArrivalAnimations();
+    };
+
+    const scheduleSettledFit = (
+      delay = 180,
+      invalidate = false,
+      animateResponsiveChange = false
+    ) => {
+      if (animateResponsiveChange) beginResponsiveRefit();
+      invalidateOnSettledFit ||= invalidate;
+      window.clearTimeout(settledFitTimer);
+      settledFitTimer = window.setTimeout(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const shouldInvalidate = invalidateOnSettledFit;
+            invalidateOnSettledFit = false;
+            if (shouldInvalidate) invalidateFits();
+
+            if (responsiveRefitPending && body.classList.contains("hero-ready")) {
+              clearArrivalAnimations();
+              fitImmediately();
+              playArrival(
+                ".hero-brand-lockup .hero-fit-word",
+                560,
+                () => 0,
+                false
+              );
+              requestAnimationFrame(() => {
+                body.classList.remove("hero-refitting");
+                responsiveRefitPending = false;
+              });
+              return;
+            }
+
+            requestFit();
+          });
+        });
+      }, delay);
+    };
+
+    const handleViewportResize = () => {
+      const widthChanged = Math.abs(window.innerWidth - lastViewportWidth) > 1;
+      const heightChanged = Math.abs(window.innerHeight - lastViewportHeight) > 1;
+      const orientation = window.matchMedia("(orientation: portrait)").matches;
+      const orientationChanged = orientation !== lastOrientation;
+
+      if (touchViewport && !widthChanged && !orientationChanged) {
+        lastViewportHeight = window.innerHeight;
+        return;
+      }
+
+      if (!widthChanged && !heightChanged && !orientationChanged) return;
+      lastViewportWidth = window.innerWidth;
+      lastViewportHeight = window.innerHeight;
+      lastOrientation = orientation;
+      scheduleSettledFit(
+        orientationChanged ? 260 : 160,
+        orientationChanged,
+        true
+      );
+    };
+
+    const handleOrientationChange = () => {
+      scheduleSettledFit(280, true, true);
+    };
+
+    requestFit();
+    document.fonts?.ready.then(() => {
+      fontsAreReady = true;
+      requestFit();
+    });
+    window.addEventListener("resize", handleViewportResize);
+    window.addEventListener("orientationchange", handleOrientationChange);
+    window.matchMedia("(orientation: portrait)").addEventListener?.(
+      "change",
+      handleOrientationChange
+    );
+    window.addEventListener("pageshow", () => scheduleSettledFit(0, true));
+    document.querySelector(".hero-brand-lockup")?.addEventListener("click", (event) => {
+      if (
+        prefersReducedMotion ||
+        !body.classList.contains("hero-ready") ||
+        body.classList.contains("hero-refitting")
+      ) {
+        return;
+      }
+
+      const cell = event.target.closest(".hero-fit-cell");
+      const word = cell?.querySelector(".hero-fit-word");
+      if (word) playTouchPulse(word);
+    });
+    window.addEventListener("hero:intro", () => {
+      fitImmediately();
+      playArrival(
+        ".hero-intro-cell .hero-fit-word",
+        640,
+        (word) => {
+          const cell = word.closest(".hero-intro-cell");
+          if (cell?.classList.contains("hero-intro-cell--the")) return 430;
+          if (cell?.classList.contains("hero-intro-cell--unseen")) return 720;
+          return 140;
+        },
+        true
+      );
+    });
+    window.addEventListener("hero:handoff", () => {
+      document.querySelectorAll(".hero-intro-cell .hero-fit-word").forEach((word) => {
+        word.style.opacity = "1";
+      });
+      clearArrivalAnimations();
+      fitImmediately();
+      playArrival(
+        ".hero-brand-lockup .hero-fit-word",
+        640,
+        (word) => {
+          const cell = word.closest(".hero-fit-cell");
+          if (cell?.classList.contains("hero-home-meta-cell") ||
+              cell?.classList.contains("hero-home-year-cell") ||
+              cell?.classList.contains("hero-home-year-part")) {
+            return 650;
+          }
+          if (cell?.classList.contains("hero-manifesto-cell")) return 900;
+          return 400;
+        },
+        false,
+        true
+      );
+    });
+    window.addEventListener("hero:ready", () => {
+      clearArrivalAnimations();
+      fitImmediately();
+      body.classList.remove("hero-refitting");
+      responsiveRefitPending = false;
+    });
+
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(() => scheduleSettledFit());
+      document.querySelectorAll(".hero-intro-grid, .hero-brand-lockup").forEach((element) => {
+        observer.observe(element);
+      });
     }
-
-    const height = viewportHeightCache[orientation];
-    const changed = orientation !== activeViewportOrientation || height !== activeViewportHeight;
-
-    activeViewportOrientation = orientation;
-    activeViewportHeight = height;
-    root.style.setProperty("--hero-initial-viewport-height", `${height}px`);
-    root.style.setProperty("--layout-viewport-height", `${height}px`);
-
-    return { orientation, height, changed };
   }
 
-  function applyStableAtmosphereGeometry() {
-    if (!activeViewportHeight) {
-      syncStableViewportHeight();
-    }
-
-    const root = document.documentElement;
-    const isMobilePortrait = window.matchMedia("(max-width: 980px) and (orientation: portrait)").matches;
-    const centerRatio = isMobilePortrait ? 0.42 : 0.455;
-    const halfHeightRatio = isMobilePortrait ? 0.38 : 0.44;
-    const heightRatio = halfHeightRatio * 2;
-
-    root.style.setProperty("--site-atmosphere-center-y", `${(activeViewportHeight * centerRatio).toFixed(2)}px`);
-    root.style.setProperty("--site-atmosphere-box-half-height", `${(activeViewportHeight * halfHeightRatio).toFixed(2)}px`);
-    root.style.setProperty("--site-atmosphere-box-height", `${(activeViewportHeight * heightRatio).toFixed(2)}px`);
-  }
-
-  function initHeroViewportLock() {
-    const hero = document.querySelector('#hero');
-    if (!hero) return;
-
-    syncStableViewportHeight({ measure: true });
-    applyStableAtmosphereGeometry();
-  }
-
-   function initHomeScrollTransition() {
-     const root = document.documentElement;
-     const hero = document.querySelector("#hero");
-
-     if (!hero) {
-       return;
-     }
-
-     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-     const lerp = (start, end, amount) => start + (end - start) * amount;
-     const linear = (value) => value;
-     const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
-     const easeInOutCubic = (value) =>
-       value < 0.5
-         ? 4 * value * value * value
-         : 1 - Math.pow(-2 * value + 2, 3) / 2;
-     const range = (value, start, end, ease = easeOutCubic) => {
-       if (end <= start) {
-         return value >= end ? 1 : 0;
-       }
-
-       return ease(clamp((value - start) / (end - start), 0, 1));
-     };
-
-     let rafId = 0;
-     let transitionSpan = 1;
-     let transitionDistance = 1;
-     let lastBackdropSuppression = "";
-
-     const readMetrics = () => {
-       const styles = getComputedStyle(hero);
-       const viewportHeight = activeViewportHeight || syncStableViewportHeight().height;
-       const stageReference =
-         parseFloat(styles.getPropertyValue("--hero-stage-reference")) ||
-         Math.max(1, viewportHeight * 0.72);
-
-       transitionSpan = Math.max(
-         1,
-         parseFloat(styles.getPropertyValue("--home-transition-span")) || viewportHeight * 0.14
-       );
-       transitionDistance = Math.max(
-         transitionSpan * 6.5,
-         stageReference * 1.78,
-         viewportHeight * 1.42
-       );
-       const lowerLayerOverlap = clamp(
-         transitionDistance * 0.88,
-         viewportHeight * 1.02,
-         viewportHeight * 1.24
-       );
-       hero.style.setProperty("--home-transition-distance", `${transitionDistance.toFixed(2)}px`);
-       root.style.setProperty("--home-next-layer-overlap", `${lowerLayerOverlap.toFixed(2)}px`);
-     };
-
-     const setAtmosphere = (amount) => {
-       body.style.setProperty("--site-atmosphere-opacity", amount.toFixed(4));
-     };
-
-     const setLowerLayer = (opacityAmount) => {
-       root.style.setProperty("--home-next-layer-opacity", opacityAmount.toFixed(4));
-       root.style.setProperty("--home-next-layer-shift", "0px");
-     };
-
-     const sync = () => {
-       rafId = 0;
-
-       const scrollTop = getScrollTop();
-       const progress = clamp(scrollTop / transitionDistance, 0, 1);
-       const uiOpacity = 1 - range(progress, 0.06, 0.56, linear);
-       const imageScale = lerp(1, 1.125, range(progress, 0, 0.72, easeOutCubic));
-       const baseFade = 1 - range(progress, 0.08, 0.52, linear);
-       const baseBrightness = lerp(1, 0.68, range(progress, 0.1, 0.48, easeInOutCubic));
-       const silhouetteAppear = range(progress, 0.2, 0.28, easeInOutCubic);
-       const silhouetteFade = 1 - range(progress, 0.28, 0.48, easeInOutCubic);
-       const silhouetteOpacity = 0.74 * silhouetteAppear * silhouetteFade;
-       const atmosphereProgress = range(progress, 0.48, 0.88, easeInOutCubic);
-       const nextLayerOpacityProgress = range(progress, 0.48, 0.72, easeInOutCubic);
-       const backdropSuppression = progress < 0.88 ? "1" : "0";
-
-       root.style.setProperty("--home-ui-opacity", Math.max(0, uiOpacity).toFixed(4));
-       root.style.setProperty("--home-image-scroll-scale", imageScale.toFixed(4));
-       root.style.setProperty("--home-image-base-layer-opacity", Math.max(0, baseFade).toFixed(4));
-       root.style.setProperty("--home-image-base-brightness", baseBrightness.toFixed(4));
-       root.style.setProperty("--home-image-silhouette-layer-opacity", Math.max(0, silhouetteOpacity).toFixed(4));
-       setAtmosphere(atmosphereProgress);
-       setLowerLayer(nextLayerOpacityProgress);
-
-       if (backdropSuppression !== lastBackdropSuppression) {
-         body.dataset.homeBackdropSuppressed = backdropSuppression;
-         lastBackdropSuppression = backdropSuppression;
-         window.dispatchEvent(new Event("home-transition-sync"));
-       }
-     };
-
-     const requestSync = () => {
-       if (rafId) {
-         return;
-       }
-
-       rafId = requestAnimationFrame(sync);
-     };
-
-     const handleViewportChange = ({ measureNewOrientation = false } = {}) => {
-       const previousOrientation = activeViewportOrientation;
-       const nextOrientation = getViewportOrientationKey();
-
-       if (measureNewOrientation || nextOrientation !== previousOrientation) {
-         syncStableViewportHeight({ measure: !viewportHeightCache[nextOrientation] });
-         applyStableAtmosphereGeometry();
-       }
-
-       readMetrics();
-       requestSync();
-     };
-
-     body.dataset.homeBackdropSuppressed = "1";
-     lastBackdropSuppression = "1";
-     window.dispatchEvent(new Event("home-transition-sync"));
-
-     if (prefersReducedMotion) {
-       root.style.setProperty("--home-ui-opacity", "1");
-       root.style.setProperty("--home-image-scroll-scale", "1");
-       root.style.setProperty("--home-image-base-layer-opacity", "1");
-       root.style.setProperty("--home-image-base-brightness", "1");
-       root.style.setProperty("--home-image-silhouette-layer-opacity", "0");
-       setAtmosphere(1);
-       setLowerLayer(1);
-       body.dataset.homeBackdropSuppressed = "0";
-       lastBackdropSuppression = "0";
-       window.dispatchEvent(new Event("home-transition-sync"));
-       return;
-     }
-
-     readMetrics();
-     sync();
-
-     window.addEventListener("scroll", requestSync, { passive: true });
-     window.addEventListener("resize", () => {
-       if (getViewportOrientationKey() !== activeViewportOrientation) {
-         window.setTimeout(() => handleViewportChange({ measureNewOrientation: true }), 80);
-       } else {
-         requestSync();
-       }
-     });
-     window.addEventListener("orientationchange", () => {
-       window.setTimeout(() => handleViewportChange({ measureNewOrientation: true }), 80);
-     });
-     window.addEventListener("pageshow", () => {
-       if (getViewportOrientationKey() !== activeViewportOrientation) {
-         handleViewportChange({ measureNewOrientation: true });
-       } else {
-         requestSync();
-       }
-     });
-   }
 
    const rockSaltCanvas = document.createElement("canvas");
    const rockSaltContext = rockSaltCanvas.getContext("2d");
@@ -1483,14 +1971,10 @@
      const bboxHeight = (metrics.actualBoundingBoxAscent || fontSize * 0.8) + (metrics.actualBoundingBoxDescent || fontSize * 0.2);
      const extraHeight = Math.max(0, bboxHeight - lineHeight);
      const ascentRatio = bboxHeight > 0 ? (metrics.actualBoundingBoxAscent || bboxHeight * 0.8) / bboxHeight : 0.8;
-     const isHeroShape = element.classList.contains("hero-shape-fill") || element.classList.contains("hero-shape-glow");
-     const heroShapeTopPad = isHeroShape ? Math.ceil(fontSize * 0.1) : 0;
-     const heroShapeBottomPad = isHeroShape ? Math.ceil(fontSize * 0.07) : 0;
-
      return {
-       top: Math.max(1, Math.ceil(extraHeight * ascentRatio + 1) + heroShapeTopPad),
+       top: Math.max(1, Math.ceil(extraHeight * ascentRatio + 1)),
        right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + 1)),
-       bottom: Math.max(1, Math.ceil(extraHeight * (1 - ascentRatio) + 1) + heroShapeBottomPad),
+       bottom: Math.max(1, Math.ceil(extraHeight * (1 - ascentRatio) + 1)),
        left: Math.max(1, Math.ceil(bboxLeft + 1))
      };
    }
@@ -2387,8 +2871,6 @@
    }
 
    async function boot() {
-     initHeroViewportLock();
-
      await Promise.all([
        injectPartial('#nav-slot', 'nav.html'),
        injectPartial('#footer-slot', 'footer.html')
@@ -2402,8 +2884,8 @@
      initAnchorScroll();
      initSectionSpy();
      initReveal();
+     initGridFittedTypography();
      initHeroIntro();
-     initHomeScrollTransition();
      initRockSaltSafeAreas();
      initAboutCreator();
      initDisciplineStack();

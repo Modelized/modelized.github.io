@@ -7,8 +7,8 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260422a">
+  <link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260828m">
 
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -40,52 +40,78 @@
     </div>
   </header>
 
-  <div class="site-atmosphere" aria-hidden="true">
-    <div class="site-atmosphere__layer"></div>
-  </div>
-
   <main id="top" class="page-wrap">
     <section id="hero" class="section hero" data-section="hero">
       <div class="container hero-layout">
-        <div class="hero-visual" aria-hidden="true">
-          <div class="hero-image-wrap">
-            <div class="hero-image-frame">
-              <span class="hero-image-layer hero-image-layer--base">
-                <img class="hero-home-image hero-home-image--base" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
-              </span>
-              <span class="hero-image-layer hero-image-layer--silhouette">
-                <img class="hero-home-image hero-home-image--silhouette" src="assets/img/hero-home.jpg" alt="" fetchpriority="high" decoding="async">
-              </span>
-              <span class="hero-image-gradient"></span>
-            </div>
-          </div>
-        </div>
-
         <div class="hero-stage">
-          <div class="hero-kicker">
-            <p class="eyebrow">Modelized</p>
-            <p class="hero-meta">Portfolio <span data-year></span></p>
+          <div class="hero-intro" aria-hidden="true">
+            <div class="hero-intro-grid">
+              <span class="hero-fit-cell hero-intro-cell hero-intro-cell--shape">
+                <span class="hero-fit-word hero-metal hero-metal--papaya">SHAPE</span>
+              </span>
+              <span class="hero-fit-cell hero-intro-cell hero-intro-cell--the">
+                <span class="hero-fit-word hero-metal hero-metal--silver">THE</span>
+              </span>
+              <span class="hero-fit-cell hero-intro-cell hero-intro-cell--unseen">
+                <span class="hero-fit-word hero-metal hero-metal--silver">UNSEEN</span>
+              </span>
+            </div>
           </div>
 
-          <div class="hero-copy">
-            <div class="hero-copy-main">
-              <h1 class="hero-tagline" aria-label="Shape The Unseen.">
-                <span class="hero-tagline-object">
-                  <span class="hero-tagline-line hero-tagline-line--shape">
-                    <span class="hero-shape-fill tagline-script">Shape</span>
-                    <span class="hero-shape-glow tagline-script" aria-hidden="true">Shape</span>
+          <div class="hero-brand-lockup">
+            <h1 class="hero-modelized" aria-label="Modelized">
+              <span class="hero-fit-cell hero-modelized-cell hero-modelized-cell--model" aria-hidden="true">
+                <span class="hero-fit-word hero-metal hero-metal--papaya">MODE</span>
+              </span>
+              <span class="hero-fit-cell hero-modelized-cell hero-modelized-cell--ized" aria-hidden="true">
+                <span class="hero-fit-word hero-metal hero-metal--papaya">LIZED</span>
+              </span>
+            </h1>
+
+            <div class="hero-home-side">
+              <div class="hero-home-meta-action">
+                <p class="hero-home-meta" aria-label="Portfolio">
+                  <span class="hero-fit-cell hero-home-meta-cell" aria-hidden="true">
+                    <span class="hero-fit-word hero-metal hero-metal--silver">PORTFOLIO</span>
                   </span>
-                  <span class="hero-tagline-line hero-tagline-line--unseen">
-                    <span class="hero-unseen-outline" aria-hidden="true">The Unseen.</span>
-                    <span class="hero-unseen-fill">The Unseen.</span>
-                    <span class="hero-unseen-glow" aria-hidden="true">The Unseen.</span>
+                </p>
+                <div class="hero-home-year-action">
+                  <span class="hero-fit-cell hero-home-year-cell hero-home-year-cell--mobile" aria-label="2026" data-year-label>
+                    <span class="hero-fit-word hero-metal hero-metal--silver" data-year>2026</span>
                   </span>
+                  <span class="hero-home-year-stack" aria-label="2026" data-year-label>
+                    <span class="hero-fit-cell hero-home-year-part" aria-hidden="true">
+                      <span class="hero-fit-word hero-metal hero-metal--silver" data-year-prefix>20</span>
+                    </span>
+                    <span class="hero-fit-cell hero-home-year-part" aria-hidden="true">
+                      <span class="hero-fit-word hero-metal hero-metal--silver" data-year-suffix>26</span>
+                    </span>
+                  </span>
+                  <div class="hero-project-action-stack">
+                    <span class="hero-project-logo-frame" aria-hidden="true">
+                      <img class="hero-project-logo" src="assets/img/logo.png" alt="">
+                    </span>
+                    <a class="hero-project-link" href="#projects">
+                      <span class="hero-project-link__content">
+                        <span class="hero-project-link__label hero-project-link__label--full">View<br class="hero-project-link__break"> Projects</span>
+                        <span class="hero-project-link__label hero-project-link__label--compact">Projects</span>
+                        <svg class="hero-project-link__icon" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                          <path d="M7 7 17 17M17 7v10H7" />
+                        </svg>
+                      </span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <p class="hero-manifesto" aria-label="Shape the unseen">
+                <span class="hero-fit-cell hero-manifesto-cell hero-manifesto-cell--shape" aria-hidden="true">
+                  <span class="hero-fit-word hero-metal hero-metal--silver">SHAPE</span>
                 </span>
-              </h1>
-              <p class="hero-subtitle">The endless journey of a creative technologist Jason Lee.</p>
-            </div>
-            <div class="hero-actions">
-              <a class="button primary" href="#projects">View Current Project</a>
+                <span class="hero-fit-cell hero-manifesto-cell hero-manifesto-cell--unseen" aria-hidden="true">
+                  <span class="hero-fit-word hero-metal hero-metal--silver">THE UNSEEN</span>
+                </span>
+              </p>
             </div>
           </div>
         </div>
@@ -122,7 +148,11 @@
       <div class="container">
         <div class="section-head reveal" data-reveal>
           <p class="eyebrow">Disciplines</p>
-          <h2><span class="tagline-script">Smooth Operator</span> Across The Entire Stack</h2>
+          <h2 class="section-display-title section-display-title--disciplines" aria-label="Smooth Operator Across The Entire Stack">
+            <span class="section-display-accent">Smooth Operator</span>
+            <span class="section-display-line">Across The Entire</span>
+            <span class="section-display-line section-display-line--short">Stack</span>
+          </h2>
         </div>
 
         <div class="discipline-stack-shell reveal" data-reveal>
@@ -154,7 +184,10 @@
       <div class="container">
         <div class="section-head reveal" data-reveal>
           <p class="eyebrow">Projects</p>
-          <h2><span class="tagline-script">Live</span> Modules</h2>
+          <h2 class="section-display-title section-display-title--projects" aria-label="Live Modules">
+            <span class="section-display-accent">Live</span>
+            <span class="section-display-line">Modules</span>
+          </h2>
         </div>
 
         <div class="discipline-stack-shell project-stack-shell reveal" data-reveal>
@@ -203,7 +236,11 @@
       <div class="container">
         <div class="section-head reveal" data-reveal>
           <p class="eyebrow">Connect</p>
-          <h2>A <span class="tagline-script">Closer Look</span> At The Path</h2>
+          <h2 class="section-display-title section-display-title--connect" aria-label="A Closer Look At The Path">
+            <span class="section-display-line section-display-line--lead">A</span>
+            <span class="section-display-accent">Closer Look</span>
+            <span class="section-display-line">At The Path</span>
+          </h2>
         </div>
         <div class="connect-grid reveal" data-reveal>
           <a class="connect-card" href="https://www.discord.com/users/708494927096578119" target="_blank" rel="noopener noreferrer" aria-label="Open Discord profile">
@@ -231,6 +268,6 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260422a" defer></script>
+  <script src="assets/js/shell.js?v=20260828m" defer></script>
 </body>
 </html>
