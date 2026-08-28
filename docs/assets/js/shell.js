@@ -1720,9 +1720,13 @@
     };
 
     let settledFitTimer = 0;
+    const stackedHomeLayout = window.matchMedia(
+      "(max-aspect-ratio: 9 / 16)"
+    );
     let lastViewportWidth = window.innerWidth;
     let lastViewportHeight = window.innerHeight;
     let lastOrientation = window.matchMedia("(orientation: portrait)").matches;
+    let lastStackedHomeLayout = stackedHomeLayout.matches;
     const touchViewport = navigator.maxTouchPoints > 0;
     let invalidateOnSettledFit = false;
     let responsiveRefitPending = false;
@@ -1926,25 +1930,36 @@
       const heightChanged = Math.abs(window.innerHeight - lastViewportHeight) > 1;
       const orientation = window.matchMedia("(orientation: portrait)").matches;
       const orientationChanged = orientation !== lastOrientation;
+      const stackedLayout = stackedHomeLayout.matches;
+      const layoutChanged = stackedLayout !== lastStackedHomeLayout;
+
+      lastViewportWidth = window.innerWidth;
+      lastViewportHeight = window.innerHeight;
+      lastOrientation = orientation;
+      lastStackedHomeLayout = stackedLayout;
+
+      if (layoutChanged) {
+        scheduleSettledFit(260, true, true);
+        return;
+      }
 
       if (touchViewport && !widthChanged && !orientationChanged) {
-        lastViewportHeight = window.innerHeight;
         return;
       }
 
       if (!widthChanged && !heightChanged && !orientationChanged) return;
-      lastViewportWidth = window.innerWidth;
-      lastViewportHeight = window.innerHeight;
-      lastOrientation = orientation;
-      scheduleSettledFit(
-        orientationChanged ? 260 : 160,
-        orientationChanged,
-        true
-      );
+      requestFit();
+      scheduleSettledFit(orientationChanged ? 180 : 120);
     };
 
-    const handleOrientationChange = () => {
-      scheduleSettledFit(280, true, true);
+    const handleHomeLayoutChange = (event) => {
+      if (event.matches === lastStackedHomeLayout) return;
+
+      lastStackedHomeLayout = event.matches;
+      lastViewportWidth = window.innerWidth;
+      lastViewportHeight = window.innerHeight;
+      lastOrientation = window.matchMedia("(orientation: portrait)").matches;
+      scheduleSettledFit(260, true, true);
     };
 
     requestFit();
@@ -1953,10 +1968,9 @@
       requestFit();
     });
     window.addEventListener("resize", handleViewportResize);
-    window.addEventListener("orientationchange", handleOrientationChange);
-    window.matchMedia("(orientation: portrait)").addEventListener?.(
+    stackedHomeLayout.addEventListener?.(
       "change",
-      handleOrientationChange
+      handleHomeLayoutChange
     );
     window.addEventListener("pageshow", () => scheduleSettledFit(0, true));
     document.querySelector(".hero-brand-lockup")?.addEventListener("click", (event) => {

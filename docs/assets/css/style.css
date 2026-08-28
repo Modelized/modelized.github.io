@@ -2182,7 +2182,7 @@ a {
 }
 
 .hero {
-  min-height: calc(100dvh - var(--page-top-offset));
+  min-height: calc(100svh - var(--page-top-offset));
   padding: 0;
   overflow: visible;
   background: transparent;
@@ -2195,7 +2195,11 @@ a {
 
 .hero-layout,
 .hero-stage {
-  min-height: calc(100dvh - var(--page-top-offset));
+  min-height: calc(100svh - var(--page-top-offset));
+}
+
+.hero-layout {
+  container-type: inline-size;
 }
 
 .hero-stage {
@@ -2203,7 +2207,7 @@ a {
   --hero-stage-pad-bottom: clamp(1.5rem, 3.3vw, 3rem);
   position: relative;
   display: block;
-  height: calc(100dvh - var(--page-top-offset));
+  height: calc(100svh - var(--page-top-offset));
   min-height: 520px;
   padding: var(--hero-stage-pad-top) 0 var(--hero-stage-pad-bottom);
   overflow: visible;
@@ -2335,6 +2339,7 @@ a {
 
 .hero-project-logo-frame {
   position: relative;
+  container-type: size;
   align-self: stretch;
   aspect-ratio: 1;
   width: 100%;
@@ -2346,12 +2351,13 @@ a {
 
 .hero-project-logo {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 181%;
+  top: 50%;
+  left: 50%;
+  width: min(180.92cqi, 180.92cqb);
   max-width: none;
+  max-height: none;
   height: auto;
-  transform: translate(-22.5%, -25.2%);
+  transform: translate(-50.1%, -52.83%);
 }
 
 .hero-project-link {
@@ -2686,7 +2692,8 @@ body.page-home #about {
   }
 }
 
-@media (max-width: 980px) and (orientation: portrait) {
+/* Home uses one stacked and one split grid, selected only by viewport ratio. */
+@media (aspect-ratio <= 9 / 16) {
   :root {
     --hero-cell-gap: clamp(0.56rem, 2vw, 0.78rem);
   }
@@ -2855,8 +2862,7 @@ body.page-home #about {
   }
 }
 
-@media (min-width: 981px),
-  (max-width: 980px) and (orientation: landscape) {
+@media (aspect-ratio > 9 / 16) {
   .hero-manifesto-cell--shape {
     --word-wght: 880;
   }
@@ -2867,11 +2873,15 @@ body.page-home #about {
 
   .hero,
   .hero-layout {
-    min-height: max(520px, calc(100dvh - var(--page-top-offset)));
+    min-height: max(520px, calc(100svh - var(--page-top-offset)));
   }
 
   .hero-stage {
-    height: max(520px, calc(100dvh - var(--page-top-offset)));
+    height: max(
+      520px,
+      calc(100svh - var(--page-top-offset)),
+      calc(50cqi + var(--hero-stage-pad-top) + var(--hero-stage-pad-bottom))
+    );
     min-height: 520px;
   }
 
@@ -2903,7 +2913,8 @@ body.page-home #about {
 
   .hero-project-action-stack {
     display: grid;
-    grid-template-rows: minmax(0, 1fr) clamp(2.5rem, 3.8vw, 3.1rem);
+    container-type: size;
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: var(--hero-cell-gap);
     min-width: 0;
     min-height: 0;
@@ -2915,15 +2926,7 @@ body.page-home #about {
     width: 100%;
     height: 100%;
     aspect-ratio: auto;
-    overflow: visible;
-  }
-
-  .hero-project-logo {
-    top: 50%;
-    left: 50%;
-    width: auto;
-    height: 148%;
-    transform: translate(-50%, -50%);
+    overflow: hidden;
   }
 
   .hero-project-link {
@@ -2932,6 +2935,7 @@ body.page-home #about {
     justify-content: flex-start;
     width: 100%;
     max-width: none;
+    height: clamp(2.5rem, min(20cqb, 30cqi), 4.5rem);
     padding-inline: clamp(0.65rem, 1vw, 0.9rem);
     font-size: clamp(0.72rem, 0.9vw, 0.88rem);
   }
