@@ -2243,10 +2243,8 @@ a {
   text-transform: uppercase;
   white-space: nowrap;
   overflow: visible;
-  -webkit-text-stroke-color: var(--fit-stroke-color, transparent);
-  -webkit-text-stroke-width: var(--fit-stroke-width, 0px);
-  paint-order: stroke fill;
   transform:
+    translateX(var(--fit-shift-x, 0px))
     translateY(calc(var(--fit-shift-y, 0px) + var(--fit-flow-y, 0px)))
     scaleX(var(--fit-scale-x, 1));
   transform-origin: center;
@@ -2396,11 +2394,8 @@ a {
   white-space: nowrap;
 }
 
+.hero-project-link__label--stacked,
 .hero-project-link__label--compact {
-  display: none;
-}
-
-.hero-project-link__break {
   display: none;
 }
 
@@ -2409,7 +2404,7 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.45rem;
-  width: calc(100% - 0.5rem);
+  width: calc(100% - 0.75rem);
   min-width: 0;
   margin-inline: auto;
 }
@@ -2424,8 +2419,22 @@ a {
   stroke-linejoin: round;
 }
 
-@container (max-width: 9rem) {
+@container (max-width: 8rem) {
   .hero-project-link__label--full {
+    display: none;
+  }
+
+  .hero-project-link__label--stacked {
+    display: inline;
+  }
+
+  .hero-project-link__label {
+    line-height: 1.05;
+  }
+}
+
+@container (max-width: 5.75rem) {
+  .hero-project-link__label--stacked {
     display: none;
   }
 
@@ -2475,7 +2484,6 @@ a {
 .section-display-line,
 .about-creator-prefix,
 .about-creator-suffix {
-  --fit-stroke-color: rgba(226, 226, 222, 0.92);
   background-image: var(--silver-metal-gradient);
   background-color: #e2e2de;
   animation: metal-stream 24s linear infinite;
@@ -2484,7 +2492,6 @@ a {
 .hero-metal--papaya,
 .section-display-accent,
 .about-creator-glyph.tagline-script {
-  --fit-stroke-color: rgba(255, 136, 76, 0.9);
   background-image: var(--papaya-metal-gradient);
   background-color: var(--papaya);
   filter: saturate(1.035) contrast(1.005);
@@ -2783,24 +2790,12 @@ body.page-home #about {
 
   .hero-project-link__content {
     gap: clamp(0.38rem, min(2vw, 1.1vh), 0.8rem);
-    width: calc(100% - 0.5rem);
+    width: calc(100% - 0.75rem);
   }
 
   .hero-project-link .hero-project-link__label {
     line-height: 1.08;
     white-space: normal;
-  }
-
-  .hero-project-link__break {
-    display: initial;
-  }
-
-  .hero-project-link__label--full {
-    display: inline;
-  }
-
-  .hero-project-link__label--compact {
-    display: none;
   }
 
   .hero-project-link__icon {

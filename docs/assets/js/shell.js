@@ -1310,6 +1310,7 @@
       if (!measuringContext) {
         return {
           width: 100,
+          inkLeft: 0,
           inkWidth: 100,
           height: 72,
           centerOffsetY: 0
@@ -1331,10 +1332,14 @@
       measuringText.style.fontWeight = String(weight);
       measuringText.style.fontVariationSettings = `"wght" ${weight}, "wdth" ${width}`;
       measuringText.style.letterSpacing = tracking;
+      let inkLeft = 0;
       let inkWidth = measuredWidth;
       try {
-        inkWidth = measuringText.getBBox().width || measuredWidth;
+        const inkBounds = measuringText.getBBox();
+        inkLeft = inkBounds.x || 0;
+        inkWidth = inkBounds.width || measuredWidth;
       } catch {
+        inkLeft = 0;
         inkWidth = measuredWidth;
       }
 
@@ -1356,6 +1361,7 @@
 
       return {
         width: Math.max(1, measuredWidth),
+        inkLeft,
         inkWidth: Math.max(1, inkWidth),
         height: ascent + descent,
         centerOffsetY: inkCenter - 50
@@ -1436,23 +1442,43 @@
       return cubicCoordinate(parameter, 1, 1);
     };
 
-    const measureFittedState = (word, configuration, weight) => {
+    const measureFittedState = (
+      word,
+      configuration,
+      weight,
+      {
+        widthAxis = configuration.widthAxis,
+        trackingEm = configuration.trackingEm,
+        scaleMultiplier = 1
+      } = {}
+    ) => {
       const metrics = measureGlyph(
         word,
         weight,
-        configuration.widthAxis,
-        configuration.trackingEm
+        widthAxis,
+        trackingEm
       );
       if (!metrics.width || !metrics.height) return null;
 
       const fontScale = configuration.targetHeight / metrics.height;
+      const scaleX = (
+        configuration.targetInkWidth /
+        (metrics.inkWidth * fontScale)
+      ) * scaleMultiplier;
+      const inkCenterOffset = (
+        metrics.inkLeft +
+        (metrics.inkWidth / 2) -
+        (metrics.width / 2)
+      ) * fontScale;
       return {
         weight,
-        width: configuration.widthAxis,
+        width: widthAxis,
+        trackingEm,
         fontSize: 100 * fontScale,
-        scaleX:
-          configuration.targetInkWidth /
-          (metrics.inkWidth * fontScale),
+        scaleX,
+        shiftX:
+          configuration.targetInkCenterOffset -
+          (inkCenterOffset * scaleX),
         shiftY: -metrics.centerOffsetY * fontScale
       };
     };
@@ -1503,17 +1529,90 @@
       return {
         weight: clampedWeight,
         width: configuration.widthAxis,
+        trackingEm: configuration.trackingEm,
         fontSize: interpolate(lower.fontSize, upper.fontSize),
         scaleX: interpolate(lower.scaleX, upper.scaleX),
+        shiftX: interpolate(lower.shiftX, upper.shiftX),
         shiftY: interpolate(lower.shiftY, upper.shiftY)
       };
+    };
+
+    const interpolateFittedState = (from, to, progress) => {
+      const interpolate = (start, end) => start + ((end - start) * progress);
+      return {
+        weight: interpolate(from.weight, to.weight),
+        width: interpolate(from.width, to.width),
+        trackingEm: interpolate(from.trackingEm, to.trackingEm),
+        fontSize: interpolate(from.fontSize, to.fontSize),
+        scaleX: interpolate(from.scaleX, to.scaleX),
+        shiftX: interpolate(from.shiftX, to.shiftX),
+        shiftY: interpolate(from.shiftY, to.shiftY)
+      };
+    };
+
+    const buildTouchStates = (word, configuration) => {
+      const desiredWeightGain = 60;
+      const peakWeight = Math.min(
+        900,
+        configuration.finalWeight + desiredWeightGain
+      );
+      const missingWeightGain = Math.max(
+        0,
+        desiredWeightGain - (peakWeight - configuration.finalWeight)
+      );
+      const widthCompensation = 0.035 * (
+        missingWeightGain / desiredWeightGain
+      );
+      const peakWidth = Math.max(
+        50,
+        configuration.widthAxis * (1 - widthCompensation)
+      );
+      const states = [];
+
+      for (let index = 0; index <= 20; index += 1) {
+        const progress = index / 20;
+        const state = measureFittedState(
+          word,
+          configuration,
+          configuration.finalWeight + (
+            (peakWeight - configuration.finalWeight) * progress
+          ),
+          {
+            widthAxis: configuration.widthAxis + (
+              (peakWidth - configuration.widthAxis) * progress
+            ),
+            trackingEm: configuration.trackingEm,
+            scaleMultiplier: 1 + (0.055 * progress)
+          }
+        );
+        if (state) states.push({ progress, state });
+      }
+
+      return states;
+    };
+
+    const solveTouchState = (states, progress) => {
+      if (!states.length) return null;
+      if (progress <= 0) return states[0].state;
+      if (progress >= 1) return states[states.length - 1].state;
+
+      const scaledIndex = progress * (states.length - 1);
+      const lowerIndex = Math.floor(scaledIndex);
+      const upperIndex = Math.min(states.length - 1, lowerIndex + 1);
+      return interpolateFittedState(
+        states[lowerIndex].state,
+        states[upperIndex].state,
+        scaledIndex - lowerIndex
+      );
     };
 
     const applyFittedState = (word, state) => {
       if (!state) return;
       word.style.setProperty("--fit-wdth", state.width.toFixed(3));
       word.style.setProperty("--fit-wght", state.weight.toFixed(3));
+      word.style.setProperty("--fit-tracking", `${state.trackingEm.toFixed(5)}em`);
       word.style.setProperty("--fit-font-size", `${state.fontSize.toFixed(3)}px`);
+      word.style.setProperty("--fit-shift-x", `${state.shiftX.toFixed(3)}px`);
       word.style.setProperty("--fit-shift-y", `${state.shiftY.toFixed(3)}px`);
       word.style.setProperty("--fit-scale-x", state.scaleX.toFixed(5));
     };
@@ -1560,30 +1659,38 @@
           finalWeight: weight,
           widthAxis: widthResult.width,
           targetInkWidth: 0,
+          targetInkCenterOffset: 0,
           finalState: null,
-          states: null
+          states: null,
+          touchStates: null
         };
         const finalMetrics = widthResult.metrics;
         const finalFontScale = targetHeight / finalMetrics.height;
         const finalState = {
           weight,
           width: widthResult.width,
+          trackingEm,
           fontSize: 100 * finalFontScale,
           scaleX:
             targetWidth /
             (finalMetrics.width * finalFontScale),
+          shiftX: 0,
           shiftY: -finalMetrics.centerOffsetY * finalFontScale
         };
         configuration.targetInkWidth =
           finalMetrics.inkWidth *
           finalFontScale *
           finalState.scaleX;
+        configuration.targetInkCenterOffset = (
+          finalMetrics.inkLeft +
+          (finalMetrics.inkWidth / 2) -
+          (finalMetrics.width / 2)
+        ) * finalFontScale * finalState.scaleX;
         configuration.finalState = finalState;
         configuration.states = fontsAreReady
           ? buildFittedStates(word, configuration)
           : null;
 
-        word.style.setProperty("--fit-tracking", `${trackingEm.toFixed(5)}em`);
         applyFittedState(word, finalState);
         fitConfigurations.set(word, configuration);
         fitSignatures.set(word, fitSignature);
@@ -1638,7 +1745,6 @@
       window.clearTimeout(controller.timerId);
       cancelAnimationFrame(controller.rafId);
       setMetalPlaybackRate(controller.metalAnimations, 1);
-      word.style.setProperty("--fit-stroke-width", "0px");
       activeWeightAnimations.delete(word);
     };
 
@@ -1647,10 +1753,10 @@
       {
         duration,
         delay = 0,
-        weightAtProgress,
+        weightAtProgress = null,
+        stateAtProgress = null,
         opacityAtProgress = null,
-        metalRateAtProgress = null,
-        strokeAtProgress = null
+        metalRateAtProgress = null
       }
     ) => {
       const configuration = fitConfigurations.get(word);
@@ -1661,7 +1767,8 @@
       }
 
       cancelWeightAnimation(word);
-      const metalAnimations = typeof word.getAnimations === "function"
+      const metalAnimations = metalRateAtProgress &&
+        typeof word.getAnimations === "function"
         ? word.getAnimations().filter(
           (animation) => animation.animationName === "metal-stream"
         )
@@ -1681,8 +1788,12 @@
           if (startedAt === null) startedAt = now;
 
           const progress = Math.min(1, (now - startedAt) / duration);
-          const weight = weightAtProgress(progress, configuration);
-          const state = solveFittedState(configuration, weight);
+          const state = stateAtProgress
+            ? stateAtProgress(progress, configuration)
+            : solveFittedState(
+              configuration,
+              weightAtProgress(progress, configuration)
+            );
           applyFittedState(word, state);
 
           word.style.opacity = opacityAtProgress
@@ -1695,13 +1806,6 @@
               metalRateAtProgress(progress)
             );
           }
-          if (strokeAtProgress) {
-            word.style.setProperty(
-              "--fit-stroke-width",
-              `${strokeAtProgress(progress).toFixed(3)}px`
-            );
-          }
-
           if (progress < 1) {
             controller.rafId = requestAnimationFrame(tick);
             return;
@@ -1712,7 +1816,6 @@
             solveFittedState(configuration, configuration.finalWeight)
           );
           word.style.opacity = "1";
-          word.style.setProperty("--fit-stroke-width", "0px");
           setMetalPlaybackRate(controller.metalAnimations, 1);
           activeWeightAnimations.delete(word);
         };
@@ -1750,34 +1853,23 @@
       const configuration = fitConfigurations.get(word);
       if (!configuration) return;
 
-      const peakAt = 0.42;
-      const peakWeight = Math.min(900, configuration.finalWeight + 70);
-      const needsStroke = peakWeight - configuration.finalWeight < 18;
-      const pulseIntensity = (progress) => {
-        if (progress <= peakAt) {
-          return arrivalEase(progress / peakAt);
-        }
-        return 1 - arrivalEase((progress - peakAt) / (1 - peakAt));
-      };
+      if (!configuration.touchStates?.length) {
+        configuration.touchStates = buildTouchStates(word, configuration);
+      }
+      if (!configuration.touchStates.length) return;
 
+      const pulseIntensity = (progress) => {
+        if (progress <= 0 || progress >= 1) return 0;
+        const parameter = solveBezierParameter(progress, 0.25, 0.35);
+        const phase = cubicCoordinate(parameter, 0.8, 1);
+        return Math.sin(Math.PI * phase);
+      };
       animateFittedWeight(word, {
-        duration: 560,
-        weightAtProgress: (progress) => (
-          configuration.finalWeight +
-          ((peakWeight - configuration.finalWeight) * pulseIntensity(progress))
-        ),
-        metalRateAtProgress: (progress) => {
-          if (progress <= peakAt) {
-            return 3.4 - (0.4 * arrivalEase(progress / peakAt));
-          }
-          return 1 + (
-            2 *
-            (1 - arrivalEase((progress - peakAt) / (1 - peakAt)))
-          );
-        },
-        strokeAtProgress: needsStroke
-          ? (progress) => 0.48 * pulseIntensity(progress)
-          : null
+        duration: 820,
+        stateAtProgress: (progress) => solveTouchState(
+          configuration.touchStates,
+          pulseIntensity(progress)
+        )
       });
     };
 
