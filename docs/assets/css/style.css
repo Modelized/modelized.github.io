@@ -1930,7 +1930,7 @@ a {
 }
 
 /* Mobile portrait nav */
-@media (max-width: 980px) and (orientation: portrait) {
+@media (max-width: 980px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
   :root {
     --page-top-offset: calc(env(safe-area-inset-top, 0px) + 8px + var(--nav-pill-height-mobile) + 14px);
   }
@@ -2143,6 +2143,24 @@ a {
 }
 
 /* Portfolio 2026 rebrand: grid-fitted home */
+@property --hero-metal-model-position {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --hero-metal-story-position {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --hero-metal-intro-position {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
+}
+
 :root {
   --papaya: #ff9f55;
   --papaya-light: #ffd0aa;
@@ -2504,6 +2522,28 @@ a {
   animation: metal-stream 21s linear infinite;
 }
 
+.hero .hero-metal {
+  animation: none;
+}
+
+.hero-modelized .hero-metal {
+  background-position: var(--hero-metal-model-position) 50%;
+}
+
+.hero-home-side .hero-metal {
+  background-position: var(--hero-metal-story-position) 50%;
+}
+
+.hero-intro .hero-metal {
+  background-position: var(--hero-metal-intro-position) 50%;
+}
+
+.hero-brand-lockup {
+  animation:
+    hero-metal-model-stream 21s linear infinite,
+    hero-metal-story-stream 24s linear infinite;
+}
+
 .hero-intro {
   position: absolute;
   inset: var(--hero-stage-pad-top) 0 var(--hero-stage-pad-bottom);
@@ -2565,12 +2605,13 @@ a {
 }
 
 .js body.hero-intro-running .hero-intro-cell .hero-fit-word {
+  animation: none;
+}
+
+.js body.hero-intro-running .hero-intro-grid {
   animation:
-    intro-metal-settle 720ms cubic-bezier(.12,.74,.18,1) both,
-    metal-stream 24s linear 720ms infinite;
-  animation-delay:
-    var(--intro-delay, 140ms),
-    calc(var(--intro-delay, 140ms) + 720ms);
+    hero-intro-metal-settle 720ms cubic-bezier(.12,.74,.18,1) both,
+    hero-intro-metal-stream 24s linear 720ms infinite;
 }
 
 .js body.hero-handoff .hero-intro {
@@ -2583,7 +2624,7 @@ a {
 }
 
 .js body.hero-handoff .hero-brand-lockup .hero-fit-word {
-  animation: metal-stream 24s linear infinite;
+  animation: none;
 }
 
 .js body.hero-handoff .hero-project-link,
@@ -2593,7 +2634,7 @@ a {
 
 .js body.hero-ready .hero-brand-lockup .hero-metal {
   opacity: 1;
-  animation: metal-stream 24s linear infinite;
+  animation: none;
 }
 
 .js body.hero-ready .hero-project-link,
@@ -2602,12 +2643,16 @@ a {
 }
 
 .js body.hero-ready .hero-brand-lockup {
-  transition: opacity 150ms cubic-bezier(.4,0,.2,1);
+  transition:
+    opacity 920ms cubic-bezier(.22, 1, .36, 1),
+    filter 980ms cubic-bezier(.22, 1, .36, 1),
+    transform 1080ms cubic-bezier(.16, 1, .3, 1);
 }
 
 .js body.hero-ready.hero-refitting .hero-brand-lockup {
   opacity: 0 !important;
   pointer-events: none;
+  transition: opacity 220ms linear !important;
 }
 
 .js body.hero-handoff .site-nav,
@@ -2682,18 +2727,49 @@ body.page-home #about {
   }
 }
 
-@keyframes intro-metal-settle {
+@keyframes hero-metal-model-stream {
   from {
-    background-position: 0 50%;
+    --hero-metal-model-position: 0px;
   }
 
   to {
-    background-position: calc(-1 * var(--metal-period)) 50%;
+    --hero-metal-model-position: calc(-1 * var(--metal-period));
   }
 }
 
-/* Home uses one stacked and one split grid, selected only by viewport ratio. */
-@media (aspect-ratio <= 9 / 16) {
+@keyframes hero-metal-story-stream {
+  from {
+    --hero-metal-story-position: 0px;
+  }
+
+  to {
+    --hero-metal-story-position: calc(-1 * var(--metal-period));
+  }
+}
+
+@keyframes hero-intro-metal-settle {
+  from {
+    --hero-metal-intro-position: 0px;
+  }
+
+  to {
+    --hero-metal-intro-position: calc(-1 * var(--metal-period));
+  }
+}
+
+@keyframes hero-intro-metal-stream {
+  from {
+    --hero-metal-intro-position: 0px;
+  }
+
+  to {
+    --hero-metal-intro-position: calc(-1 * var(--metal-period));
+  }
+}
+
+/* Narrow viewports stay stacked; only desktop widths may switch by ratio. */
+@media (max-width: 900px),
+  (min-width: 901px) and (aspect-ratio <= 9 / 16) {
   :root {
     --hero-cell-gap: clamp(0.56rem, 2vw, 0.78rem);
   }
@@ -2862,7 +2938,7 @@ body.page-home #about {
   }
 }
 
-@media (aspect-ratio > 9 / 16) {
+@media (min-width: 901px) and (aspect-ratio > 9 / 16) {
   .hero-manifesto-cell--shape {
     --word-wght: 880;
   }
@@ -2957,6 +3033,7 @@ body.page-home #about {
   }
 
   .hero-brand-lockup,
+  .hero-intro-grid,
   .hero-brand-lockup .hero-fit-word,
   .hero-project-link,
   .site-nav {
@@ -2976,6 +3053,1107 @@ body.page-home #about {
   }
 }
 
+/* Modelized Glyph Story */
+html.glyph-story-lock,
+body.glyph-story-lock {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+.hero-project-logo-frame {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+
+.hero-project-logo-frame:disabled {
+  cursor: default;
+}
+
+.hero-project-logo-frame:focus-visible {
+  outline: 2px solid rgba(243, 242, 238, 0.88);
+  outline-offset: 4px;
+}
+
+.hero-project-logo-frame:not(:disabled) .hero-project-logo {
+  transition:
+    opacity 180ms linear,
+    filter 420ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.hero-project-logo-frame:not(:disabled):is(:hover, :focus-visible) .hero-project-logo {
+  filter:
+    drop-shadow(0 0 5px rgba(255, 159, 85, 0.62))
+    drop-shadow(0 0 16px rgba(255, 122, 47, 0.34));
+}
+
+body.glyph-story-source-hidden .hero-project-logo {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+.site-nav {
+  transition:
+    opacity 920ms cubic-bezier(.22, 1, .36, 1),
+    filter 980ms cubic-bezier(.22, 1, .36, 1),
+    transform 1080ms cubic-bezier(.16, 1, .3, 1);
+}
+
+body.glyph-story-active .hero-brand-lockup {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+body.glyph-story-measuring-home .hero-brand-lockup {
+  opacity: 0 !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+body.glyph-story-active .site-nav {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.glyph-story.is-transitioning .glyph-story__rail,
+.glyph-story__rail.is-animating {
+  scroll-snap-type: none !important;
+}
+
+.glyph-story.is-transitioning .glyph-story__rail {
+  pointer-events: none;
+}
+
+.glyph-story[hidden] {
+  display: none !important;
+}
+
+.glyph-story {
+  --glyph-stroke: clamp(1.95px, 0.13vw, 2.45px);
+  --glyph-float-strength: 1;
+  --glyph-overview-size: min(78cqw, 74cqh, 52rem);
+  --glyph-copy-gap: clamp(0.9rem, min(2.2vw, 2.2vh), 1.45rem);
+  --glyph-copy-gap-small: clamp(0.58rem, min(1.4vw, 1.6vh), 0.95rem);
+  --glyph-progress-action-gap: clamp(1.5rem, min(2.4vw, 2.4vh), 1.9rem);
+  --glyph-action-height: clamp(2.75rem, 7.2vw, 3.15rem);
+  --glyph-action-font-size: clamp(0.62rem, min(3.2vw, 1.8vh), 0.94rem);
+  --glyph-progress-segment: clamp(1.6rem, 6vw, 2.8rem);
+  --glyph-progress-active-segment: clamp(1.824rem, 6.84vw, 3.192rem);
+  --glyph-progress-gap: 0.52rem;
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  width: 100%;
+  height: 100dvh;
+  min-height: 100svh;
+  color: #f3f2ee;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+  isolation: isolate;
+  touch-action: manipulation;
+}
+
+.glyph-story.is-open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.glyph-story__stage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(min-content, 29dvh);
+  gap: clamp(0.8rem, 2dvh, 1.4rem);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding:
+    calc(env(safe-area-inset-top, 0px) + clamp(1rem, 2.6vw, 1.65rem))
+    calc(env(safe-area-inset-right, 0px) + clamp(1rem, 3.8vw, 2rem))
+    calc(env(safe-area-inset-bottom, 0px) + clamp(1.1rem, 3.4vw, 2rem))
+    calc(env(safe-area-inset-left, 0px) + clamp(1rem, 3.8vw, 2rem));
+  opacity: 1;
+  overflow: hidden;
+}
+
+.glyph-story.is-reflowing .glyph-story__stage {
+  pointer-events: none;
+}
+
+.glyph-story__visual {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  container-type: size;
+  isolation: isolate;
+}
+
+.glyph-story[data-state="entering"] .glyph-story__stage,
+.glyph-story[data-state="closing"] .glyph-story__stage,
+.glyph-story[data-state="entering"] .glyph-story__visual,
+.glyph-story[data-state="closing"] .glyph-story__visual {
+  overflow: visible;
+}
+
+.glyph-story.is-reflowing *,
+.glyph-story.is-reflowing *::before,
+.glyph-story.is-reflowing *::after {
+  transition: none !important;
+}
+
+.glyph-story__grid,
+.glyph-story__bloom {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.glyph-story__grid {
+  z-index: -3;
+  display: block;
+  width: 100%;
+  height: 100%;
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 8%, rgba(0, 0, 0, 0.92) 52%, transparent 96%);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 8%, rgba(0, 0, 0, 0.92) 52%, transparent 96%);
+  opacity: 0;
+  transform: scale(1.03);
+  transition:
+    opacity 760ms cubic-bezier(.22, 1, .36, 1),
+    transform 980ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story[data-state="overview"] .glyph-story__grid,
+.glyph-story[data-state="focus"] .glyph-story__grid,
+.glyph-story[data-state="synthesis"] .glyph-story__grid,
+.glyph-story[data-state="epilogue"] .glyph-story__grid {
+  opacity: 0.74;
+  transform: scale(1);
+}
+
+.glyph-story__bloom {
+  z-index: -1;
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: min(86cqw, 78cqh);
+  height: min(86cqw, 78cqh);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 239, 222, 0.98) 0%, rgba(255, 159, 85, 0.78) 10%, rgba(255, 91, 24, 0.26) 36%, transparent 72%);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.16);
+  filter: blur(18px);
+}
+
+.glyph-story__control {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + clamp(1rem, 2.6vw, 2rem));
+  left: calc(env(safe-area-inset-left, 0px) + clamp(1rem, 2.6vw, 2rem));
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: var(--nav-text);
+  background: var(--nav-press-bg);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  opacity: 0;
+  transform: scale(0.94);
+  pointer-events: none;
+  cursor: pointer;
+  transition:
+    background 220ms ease,
+    opacity 420ms cubic-bezier(.22, 1, .36, 1),
+    transform 420ms cubic-bezier(.16, 1, .3, 1);
+  will-change: opacity, transform;
+}
+
+.glyph-story[data-state="overview"] .glyph-story__control,
+.glyph-story[data-state="focus"] .glyph-story__control {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.glyph-story__control:focus-visible {
+  outline: none;
+}
+
+.glyph-story__control:active {
+  background: rgba(255, 255, 255, 0.11);
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glyph-story__control:hover {
+    background: rgba(255, 255, 255, 0.11);
+  }
+}
+
+.glyph-story__control-icon {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph-story__control-close,
+.glyph-story__control-back {
+  transform-origin: center;
+  transition:
+    opacity 360ms cubic-bezier(.22, 1, .36, 1),
+    transform 520ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story__control-back {
+  opacity: 0;
+  transform: rotate(28deg) scale(0.76);
+}
+
+.glyph-story[data-state="focus"] .glyph-story__control-close {
+  opacity: 0;
+  transform: rotate(-30deg) scale(0.76);
+}
+
+.glyph-story[data-state="focus"] .glyph-story__control-back {
+  opacity: 1;
+  transform: none;
+}
+
+.glyph-story__rail {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 50%;
+  width: var(--glyph-overview-size);
+  height: var(--glyph-overview-size);
+  overflow: visible;
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  will-change: transform;
+}
+
+.glyph-story__rail::-webkit-scrollbar {
+  display: none;
+}
+
+.glyph-story__mark {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.glyph-piece {
+  --rail-rotation: 0deg;
+  --rail-scale: 1;
+  --rail-opacity: 1;
+  position: absolute;
+  z-index: 1;
+  display: block;
+  padding: 0;
+  border: 0;
+  color: var(--papaya);
+  background: transparent;
+  opacity: var(--rail-opacity);
+  transform-origin: center;
+  cursor: pointer;
+  transition:
+    opacity 260ms linear,
+    filter 420ms cubic-bezier(.22, 1, .36, 1);
+  will-change: opacity;
+}
+
+.glyph-piece:disabled {
+  cursor: default;
+}
+
+.glyph-piece--m {
+  --piece-aspect: 1.70303;
+  left: 0;
+  top: 0;
+  width: 94.93%;
+  height: 55.56%;
+}
+
+.glyph-piece--o {
+  --piece-aspect: 1;
+  left: 8.45%;
+  top: 51.85%;
+  width: 48.31%;
+  height: 48.15%;
+}
+
+.glyph-piece--d {
+  --piece-aspect: 0.90909;
+  left: 58.11%;
+  top: 39.73%;
+  width: 40.54%;
+  height: 44.44%;
+}
+
+.glyph-piece__motion,
+.glyph-piece__float,
+.glyph-piece__form,
+.glyph-piece__glow,
+.glyph-piece__art,
+.glyph-piece__glow svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.glyph-piece__motion,
+.glyph-piece__float,
+.glyph-piece__form {
+  transform-origin: center;
+  will-change: transform;
+}
+
+.glyph-piece__form {
+  transform: rotate(var(--rail-rotation)) scale(var(--rail-scale));
+}
+
+.glyph-piece__outline {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph-piece__fill {
+  fill: rgba(255, 159, 85, 0);
+  fill-opacity: 1;
+  stroke: none;
+  transition:
+    fill 1080ms cubic-bezier(.16, 1, .3, 1),
+    fill-opacity 1080ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-piece__art .glyph-piece__outline {
+  stroke: rgba(255, 169, 99, 0.96);
+  stroke-width: var(--glyph-stroke);
+  transition:
+    stroke 1080ms cubic-bezier(.16, 1, .3, 1),
+    stroke-dashoffset 1380ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story.is-frame-driven .glyph-piece__fill,
+.glyph-story.is-frame-driven .glyph-piece__outline,
+.glyph-story.is-frame-driven .glyph-piece__glow,
+.glyph-story.is-frame-driven .glyph-piece__glow svg {
+  transition: none !important;
+}
+
+.glyph-piece__glow {
+  z-index: -1;
+  opacity: 0.5;
+  filter: blur(9px);
+  transform: scale(1.03);
+  transition:
+    opacity 480ms cubic-bezier(.22, 1, .36, 1),
+    filter 620ms cubic-bezier(.16, 1, .3, 1),
+    transform 620ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-piece__glow .glyph-piece__outline {
+  stroke: #ff8d43;
+  stroke-width: calc(var(--glyph-stroke) * 3.7);
+}
+
+.glyph-story[data-state="entering"] .glyph-story__rail,
+.glyph-story[data-state="closing"] .glyph-story__rail {
+  z-index: 20;
+}
+
+.glyph-story.is-filled .glyph-piece__fill,
+.glyph-story[data-state="epilogue"] .glyph-piece__fill {
+  fill: #ff9f55;
+  fill-opacity: 1;
+  transition:
+    fill 900ms cubic-bezier(.16, 1, .3, 1),
+    fill-opacity 900ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story.is-filled .glyph-piece__art .glyph-piece__outline,
+.glyph-story[data-state="epilogue"] .glyph-piece__art .glyph-piece__outline {
+  stroke: #ffd0aa;
+  stroke-dashoffset: 0;
+  transition: stroke 900ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story.is-filled .glyph-piece__glow,
+.glyph-story[data-state="epilogue"] .glyph-piece__glow {
+  opacity: 0.8;
+  transition-duration: 900ms;
+}
+
+.glyph-piece:focus-visible {
+  z-index: 7;
+  outline: none;
+}
+
+.glyph-piece:focus-visible .glyph-piece__glow {
+  opacity: 1 !important;
+  filter: blur(12px);
+  transform: scale(1.07);
+}
+
+.glyph-piece:focus-visible .glyph-piece__art .glyph-piece__outline {
+  stroke: #ffd7b5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glyph-story[data-state="overview"] .glyph-piece:hover {
+    z-index: 7;
+  }
+
+  .glyph-story[data-state="overview"] .glyph-piece:hover .glyph-piece__glow {
+    opacity: 1 !important;
+    filter: blur(12px);
+    transform: scale(1.07);
+  }
+
+  .glyph-story[data-state="overview"] .glyph-piece:hover .glyph-piece__art .glyph-piece__outline {
+    stroke: #ffd7b5;
+  }
+}
+
+.glyph-story .glyph-piece--m .glyph-piece__float {
+  animation: glyph-float-m 6.6s linear infinite;
+}
+
+.glyph-story .glyph-piece--o .glyph-piece__float {
+  animation: glyph-float-o 7.8s linear infinite reverse;
+}
+
+.glyph-story .glyph-piece--d .glyph-piece__float {
+  animation: glyph-float-d 5.9s linear infinite;
+}
+
+.glyph-story[data-state="focus"] .glyph-story__rail {
+  inset: 0;
+  width: auto;
+  height: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  transform: none;
+  scroll-snap-type: x mandatory;
+  cursor: default;
+  touch-action: pan-x;
+}
+
+.glyph-story[data-state="focus"] .glyph-story__rail:focus {
+  outline: none;
+}
+
+.glyph-story[data-state="overview"] .glyph-piece__outline,
+.glyph-story[data-state="focus"] .glyph-piece__outline,
+.glyph-story[data-state="synthesis"] .glyph-piece__outline,
+.glyph-story[data-state="epilogue"] .glyph-piece__outline {
+  stroke-dasharray: none;
+}
+
+.glyph-story[data-state="focus"] .glyph-story__mark {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
+  box-sizing: content-box;
+  padding: 0;
+}
+
+.glyph-story[data-state="focus"] .glyph-piece {
+  position: relative;
+  left: auto;
+  top: auto;
+  flex: 0 0 100cqw;
+  width: 100cqw;
+  height: 100%;
+  scroll-snap-align: center;
+}
+
+.glyph-story[data-state="focus"] .glyph-piece__motion,
+.glyph-story[data-state="focus"] .glyph-piece__float {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glyph-story[data-state="focus"] .glyph-piece__form {
+  inset: auto;
+  left: 50%;
+  top: 50%;
+  width: auto;
+  height: min(78cqh, calc(70cqw / var(--piece-aspect)));
+  aspect-ratio: var(--piece-aspect);
+  transform:
+    translate(-50%, -50%)
+    rotate(var(--rail-rotation))
+    scale(var(--rail-scale));
+}
+
+.glyph-story[data-state="focus"] .glyph-piece.is-active .glyph-piece__glow {
+  opacity: 0.96;
+  animation: glyph-focus-glow 3.6s cubic-bezier(.45, .05, .55, .95) infinite;
+}
+
+.glyph-story[data-state="focus"] .glyph-piece.is-active .glyph-piece__art .glyph-piece__outline {
+  stroke: #ffd7b5;
+}
+
+.glyph-story__edge {
+  position: absolute;
+  z-index: 24;
+  top: 0;
+  bottom: 0;
+  width: 16%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    opacity 260ms ease,
+    visibility 0ms linear 260ms;
+}
+
+.glyph-story__edge:focus,
+.glyph-story__edge:focus-visible {
+  outline: none;
+}
+
+.glyph-story__edge--previous {
+  left: 0;
+}
+
+.glyph-story__edge--next {
+  right: 0;
+}
+
+.glyph-story[data-state="focus"] .glyph-story__edge:not([aria-hidden="true"]) {
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0ms;
+}
+
+.glyph-story[data-state="focus"] .glyph-story__edge:disabled {
+  pointer-events: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glyph-story[data-state="focus"] .glyph-story__edge:not(:disabled):hover {
+    opacity: 1;
+  }
+
+  .glyph-story[data-state="focus"] .glyph-story__edge--previous:not(:disabled):hover {
+    background: linear-gradient(90deg, rgba(255, 159, 85, 0.055), transparent);
+  }
+
+  .glyph-story[data-state="focus"] .glyph-story__edge--next:not(:disabled):hover {
+    background: linear-gradient(270deg, rgba(255, 159, 85, 0.055), transparent);
+  }
+}
+
+.glyph-story__copy {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-areas: "copy";
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  box-sizing: border-box;
+  justify-items: center;
+  align-items: center;
+  text-align: center;
+  overflow: visible;
+}
+
+.glyph-story__header,
+.glyph-story__details,
+.glyph-story__epilogue {
+  grid-area: copy;
+  width: min(100%, 46rem);
+  min-width: 0;
+  opacity: 0;
+  transform: translateY(16px);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 540ms cubic-bezier(.22, 1, .36, 1),
+    transform 680ms cubic-bezier(.16, 1, .3, 1),
+    visibility 0ms linear 680ms;
+  will-change: opacity, transform;
+}
+
+.glyph-story[data-state="overview"] .glyph-story__header,
+.glyph-story[data-state="focus"] .glyph-story__details,
+.glyph-story[data-state="epilogue"] .glyph-story__epilogue {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0ms;
+}
+
+.glyph-story.is-transitioning .glyph-story__header,
+.glyph-story.is-transitioning .glyph-story__details,
+.glyph-story.is-transitioning .glyph-story__epilogue {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+.glyph-story__eyebrow,
+.glyph-story__panel-index,
+.glyph-story__epilogue-index {
+  margin: 0 0 var(--glyph-copy-gap-small);
+  color: rgba(255, 184, 128, 0.86);
+  font-family: var(--body-font);
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.glyph-story__header h2,
+.glyph-story__panel h3,
+.glyph-story__epilogue h3 {
+  margin: 0;
+  font-family: "Unbounded", var(--heading-font);
+  font-optical-sizing: auto;
+  font-weight: 800;
+  line-height: 0.96;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.glyph-story__header h2 {
+  font-size: clamp(2.25rem, 9.8vw, 4.65rem);
+}
+
+.glyph-story__details {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  justify-items: center;
+  align-content: center;
+  overflow: visible;
+}
+
+.glyph-story__panel-deck {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.glyph-story__panel {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  visibility: visible;
+  opacity: var(--panel-opacity, 0);
+  transform: translate3d(var(--panel-shift, 42px), 0, 0);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.glyph-story__panel h3,
+.glyph-story__epilogue h3 {
+  font-size: clamp(1.9rem, 8.3vw, 3.75rem);
+}
+
+.glyph-story__panel > p:last-child,
+.glyph-story__epilogue > p:nth-of-type(2) {
+  max-width: 62ch;
+  margin: var(--glyph-copy-gap) auto 0;
+  color: rgba(243, 242, 238, 0.8);
+  font-size: clamp(0.88rem, 3.65vw, 1.08rem);
+  line-height: 1.46;
+  text-wrap: pretty;
+}
+
+.glyph-story__progress {
+  display: flex;
+  justify-content: flex-start;
+  gap: var(--glyph-progress-gap);
+  width: calc(
+    var(--glyph-progress-active-segment) +
+    var(--glyph-progress-segment) +
+    var(--glyph-progress-segment) +
+    var(--glyph-progress-gap) +
+    var(--glyph-progress-gap)
+  );
+  margin-top: var(--glyph-copy-gap);
+}
+
+.glyph-story__progress span {
+  display: block;
+  flex: 0 0 var(--glyph-progress-segment);
+  width: var(--glyph-progress-segment);
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(243, 242, 238, 0.22);
+  transition:
+    background 420ms cubic-bezier(.22, 1, .36, 1),
+    box-shadow 520ms cubic-bezier(.16, 1, .3, 1),
+    width 520ms cubic-bezier(.16, 1, .3, 1),
+    flex-basis 520ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story__progress span.is-visited {
+  background: rgba(255, 159, 85, 0.8);
+  box-shadow: 0 0 10px rgba(255, 122, 47, 0.34);
+}
+
+.glyph-story__progress span.is-active {
+  background: #ffd0aa;
+  box-shadow: 0 0 15px rgba(255, 122, 47, 0.58);
+  flex-basis: var(--glyph-progress-active-segment);
+  width: var(--glyph-progress-active-segment);
+}
+
+.glyph-story__finish,
+.glyph-story__close {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: clamp(10.75rem, 36vw, 14rem);
+  min-height: var(--glyph-action-height);
+  padding: 0.72rem clamp(1.05rem, 3vw, 1.4rem);
+  border: 1.5px solid rgba(243, 242, 238, 0.54);
+  border-radius: 999px;
+  color: #f3f2ee;
+  background: rgba(255, 255, 255, 0.035);
+  font: 600 var(--glyph-action-font-size) / 1.05 var(--body-font);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 220ms ease,
+    background 220ms ease,
+    border-color 220ms ease,
+    box-shadow 420ms cubic-bezier(.16, 1, .3, 1),
+    opacity 420ms cubic-bezier(.22, 1, .36, 1),
+    transform 580ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story__finish-slot {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 0;
+  margin-top: 0;
+  overflow: visible;
+  transition:
+    height 620ms cubic-bezier(.16, 1, .3, 1),
+    margin-top 620ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.glyph-story__details.is-finish-reserving .glyph-story__finish-slot {
+  height: var(--glyph-action-height);
+  margin-top: var(--glyph-progress-action-gap);
+}
+
+.glyph-story__finish {
+  width: max-content;
+  max-width: 100%;
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: none;
+}
+
+.glyph-story__finish.is-visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.glyph-story__finish:focus-visible,
+.glyph-story__close:focus-visible {
+  color: #120803;
+  background: #ff9f55;
+  border-color: #ff9f55;
+  box-shadow:
+    0 0 22px rgba(255, 122, 47, 0.34),
+    0 0 46px rgba(255, 122, 47, 0.18);
+  outline: none;
+}
+
+.glyph-story__close {
+  margin-top: var(--glyph-copy-gap);
+}
+
+.glyph-story__finish:active,
+.glyph-story__close:active {
+  transform: scale(0.975);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glyph-story__finish:hover,
+  .glyph-story__close:hover {
+    color: #120803;
+    background: #ff9f55;
+    border-color: #ff9f55;
+    box-shadow:
+      0 0 22px rgba(255, 122, 47, 0.34),
+      0 0 46px rgba(255, 122, 47, 0.18);
+  }
+}
+
+@keyframes glyph-float-m {
+  0%, 100% { transform: translate3d(calc(6px * var(--glyph-float-strength)), 0, 0); }
+  12.5% { transform: translate3d(calc(4.24px * var(--glyph-float-strength)), calc(4.24px * var(--glyph-float-strength)), 0); }
+  25% { transform: translate3d(0, calc(6px * var(--glyph-float-strength)), 0); }
+  37.5% { transform: translate3d(calc(-4.24px * var(--glyph-float-strength)), calc(4.24px * var(--glyph-float-strength)), 0); }
+  50% { transform: translate3d(calc(-6px * var(--glyph-float-strength)), 0, 0); }
+  62.5% { transform: translate3d(calc(-4.24px * var(--glyph-float-strength)), calc(-4.24px * var(--glyph-float-strength)), 0); }
+  75% { transform: translate3d(0, calc(-6px * var(--glyph-float-strength)), 0); }
+  87.5% { transform: translate3d(calc(4.24px * var(--glyph-float-strength)), calc(-4.24px * var(--glyph-float-strength)), 0); }
+}
+
+@keyframes glyph-float-o {
+  0%, 100% { transform: translate3d(calc(5px * var(--glyph-float-strength)), 0, 0); }
+  12.5% { transform: translate3d(calc(3.54px * var(--glyph-float-strength)), calc(3.54px * var(--glyph-float-strength)), 0); }
+  25% { transform: translate3d(0, calc(5px * var(--glyph-float-strength)), 0); }
+  37.5% { transform: translate3d(calc(-3.54px * var(--glyph-float-strength)), calc(3.54px * var(--glyph-float-strength)), 0); }
+  50% { transform: translate3d(calc(-5px * var(--glyph-float-strength)), 0, 0); }
+  62.5% { transform: translate3d(calc(-3.54px * var(--glyph-float-strength)), calc(-3.54px * var(--glyph-float-strength)), 0); }
+  75% { transform: translate3d(0, calc(-5px * var(--glyph-float-strength)), 0); }
+  87.5% { transform: translate3d(calc(3.54px * var(--glyph-float-strength)), calc(-3.54px * var(--glyph-float-strength)), 0); }
+}
+
+@keyframes glyph-float-d {
+  0%, 100% { transform: translate3d(calc(7px * var(--glyph-float-strength)), 0, 0); }
+  12.5% { transform: translate3d(calc(4.95px * var(--glyph-float-strength)), calc(4.95px * var(--glyph-float-strength)), 0); }
+  25% { transform: translate3d(0, calc(7px * var(--glyph-float-strength)), 0); }
+  37.5% { transform: translate3d(calc(-4.95px * var(--glyph-float-strength)), calc(4.95px * var(--glyph-float-strength)), 0); }
+  50% { transform: translate3d(calc(-7px * var(--glyph-float-strength)), 0, 0); }
+  62.5% { transform: translate3d(calc(-4.95px * var(--glyph-float-strength)), calc(-4.95px * var(--glyph-float-strength)), 0); }
+  75% { transform: translate3d(0, calc(-7px * var(--glyph-float-strength)), 0); }
+  87.5% { transform: translate3d(calc(4.95px * var(--glyph-float-strength)), calc(-4.95px * var(--glyph-float-strength)), 0); }
+}
+
+@keyframes glyph-focus-glow {
+  0%, 100% {
+    filter: blur(9px);
+    transform: scale(1.03);
+  }
+  45% {
+    filter: blur(14px);
+    transform: scale(1.075);
+  }
+  70% {
+    filter: blur(11px);
+    transform: scale(1.05);
+  }
+}
+
+@media (min-width: 901px) and (aspect-ratio > 9 / 16) {
+  .glyph-story {
+    --glyph-overview-size: min(80cqw, 78cqh, 54rem);
+    --glyph-action-font-size: clamp(0.72rem, 0.9vw, 0.88rem);
+  }
+
+  .glyph-story__stage {
+    grid-template-columns: minmax(0, 1.28fr) minmax(20rem, 0.72fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: clamp(2rem, 4.5vw, 6rem);
+    padding:
+      calc(env(safe-area-inset-top, 0px) + clamp(1.5rem, 3vw, 3rem))
+      calc(env(safe-area-inset-right, 0px) + clamp(1.5rem, 3vw, 3rem))
+      calc(env(safe-area-inset-bottom, 0px) + clamp(1.5rem, 3vw, 3rem))
+      calc(env(safe-area-inset-left, 0px) + clamp(1.5rem, 3vw, 3rem));
+  }
+
+  .glyph-story__visual {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .glyph-story__copy {
+    grid-column: 2;
+    grid-row: 1;
+    max-height: none;
+    justify-items: start;
+    align-items: center;
+    text-align: left;
+    padding-inline: clamp(1.5rem, 2.4vw, 3rem) clamp(0.35rem, 0.8vw, 0.9rem);
+    -webkit-clip-path: inset(-100vh 0 -100vh 0);
+    clip-path: inset(-100vh 0 -100vh 0);
+  }
+
+  .glyph-story__header,
+  .glyph-story__details,
+  .glyph-story__epilogue {
+    width: min(100%, 38rem);
+  }
+
+  .glyph-story__header h2 {
+    font-size: clamp(2.2rem, 3.8vw, 5rem);
+  }
+
+  .glyph-story__details {
+    justify-items: start;
+  }
+
+  .glyph-story__finish-slot {
+    place-items: center start;
+  }
+
+  .glyph-story__panel h3,
+  .glyph-story__epilogue h3 {
+    font-size: clamp(2rem, 3.35vw, 4.5rem);
+  }
+
+  .glyph-story__panel > p:last-child,
+  .glyph-story__epilogue > p:nth-of-type(2) {
+    margin-inline: 0;
+    font-size: clamp(0.96rem, 1.12vw, 1.2rem);
+    line-height: 1.52;
+  }
+
+  .glyph-story__progress {
+    justify-self: start;
+  }
+
+  .glyph-story__finish {
+    justify-self: start;
+  }
+
+  .glyph-story__finish,
+  .glyph-story__close {
+    min-width: clamp(11rem, 13vw, 14rem);
+  }
+}
+
+@media (max-width: 900px),
+  (min-width: 901px) and (aspect-ratio <= 9 / 16) {
+  .glyph-story__copy {
+    padding-inline: clamp(0.2rem, 1vw, 0.6rem);
+  }
+}
+
+@media (max-height: 540px) {
+  .glyph-story__stage {
+    gap: 0.55rem;
+    padding:
+      calc(env(safe-area-inset-top, 0px) + 0.65rem)
+      calc(env(safe-area-inset-right, 0px) + 0.8rem)
+      calc(env(safe-area-inset-bottom, 0px) + 0.65rem)
+      calc(env(safe-area-inset-left, 0px) + 0.8rem);
+  }
+
+  .glyph-story__control {
+    top: calc(env(safe-area-inset-top, 0px) + 0.55rem);
+    left: calc(env(safe-area-inset-left, 0px) + 0.65rem);
+    width: 2.55rem;
+    height: 2.55rem;
+  }
+
+  .glyph-story__eyebrow,
+  .glyph-story__panel-index,
+  .glyph-story__epilogue-index {
+    margin-bottom: 0.3rem;
+    font-size: 0.82rem;
+  }
+
+  .glyph-story__header h2 {
+    font-size: clamp(1.35rem, 3.4vw, 2.4rem);
+  }
+
+  .glyph-story__panel h3,
+  .glyph-story__epilogue h3 {
+    font-size: clamp(1.25rem, 3vw, 2.1rem);
+  }
+
+  .glyph-story__panel > p:last-child,
+  .glyph-story__epilogue > p:nth-of-type(2) {
+    margin-top: 0.42rem;
+    font-size: clamp(0.62rem, 1.2vw, 0.78rem);
+    line-height: 1.3;
+  }
+
+  .glyph-story__progress {
+    margin-top: 0.42rem;
+  }
+
+  .glyph-story__finish,
+  .glyph-story__close {
+    min-width: 9.5rem;
+    margin-top: 0.45rem;
+    padding: 0.5rem 0.9rem;
+  }
+}
+
+@media (max-width: 900px) and (max-height: 540px) {
+  .glyph-story {
+    --glyph-overview-size: min(58cqw, 92cqh);
+  }
+
+  .glyph-story__stage {
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .glyph-story__copy {
+    max-height: none;
+  }
+
+  .glyph-story__header h2 {
+    font-size: clamp(1.2rem, 4.6vw, 1.8rem);
+  }
+
+  .glyph-story__panel h3,
+  .glyph-story__epilogue h3 {
+    font-size: clamp(1.15rem, 4.2vw, 1.7rem);
+  }
+
+  .glyph-story__panel > p:last-child,
+  .glyph-story__epilogue > p:nth-of-type(2) {
+    max-width: 76ch;
+    font-size: clamp(0.6rem, 2vw, 0.74rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph-story *,
+  .glyph-story *::before,
+  .glyph-story *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition-duration: 1ms !important;
+  }
+}
 /* Shared display typography for the remaining section headlines */
 .section-head h2,
 .about-creator-title {

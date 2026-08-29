@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260828p">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260830i">
 
   <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg?v=20260828a">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -88,9 +88,9 @@
                     </span>
                   </span>
                   <div class="hero-project-action-stack">
-                    <span class="hero-project-logo-frame" aria-hidden="true">
+                    <button class="hero-project-logo-frame" type="button" aria-label="Explore the Modelized glyph" aria-controls="glyph-story" aria-expanded="false" disabled>
                       <img class="hero-project-logo" src="assets/img/logo.svg" alt="">
-                    </span>
+                    </button>
                     <a class="hero-project-link" href="#projects" aria-label="View Projects">
                       <span class="hero-project-link__content">
                         <span class="hero-project-link__label hero-project-link__label--full">View Projects</span>
@@ -115,6 +115,7 @@
               </p>
             </div>
           </div>
+
         </div>
       </div>
     </section>
@@ -140,7 +141,7 @@
           </h2>
         </div>
         <p class="about-copy reveal" data-reveal>
-          The most powerful ideas begin formless — I give them structure. Whether it’s through code, design, or sound, the goal is always the same: capturing an abstract concept and turning it into something you can experience.
+          The most powerful ideas begin formless — I give them structure. My work lies in translation. I take abstract concepts and build them into tangible experiences.
         </p>
       </div>
     </section>
@@ -267,8 +268,127 @@
     </section>
   </main>
 
+  <div class="glyph-story" id="glyph-story" role="dialog" aria-modal="true" aria-labelledby="glyph-story-title" aria-hidden="true" tabindex="-1" hidden inert>
+    <button class="glyph-story__control" type="button" data-glyph-control aria-label="Close glyph story">
+      <svg class="glyph-story__control-icon" viewBox="0 0 32 32" aria-hidden="true">
+        <path class="glyph-story__control-close" d="M6.5 6.5 25.5 25.5M25.5 6.5 6.5 25.5" />
+        <path class="glyph-story__control-back" d="M13.8 9.4 7.2 16l6.6 6.6M7.8 16h18" />
+      </svg>
+    </button>
+
+    <div class="glyph-story__stage">
+      <div class="glyph-story__visual" data-glyph-visual>
+        <canvas class="glyph-story__grid" aria-hidden="true"></canvas>
+        <div class="glyph-story__bloom" aria-hidden="true"></div>
+
+        <div class="glyph-story__rail" data-glyph-rail aria-label="Modelized glyph pieces">
+          <div class="glyph-story__mark" data-glyph-mark>
+            <button class="glyph-piece glyph-piece--m" type="button" data-glyph-piece="m" aria-label="Explore M, The Formless" aria-pressed="false">
+              <span class="glyph-piece__motion">
+                <span class="glyph-piece__float">
+                  <span class="glyph-piece__form">
+                    <span class="glyph-piece__glow" aria-hidden="true">
+                      <svg viewBox="108 122 281 165" focusable="false"><path class="glyph-piece__outline" d="M359.89 231.47 379.11 195.53Q381 192 377.5 190.06L272.5 131.94Q269 130 266.97 133.45L238.03 182.55Q236 186 232.7 183.74L169.3 140.26Q166 138 164.5 141.71L117.5 258.29Q116 262 119.71 263.5L154.29 277.5Q158 279 159.61 275.34L186.39 214.66Q188 211 191.24 213.35L246.76 253.65Q250 256 251.97 252.52L282.03 199.48Q284 196 287.54 197.86L354.46 233.14Q358 235 359.89 231.47Z" /></svg>
+                    </span>
+                    <svg class="glyph-piece__art" viewBox="108 122 281 165" aria-hidden="true" focusable="false">
+                      <path class="glyph-piece__fill" d="M359.89 231.47 379.11 195.53Q381 192 377.5 190.06L272.5 131.94Q269 130 266.97 133.45L238.03 182.55Q236 186 232.7 183.74L169.3 140.26Q166 138 164.5 141.71L117.5 258.29Q116 262 119.71 263.5L154.29 277.5Q158 279 159.61 275.34L186.39 214.66Q188 211 191.24 213.35L246.76 253.65Q250 256 251.97 252.52L282.03 199.48Q284 196 287.54 197.86L354.46 233.14Q358 235 359.89 231.47Z" />
+                      <path class="glyph-piece__outline" d="M359.89 231.47 379.11 195.53Q381 192 377.5 190.06L272.5 131.94Q269 130 266.97 133.45L238.03 182.55Q236 186 232.7 183.74L169.3 140.26Q166 138 164.5 141.71L117.5 258.29Q116 262 119.71 263.5L154.29 277.5Q158 279 159.61 275.34L186.39 214.66Q188 211 191.24 213.35L246.76 253.65Q250 256 251.97 252.52L282.03 199.48Q284 196 287.54 197.86L354.46 233.14Q358 235 359.89 231.47Z" />
+                    </svg>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="glyph-piece glyph-piece--o" type="button" data-glyph-piece="o" aria-label="Explore O, The Aperture" aria-pressed="false">
+              <span class="glyph-piece__motion">
+                <span class="glyph-piece__float">
+                  <span class="glyph-piece__form">
+                    <span class="glyph-piece__glow" aria-hidden="true">
+                      <svg viewBox="133 276 143 143" focusable="false">
+                        <path class="glyph-piece__outline" d="M204.504 283.956a63.484 63.484 0 1 0 0 126.968 63.484 63.484 0 0 0 0-126.968Z" />
+                        <path class="glyph-piece__outline" d="M204.386 318.23a28.855 28.855 0 1 1 0 57.71 28.855 28.855 0 0 1 0-57.71Z" />
+                      </svg>
+                    </span>
+                    <svg class="glyph-piece__art" viewBox="133 276 143 143" aria-hidden="true" focusable="false">
+                      <path class="glyph-piece__fill" fill-rule="evenodd" d="M204.504 283.956a63.484 63.484 0 1 0 0 126.968 63.484 63.484 0 0 0 0-126.968Zm-.118 34.274a28.855 28.855 0 1 1 0 57.71 28.855 28.855 0 0 1 0-57.71Z" />
+                      <path class="glyph-piece__outline" d="M204.504 283.956a63.484 63.484 0 1 0 0 126.968 63.484 63.484 0 0 0 0-126.968Z" />
+                      <path class="glyph-piece__outline" d="M204.386 318.23a28.855 28.855 0 1 1 0 57.71 28.855 28.855 0 0 1 0-57.71Z" />
+                    </svg>
+                  </span>
+                </span>
+              </span>
+            </button>
+
+            <button class="glyph-piece glyph-piece--d" type="button" data-glyph-piece="d" aria-label="Explore D, The Structure" aria-pressed="false">
+              <span class="glyph-piece__motion">
+                <span class="glyph-piece__float">
+                  <span class="glyph-piece__form">
+                    <span class="glyph-piece__glow" aria-hidden="true">
+                      <svg viewBox="280 240 120 132" focusable="false"><path class="glyph-piece__outline" d="M392.67 311.79 298.33 249.21Q295 247 294.77 250.99L288.23 363.01Q288 367 291.59 365.24L392.41 315.76Q396 314 392.67 311.79Z" /></svg>
+                    </span>
+                    <svg class="glyph-piece__art" viewBox="280 240 120 132" aria-hidden="true" focusable="false">
+                      <path class="glyph-piece__fill" d="M392.67 311.79 298.33 249.21Q295 247 294.77 250.99L288.23 363.01Q288 367 291.59 365.24L392.41 315.76Q396 314 392.67 311.79Z" />
+                      <path class="glyph-piece__outline" d="M392.67 311.79 298.33 249.21Q295 247 294.77 250.99L288.23 363.01Q288 367 291.59 365.24L392.41 315.76Q396 314 392.67 311.79Z" />
+                    </svg>
+                  </span>
+                </span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <button class="glyph-story__edge glyph-story__edge--previous" type="button" data-glyph-previous aria-label="Previous glyph element"></button>
+        <button class="glyph-story__edge glyph-story__edge--next" type="button" data-glyph-next aria-label="Next glyph element"></button>
+      </div>
+
+      <div class="glyph-story__copy">
+        <header class="glyph-story__header">
+          <p class="glyph-story__eyebrow">About the Logo</p>
+          <h2 id="glyph-story-title">Anatomy of the Modelized Glyph</h2>
+        </header>
+
+        <div class="glyph-story__details" aria-live="polite">
+          <div class="glyph-story__panel-deck">
+            <article class="glyph-story__panel" data-glyph-panel="m" aria-hidden="true">
+              <p class="glyph-story__panel-index">M / 01</p>
+              <h3>The Formless</h3>
+              <p>Raw, untamed ideas remain unformed. The jagged, expanding path reflects the primal chaos of a thought at its first strike. Such energy is potent in its purest form, awaiting definition.</p>
+            </article>
+            <article class="glyph-story__panel" data-glyph-panel="o" aria-hidden="true">
+              <p class="glyph-story__panel-index">O / 02</p>
+              <h3>The Aperture</h3>
+              <p>A lens isolates the precise fragment from a mass of scattered thoughts. It establishes focus and secures the correct piece within the void. This serves as the initial threshold an idea must pass to become tangible.</p>
+            </article>
+            <article class="glyph-story__panel" data-glyph-panel="d" aria-hidden="true">
+              <p class="glyph-story__panel-index">D / 03</p>
+              <h3>The Structure</h3>
+              <p>The structure assigned to an idea once it moves through the opening is never fixed. It offers clear direction to abstract concepts and supplies the momentum needed to realize them.</p>
+            </article>
+          </div>
+
+          <div class="glyph-story__progress" aria-label="Exploration progress">
+            <span data-glyph-progress="m" aria-label="The Formless not explored"></span>
+            <span data-glyph-progress="o" aria-label="The Aperture not explored"></span>
+            <span data-glyph-progress="d" aria-label="The Structure not explored"></span>
+          </div>
+          <div class="glyph-story__finish-slot">
+            <button class="glyph-story__finish" type="button" data-glyph-finish>Finish Exploring</button>
+          </div>
+        </div>
+
+        <section class="glyph-story__epilogue" aria-hidden="true">
+          <p class="glyph-story__epilogue-index">One Whole</p>
+          <h3>The Modelized Glyph</h3>
+          <p>Three separate parts form one whole. The logo acts as a visual map of the creative journey: locating focus in disorder and turning it into something tangible. It offers visible evidence of one principle: The most powerful ideas begin formless — I give them structure.</p>
+          <button class="glyph-story__close" type="button" data-glyph-close>Close</button>
+        </section>
+      </div>
+    </div>
+  </div>
+
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260828p" defer></script>
+  <script src="assets/js/shell.js?v=20260830i" defer></script>
+  <script src="assets/js/glyph-story.js?v=20260830i" defer></script>
 </body>
 </html>

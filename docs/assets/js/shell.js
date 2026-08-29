@@ -1304,6 +1304,7 @@
     let fontsAreReady = false;
     const fitConfigurations = new WeakMap();
     const activeWeightAnimations = new Map();
+    const activeMetalClockAnimations = new Map();
     const fitSignatures = new WeakMap();
 
     const measureGlyph = (word, weight, width, trackingEm) => {
@@ -1617,8 +1618,15 @@
       word.style.setProperty("--fit-scale-x", state.scaleX.toFixed(5));
     };
 
-    const fit = () => {
+    const fit = (allowDuringGlyphStory = false) => {
       rafId = 0;
+
+      if (
+        body.classList.contains("glyph-story-active") &&
+        !allowDuringGlyphStory
+      ) {
+        return;
+      }
 
       cells.forEach((cell) => {
         const word = cell.querySelector(".hero-fit-word");
@@ -1631,27 +1639,47 @@
         const targetHeight = cellRect.height;
         const targetRatio = targetWidth / targetHeight;
         const computed = getComputedStyle(word);
-        const weight = Number.parseFloat(
+        const baseWeight = Number.parseFloat(
           computed.getPropertyValue("--word-wght")
         ) || 850;
         const fitSignature = [
           cellRect.width.toFixed(2),
           cellRect.height.toFixed(2),
-          weight.toFixed(1),
+          baseWeight.toFixed(1),
           fontsAreReady ? "ready" : "loading",
+          "density-v1",
           word.textContent.trim()
         ].join(":");
         if (fitSignatures.get(word) === fitSignature) return;
 
         const trackingEm = 0.017;
-        const widthResult = findWidthAxis(
-          word,
-          weight,
-          trackingEm,
-          targetRatio,
-          50,
-          150
-        );
+        const measureGeometry = (candidateWeight) => {
+          const widthResult = findWidthAxis(
+            word,
+            candidateWeight,
+            trackingEm,
+            targetRatio,
+            50,
+            150
+          );
+          const metrics = widthResult.metrics;
+          const fontScale = targetHeight / metrics.height;
+          return {
+            widthResult,
+            metrics,
+            fontScale,
+            scaleX: targetWidth / (metrics.width * fontScale)
+          };
+        };
+        let weight = baseWeight;
+        let geometry = measureGeometry(weight);
+        const compression = Math.max(0, 1 - geometry.scaleX);
+        const densityWeightBoost = Math.min(48, compression * 180);
+        if (densityWeightBoost >= 0.5) {
+          weight = Math.min(900, baseWeight + densityWeightBoost);
+          geometry = measureGeometry(weight);
+        }
+        const widthResult = geometry.widthResult;
         const configuration = {
           targetWidth,
           targetHeight,
@@ -1664,16 +1692,14 @@
           states: null,
           touchStates: null
         };
-        const finalMetrics = widthResult.metrics;
-        const finalFontScale = targetHeight / finalMetrics.height;
+        const finalMetrics = geometry.metrics;
+        const finalFontScale = geometry.fontScale;
         const finalState = {
           weight,
           width: widthResult.width,
           trackingEm,
           fontSize: 100 * finalFontScale,
-          scaleX:
-            targetWidth /
-            (finalMetrics.width * finalFontScale),
+          scaleX: geometry.scaleX,
           shiftX: 0,
           shiftY: -finalMetrics.centerOffsetY * finalFontScale
         };
@@ -1707,9 +1733,9 @@
       if (!rafId) rafId = requestAnimationFrame(fit);
     };
 
-    const fitImmediately = () => {
+    const fitImmediately = (allowDuringGlyphStory = false) => {
       if (rafId) cancelAnimationFrame(rafId);
-      fit();
+      fit(allowDuringGlyphStory);
     };
 
     const invalidateFits = () => {
@@ -1721,7 +1747,7 @@
 
     let settledFitTimer = 0;
     const stackedHomeLayout = window.matchMedia(
-      "(max-aspect-ratio: 9 / 16)"
+      "(max-width: 900px), (min-width: 901px) and (max-aspect-ratio: 9 / 16)"
     );
     let lastViewportWidth = window.innerWidth;
     let lastViewportHeight = window.innerHeight;
@@ -1730,6 +1756,7 @@
     const touchViewport = navigator.maxTouchPoints > 0;
     let invalidateOnSettledFit = false;
     let responsiveRefitPending = false;
+    let responsiveRefitStartedAt = 0;
 
     const setMetalPlaybackRate = (animations, rate) => {
       animations.forEach((animation) => {
@@ -1739,6 +1766,75 @@
           animation.playbackRate = rate;
         }
       });
+    };
+
+    const cancelMetalClockAnimation = (animationName) => {
+      const controller = activeMetalClockAnimations.get(animationName);
+      if (!controller) return;
+
+      controller.cancelled = true;
+      window.clearTimeout(controller.timerId);
+      cancelAnimationFrame(controller.rafId);
+      setMetalPlaybackRate(controller.animations, 1);
+      activeMetalClockAnimations.delete(animationName);
+    };
+
+    const clearMetalClockAnimations = () => {
+      Array.from(activeMetalClockAnimations.keys()).forEach(
+        cancelMetalClockAnimation
+      );
+    };
+
+    const playMetalClockArrival = (
+      animationName,
+      duration,
+      delay
+    ) => {
+      const clock = document.querySelector(".hero-brand-lockup");
+      if (!clock || typeof clock.getAnimations !== "function") return;
+
+      cancelMetalClockAnimation(animationName);
+      const animations = clock.getAnimations().filter(
+        (animation) => animation.animationName === animationName
+      );
+      if (!animations.length) return;
+
+      const controller = {
+        animations,
+        cancelled: false,
+        timerId: 0,
+        rafId: 0
+      };
+      activeMetalClockAnimations.set(animationName, controller);
+
+      controller.timerId = window.setTimeout(() => {
+        let startedAt = null;
+        const tick = (now) => {
+          if (controller.cancelled) return;
+          if (startedAt === null) startedAt = now;
+
+          const progress = Math.min(1, (now - startedAt) / duration);
+          setMetalPlaybackRate(
+            controller.animations,
+            1 + (3.2 * (1 - arrivalEase(progress)))
+          );
+
+          if (progress < 1) {
+            controller.rafId = requestAnimationFrame(tick);
+            return;
+          }
+
+          setMetalPlaybackRate(controller.animations, 1);
+          activeMetalClockAnimations.delete(animationName);
+        };
+
+        controller.rafId = requestAnimationFrame(tick);
+      }, delay);
+    };
+
+    const playSharedMetalArrival = () => {
+      playMetalClockArrival("hero-metal-model-stream", 640, 400);
+      playMetalClockArrival("hero-metal-story-stream", 900, 650);
     };
 
     const cancelWeightAnimation = (word) => {
@@ -1883,9 +1979,12 @@
 
     const beginResponsiveRefit = () => {
       if (prefersReducedMotion || !body.classList.contains("hero-ready")) return;
+      if (!responsiveRefitPending) {
+        responsiveRefitStartedAt = performance.now();
+        body.classList.add("hero-refitting");
+        clearArrivalAnimations();
+      }
       responsiveRefitPending = true;
-      body.classList.add("hero-refitting");
-      clearArrivalAnimations();
     };
 
     const scheduleSettledFit = (
@@ -1896,6 +1995,9 @@
       if (animateResponsiveChange) beginResponsiveRefit();
       invalidateOnSettledFit ||= invalidate;
       window.clearTimeout(settledFitTimer);
+      const minimumFadeTime = responsiveRefitPending
+        ? Math.max(0, 220 - (performance.now() - responsiveRefitStartedAt))
+        : 0;
       settledFitTimer = window.setTimeout(() => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
@@ -1915,6 +2017,7 @@
               requestAnimationFrame(() => {
                 body.classList.remove("hero-refitting");
                 responsiveRefitPending = false;
+                responsiveRefitStartedAt = 0;
               });
               return;
             }
@@ -1922,7 +2025,7 @@
             requestFit();
           });
         });
-      }, delay);
+      }, Math.max(delay, minimumFadeTime));
     };
 
     const handleViewportResize = () => {
@@ -1938,8 +2041,13 @@
       lastOrientation = orientation;
       lastStackedHomeLayout = stackedLayout;
 
-      if (layoutChanged) {
+      if (layoutChanged || orientationChanged) {
         scheduleSettledFit(260, true, true);
+        return;
+      }
+
+      if (responsiveRefitPending) {
+        scheduleSettledFit(160, true);
         return;
       }
 
@@ -1968,6 +2076,9 @@
       requestFit();
     });
     window.addEventListener("resize", handleViewportResize);
+    window.addEventListener("orientationchange", () => {
+      scheduleSettledFit(260, true, true);
+    });
     stackedHomeLayout.addEventListener?.(
       "change",
       handleHomeLayoutChange
@@ -2005,7 +2116,9 @@
         word.style.opacity = "1";
       });
       clearArrivalAnimations();
+      clearMetalClockAnimations();
       fitImmediately();
+      playSharedMetalArrival();
       playArrival(
         ".hero-brand-lockup .hero-fit-word",
         640,
@@ -2019,15 +2132,38 @@
           if (cell?.classList.contains("hero-manifesto-cell")) return 900;
           return 400;
         },
-        false,
-        true
+        false
       );
     });
     window.addEventListener("hero:ready", () => {
       clearArrivalAnimations();
+      clearMetalClockAnimations();
       fitImmediately();
       body.classList.remove("hero-refitting");
       responsiveRefitPending = false;
+      responsiveRefitStartedAt = 0;
+    });
+    window.addEventListener("glyph-story:prepare-close", () => {
+      clearArrivalAnimations();
+      window.clearTimeout(settledFitTimer);
+      invalidateOnSettledFit = false;
+      responsiveRefitPending = false;
+      responsiveRefitStartedAt = 0;
+      body.classList.remove("hero-refitting");
+      invalidateFits();
+      fitImmediately(true);
+      lastViewportWidth = window.innerWidth;
+      lastViewportHeight = window.innerHeight;
+      lastOrientation = window.matchMedia("(orientation: portrait)").matches;
+      lastStackedHomeLayout = stackedHomeLayout.matches;
+    });
+    window.addEventListener("glyph-story:closed", () => {
+      invalidateFits();
+      fitImmediately();
+      lastViewportWidth = window.innerWidth;
+      lastViewportHeight = window.innerHeight;
+      lastOrientation = window.matchMedia("(orientation: portrait)").matches;
+      lastStackedHomeLayout = stackedHomeLayout.matches;
     });
 
     if ("ResizeObserver" in window) {
