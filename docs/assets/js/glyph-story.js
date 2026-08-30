@@ -319,6 +319,12 @@
     root.classList.remove("is-frame-driven");
   };
 
+  const deactivateBloom = () => {
+    bloom.hidden = true;
+    bloom.style.removeProperty("opacity");
+    bloom.style.removeProperty("transform");
+  };
+
   const drawGlyphGrid = () => {
     gridDrawFrame = 0;
     const bounds = visual.getBoundingClientRect();
@@ -819,6 +825,7 @@
       "is-reflowing"
     );
     clearFrameDrivenStyles();
+    deactivateBloom();
     root.style.removeProperty("--glyph-float-strength");
     mark.style.removeProperty("transform");
     mark.style.removeProperty("opacity");
@@ -891,7 +898,7 @@
   };
 
   const openStory = async (event) => {
-    if (state !== "closed" || trigger.disabled) return;
+    if (state !== "closed" || transitioning || trigger.disabled) return;
 
     transitioning = true;
     keyboardSession = event?.detail === 0;
@@ -1029,8 +1036,6 @@
     document.body.classList.remove("glyph-story-source-hidden");
     await nextFrame();
 
-    setScrollLocked(false);
-    window.dispatchEvent(new Event("glyph-story:closed"));
     root.classList.remove(
       "is-open",
       "is-closing",
@@ -1046,6 +1051,13 @@
     mark.style.removeProperty("opacity");
     resetExploration();
     setState("closed");
+    pendingReflow = false;
+
+    // Tear down the fixed surface before Safari recalculates its dynamic
+    // viewport when the page scroll lock is released.
+    setScrollLocked(false);
+    await nextFrame();
+    window.dispatchEvent(new Event("glyph-story:closed"));
     transitioning = false;
 
     if (keyboardSession) {
@@ -1064,6 +1076,7 @@
     control.setAttribute("aria-label", "Close glyph story");
     epilogue.setAttribute("aria-hidden", "false");
 
+    bloom.hidden = false;
     root.classList.add("is-frame-driven");
     applyAssemblyVisual(0);
     const changed = await transitionForms({
@@ -1075,16 +1088,23 @@
         resetPieceStyles();
       }
     });
-    if (!changed) return;
+    if (!changed) {
+      deactivateBloom();
+      return;
+    }
 
     const completed = await runFrameTimeline(1900, applyAssemblyVisual);
-    if (!completed) return;
+    if (!completed) {
+      deactivateBloom();
+      return;
+    }
 
     root.classList.add("is-filled");
     applyAssemblyVisual(1);
     setState("epilogue");
     await nextFrame();
     clearFrameDrivenStyles();
+    deactivateBloom();
     if (keyboardSession) closeButton.focus({ preventScroll: true });
   };
 

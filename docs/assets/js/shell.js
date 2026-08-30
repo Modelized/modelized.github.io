@@ -2221,9 +2221,9 @@
      const ascentRatio = bboxHeight > 0 ? (metrics.actualBoundingBoxAscent || bboxHeight * 0.8) / bboxHeight : 0.8;
      return {
        top: Math.max(verticalGuard, Math.ceil(extraHeight * ascentRatio + verticalGuard)),
-       right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + 1)),
+       right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + strokeWidth + 1)),
        bottom: Math.max(verticalGuard, Math.ceil(extraHeight * (1 - ascentRatio) + verticalGuard)),
-       left: Math.max(1, Math.ceil(bboxLeft + 1))
+       left: Math.max(1, Math.ceil(bboxLeft + strokeWidth + 1))
      };
    }
 

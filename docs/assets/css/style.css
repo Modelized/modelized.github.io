@@ -340,6 +340,7 @@ a {
 
 .tagline-script {
   --script-visual-shift-y: -0.096em;
+  --script-outline-width: clamp(1.1px, 0.045em, 1.6px);
   --script-safe-top: 0px;
   --script-safe-right: 0px;
   --script-safe-bottom: 0px;
@@ -371,7 +372,8 @@ a {
   white-space: nowrap;
   color: var(--accent-script-color);
   -webkit-text-fill-color: var(--accent-script-color);
-  -webkit-text-stroke: 0.8px var(--accent-script-color);
+  -webkit-text-stroke: var(--script-outline-width) var(--accent-script-color);
+  paint-order: stroke fill;
   top: var(--script-visual-shift-y);
   overflow: visible;
   vertical-align: baseline;
@@ -2673,7 +2675,7 @@ a {
 }
 
 .tagline-script.section-metal {
-  -webkit-text-stroke-color: transparent;
+  -webkit-text-stroke: var(--script-outline-width) transparent;
   overflow: visible;
 }
 
@@ -3295,9 +3297,7 @@ body.glyph-story-active .site-nav {
   position: fixed;
   inset: 0;
   z-index: 5000;
-  width: 100%;
-  height: 100dvh;
-  min-height: 100svh;
+  box-sizing: border-box;
   color: #f3f2ee;
   visibility: hidden;
   pointer-events: none;
@@ -3398,6 +3398,10 @@ body.glyph-story-active .site-nav {
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.16);
   filter: blur(18px);
+}
+
+.glyph-story__bloom[hidden] {
+  display: none !important;
 }
 
 .glyph-story__control {
