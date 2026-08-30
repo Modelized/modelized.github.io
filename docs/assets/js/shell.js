@@ -1790,7 +1790,7 @@
       duration,
       delay
     ) => {
-      const clock = document.querySelector(".hero-brand-lockup");
+      const clock = document.querySelector(".page-wrap");
       if (!clock || typeof clock.getAnimations !== "function") return;
 
       cancelMetalClockAnimation(animationName);
@@ -2203,6 +2203,8 @@
      const fontSize = parseFloat(computed.fontSize) || 16;
      const lineHeightValue = parseFloat(computed.lineHeight);
      const lineHeight = Number.isFinite(lineHeightValue) ? lineHeightValue : fontSize;
+     const strokeWidth = parseFloat(computed.webkitTextStrokeWidth) || 0;
+     const verticalGuard = Math.ceil(strokeWidth + 2);
 
      rockSaltContext.font = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
 
@@ -2214,9 +2216,9 @@
      const extraHeight = Math.max(0, bboxHeight - lineHeight);
      const ascentRatio = bboxHeight > 0 ? (metrics.actualBoundingBoxAscent || bboxHeight * 0.8) / bboxHeight : 0.8;
      return {
-       top: Math.max(1, Math.ceil(extraHeight * ascentRatio + 1)),
+       top: Math.max(verticalGuard, Math.ceil(extraHeight * ascentRatio + verticalGuard)),
        right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + 1)),
-       bottom: Math.max(1, Math.ceil(extraHeight * (1 - ascentRatio) + 1)),
+       bottom: Math.max(verticalGuard, Math.ceil(extraHeight * (1 - ascentRatio) + verticalGuard)),
        left: Math.max(1, Math.ceil(bboxLeft + 1))
      };
    }
