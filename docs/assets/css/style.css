@@ -25,12 +25,25 @@
   --menu-thumb-bg-default: rgba(255,255,255,.16);
   --menu-thumb-bg-press: rgba(255,255,255,.24);
   --accent-orange: #ff9d4d;
-  --card-surface: rgba(7, 7, 7, 0.86);
-  --card-surface-deep: rgba(3, 3, 3, 0.94);
+  --card-surface: #050505;
   --card-edge: rgba(243, 242, 238, 0.2);
-  --card-edge-active: rgba(255, 159, 85, 0.72);
   --card-accent-soft: rgba(255, 159, 85, 0.11);
-  --card-accent-glow: rgba(255, 130, 48, 0.14);
+  --card-hover-scale: 1.016;
+  --card-hover-duration: 620ms;
+  --card-accent-duration: 460ms;
+  --card-hover-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --card-outline-width: 1px;
+  --card-black-metal-gradient: linear-gradient(
+    90deg,
+    #020202 0%,
+    #050505 15%,
+    #0b0b0b 30%,
+    #050505 44%,
+    #010101 57%,
+    #070707 71%,
+    #0d0d0d 86%,
+    #020202 100%
+  );
   --nav-backdrop: linear-gradient(
     to bottom,
     rgba(0,0,0,.46) 0%,
@@ -1236,44 +1249,58 @@ a {
 }
 
 .connect-card {
+  --connect-outline-base: var(--card-edge);
+  --connect-outline-mix: 0%;
+  --connect-outline-gradient: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #f27432 var(--connect-outline-mix)) 0%,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #ff8a42 var(--connect-outline-mix)) 14%,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #ffb069 var(--connect-outline-mix)) 29%,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #ff9450 var(--connect-outline-mix)) 43%,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #e96629 var(--connect-outline-mix)) 56%,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #f9823a var(--connect-outline-mix)) 70%,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #ffad65 var(--connect-outline-mix)) 85%,
+    color-mix(in srgb, var(--connect-outline-base) calc(100% - var(--connect-outline-mix)), #f27432 var(--connect-outline-mix)) 100%
+  );
+}
+
+.connect-card {
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 0.88rem;
   padding: 1.1rem 1.15rem;
-  border: 1px solid var(--card-edge);
+  border: var(--card-outline-width) solid transparent;
   border-radius: 26px;
   background:
-    radial-gradient(120% 95% at 8% -12%, rgba(255, 255, 255, 0.065), transparent 46%),
-    linear-gradient(145deg, rgba(255, 159, 85, 0.024), transparent 38%),
-    linear-gradient(180deg, var(--card-surface) 0%, var(--card-surface-deep) 100%);
-  -webkit-backdrop-filter: blur(12px) saturate(112%);
-  backdrop-filter: blur(12px) saturate(112%);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.055),
-    inset 0 -1px rgba(0, 0, 0, 0.72),
-    0 15px 36px rgba(0, 0, 0, 0.24);
+    linear-gradient(var(--card-surface), var(--card-surface)) padding-box,
+    var(--connect-outline-gradient) border-box;
+  background-position: 0 0, var(--hero-metal-model-position) 50%;
+  background-repeat: no-repeat, repeat-x;
+  background-size: 100% 100%, var(--metal-period) 100%;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.24);
   color: var(--text);
   text-decoration: none;
   overflow: hidden;
   transition:
-    transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    --connect-outline-mix var(--card-accent-duration) var(--card-hover-ease),
+    transform var(--card-hover-duration) var(--card-hover-ease),
+    box-shadow var(--card-accent-duration) var(--card-hover-ease);
 }
 
 .connect-card::before {
   content: "";
   position: absolute;
-  inset: -55% -34%;
+  inset: 1px;
   z-index: 0;
-  background: linear-gradient(112deg, transparent 38%, rgba(255, 255, 255, 0.075) 48%, transparent 58%);
-  opacity: 0.3;
-  transform: translate3d(-18%, 0, 0);
-  transition:
-    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 620ms cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: calc(26px - 1px);
+  background: var(--card-black-metal-gradient);
+  background-position: 0 50%;
+  background-repeat: repeat-x;
+  background-size: var(--metal-period) 100%;
+  opacity: 0;
+  transition: opacity var(--card-accent-duration) var(--card-hover-ease);
   pointer-events: none;
 }
 
@@ -1282,46 +1309,44 @@ a {
   z-index: 1;
 }
 
-.connect-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--card-edge-active);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.07),
-    inset 0 -1px rgba(0, 0, 0, 0.72),
-    0 0 26px var(--card-accent-glow),
-    0 20px 44px rgba(0, 0, 0, 0.32);
+.connect-card:hover,
+.connect-card:focus-visible {
+  --connect-outline-mix: 100%;
+  transform: scale(var(--card-hover-scale));
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
 }
 
-.connect-card:hover::before {
-  opacity: 0.72;
-  transform: translate3d(18%, 0, 0);
+.connect-card:hover::before,
+.connect-card:focus-visible::before {
+  background-position: var(--hero-metal-story-position) 50%;
+  opacity: 0.88;
 }
 
 .connect-card__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.64rem;
-  height: 1.64rem;
-  border: 1px solid rgba(243, 242, 238, 0.17);
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.055);
+  background-color: rgba(255, 255, 255, 0.075);
   color: #e8e7e1;
   flex: 0 0 auto;
   overflow: hidden;
-  transition:
-    border-color 280ms cubic-bezier(0.22, 1, 0.36, 1),
-    background 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: background-color var(--card-accent-duration) var(--card-hover-ease);
 }
 
-.connect-card:hover .connect-card__icon {
-  border-color: rgba(255, 159, 85, 0.44);
-  background: var(--card-accent-soft);
+.connect-card:hover .connect-card__icon,
+.connect-card:focus-visible .connect-card__icon {
+  background-color: var(--card-accent-soft);
 }
 
 .connect-card__icon img {
-  width: 0.78rem;
-  height: 0.78rem;
+  position: relative;
+  z-index: 2;
+  width: 0.86rem;
+  height: 0.86rem;
   display: block;
   object-fit: contain;
   filter: brightness(0) saturate(100%) invert(92%) sepia(7%) saturate(304%) hue-rotate(193deg) brightness(101%) contrast(96%);
@@ -1443,8 +1468,18 @@ a {
   user-select: text;
 }
 
+.disciplines .section-head,
+.projects .section-head {
+  margin-bottom: 0;
+}
+
+.disciplines.section,
+.projects.section {
+  padding-bottom: clamp(1.5rem, 3vw, 2.75rem);
+}
+
 .discipline-stack-shell {
-  margin-top: 0.95rem;
+  margin-top: clamp(0.65rem, 1.1vw, 0.9rem);
   --discipline-card-width: min(100%, 50rem);
   --discipline-card-height: clamp(22rem, 39vw, 28rem);
   --discipline-stack-pad-top: clamp(0.38rem, 0.85vw, 0.7rem);
@@ -1486,7 +1521,14 @@ a {
 .discipline-stack-stage {
   position: relative;
   z-index: 1;
-  width: min(calc(100% - 1.5rem), 1380px);
+  width: min(
+    calc(
+      100% - var(--page-inline-gutter) +
+      var(--discipline-stack-pad-inline) +
+      var(--discipline-stack-pad-inline)
+    ),
+    1380px
+  );
   margin: 0 auto;
   padding:
     var(--discipline-stack-pad-top)
@@ -1634,9 +1676,8 @@ a {
 }
 
 .discipline-stack-card__surface {
-  --discipline-edge: var(--card-edge);
-  --discipline-depth-dim: 0;
-  --discipline-surface-lift: 0.018;
+  --card-outline-image: linear-gradient(var(--card-edge), var(--card-edge));
+  --card-outline-size: 100% 100%;
   position: relative;
   display: grid;
   grid-template-rows: auto auto auto;
@@ -1648,50 +1689,39 @@ a {
     clamp(1.7rem, 3vw, 2.45rem)
     clamp(1.72rem, 3.15vw, 2.6rem)
     clamp(1.74rem, 3.1vw, 2.45rem);
+  border: var(--card-outline-width) solid transparent;
   border-radius: 32px;
   background:
-    radial-gradient(124% 94% at 9% -12%, rgba(255, 255, 255, 0.06), transparent 48%),
-    linear-gradient(145deg, rgba(255, 159, 85, 0.022), transparent 38%),
-    linear-gradient(180deg, rgba(255, 255, 255, var(--discipline-surface-lift)) 0%, rgba(255, 255, 255, 0) 18%),
-    linear-gradient(180deg, rgba(0, 0, 0, var(--discipline-depth-dim)) 0%, rgba(0, 0, 0, calc(var(--discipline-depth-dim) + 0.04)) 100%),
-    linear-gradient(180deg, var(--card-surface) 0%, var(--card-surface-deep) 100%);
-  box-shadow:
-    inset 0 0 0 1px var(--discipline-edge),
-    inset 0 1px rgba(255, 255, 255, 0.055),
-    inset 0 -1px rgba(0, 0, 0, 0.72),
-    0 16px 38px rgba(0, 0, 0, 0.26);
+    linear-gradient(var(--card-surface), var(--card-surface)) padding-box,
+    var(--card-outline-image) border-box;
+  background-position: 0 0, 0 50%;
+  background-repeat: no-repeat, repeat-x;
+  background-size: 100% 100%, var(--card-outline-size);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.26);
   overflow: hidden;
   transition:
-    transform 380ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 380ms cubic-bezier(0.16, 1, 0.3, 1);
-  transform: translateZ(0) scale(1);
-  backface-visibility: hidden;
+    transform var(--card-hover-duration) var(--card-hover-ease),
+    box-shadow var(--card-accent-duration) var(--card-hover-ease);
+  transform: scale(1);
 }
 
 .discipline-stack-card__surface::before {
   content: "";
   position: absolute;
-  inset: -48% -30%;
+  inset: 1px;
   z-index: 0;
-  background: linear-gradient(112deg, transparent 39%, rgba(255, 255, 255, 0.07) 49%, transparent 59%);
-  opacity: 0.22;
-  transform: translate3d(-16%, 0, 0);
-  transition:
-    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 680ms cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: calc(32px - 1px);
+  background: var(--card-black-metal-gradient);
+  background-position: 0 50%;
+  background-repeat: repeat-x;
+  background-size: var(--metal-period) 100%;
+  opacity: 0;
+  transition: opacity var(--card-accent-duration) var(--card-hover-ease);
   pointer-events: none;
 }
 
 .discipline-stack-card__surface::after {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  z-index: 0;
-  border-radius: calc(32px - 1px);
-  box-shadow:
-    inset 0 1px rgba(255, 255, 255, 0.035),
-    inset 0 -1px rgba(0, 0, 0, 0.55);
-  pointer-events: none;
+  content: none;
 }
 
 .discipline-stack-card__surface > * {
@@ -1700,21 +1730,10 @@ a {
 }
 
 .discipline-stack-card.is-active .discipline-stack-card__surface {
-  --card-surface: rgba(7, 7, 7, 0.74);
-  --card-surface-deep: rgba(3, 3, 3, 0.84);
-  --discipline-edge: var(--card-edge-active);
-  -webkit-backdrop-filter: blur(15px) saturate(118%);
-  backdrop-filter: blur(15px) saturate(118%);
-  box-shadow:
-    inset 0 0 0 1px var(--discipline-edge),
-    inset 0 1px rgba(255, 255, 255, 0.07),
-    inset 0 -1px rgba(0, 0, 0, 0.72),
-    0 0 30px var(--card-accent-glow),
-    0 20px 48px rgba(0, 0, 0, 0.32);
-}
-
-.discipline-stack-card.is-active .discipline-stack-card__surface::before {
-  opacity: 0.48;
+  --card-outline-image: var(--papaya-metal-gradient);
+  --card-outline-size: var(--metal-period) 100%;
+  background-position: 0 0, var(--hero-metal-model-position) 50%;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
 }
 
 .discipline-stack-card__header {
@@ -1844,17 +1863,13 @@ a {
 }
 
 @media (hover:hover) and (pointer:fine) {
-  .discipline-stack-card.is-active .discipline-stack-card__surface {
-    will-change: transform;
-  }
-
   .discipline-stack-card.is-active:hover .discipline-stack-card__surface {
-    transform: translateZ(0) scale(1.016);
+    transform: scale(var(--card-hover-scale));
   }
 
   .discipline-stack-card.is-active:hover .discipline-stack-card__surface::before {
-    opacity: 0.74;
-    transform: translate3d(16%, 0, 0);
+    background-position: var(--hero-metal-story-position) 50%;
+    opacity: 0.88;
   }
 }
 
@@ -1865,15 +1880,8 @@ a {
 }
 
 .project-stack-shell {
-  margin-top: 0.95rem;
-  --discipline-card-width: min(100%, 50rem);
   --discipline-card-height: clamp(24.2rem, 34vw, 29.5rem);
-  --discipline-stack-pad-top: clamp(0.38rem, 0.9vw, 0.72rem);
   --discipline-stack-pad-bottom: clamp(1.85rem, 4.3vw, 3rem);
-}
-
-.project-stack-stage {
-  width: min(calc(100% - 1.5rem), 1380px);
 }
 
 .project-stack-card {
@@ -2125,17 +2133,16 @@ a {
 
   .discipline-stack-stage {
     display: block;
-    width: calc(100% - 2.35rem);
+    width: calc(
+      100% - var(--page-inline-gutter) +
+      var(--discipline-stack-pad-inline) +
+      var(--discipline-stack-pad-inline)
+    );
   }
 
   .discipline-stack-shell {
     --discipline-card-width: 100%;
     --discipline-card-height: clamp(25.8rem, 84vw, 30.4rem);
-  }
-
-  .project-stack-stage {
-    display: block;
-    width: calc(100% - 2.35rem);
   }
 
   .project-stack-shell {
@@ -2326,6 +2333,12 @@ a {
   syntax: "<length>";
   inherits: true;
   initial-value: 0px;
+}
+
+@property --connect-outline-mix {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
 }
 
 :root {

@@ -2634,13 +2634,6 @@
      const formatTransform = (layout) =>
        `translate(calc(-50% + ${layout.x.toFixed(2)}px), ${layout.y.toFixed(2)}px) scale(${layout.scale.toFixed(4)}) rotate(${layout.rotate.toFixed(2)}deg)`;
 
-     const getDepthAppearance = (offset) => {
-       const depth = Math.min(Math.abs(offset), total - 1);
-       const dim = [0.028, 0.11, 0.18, 0.24, 0.29, 0.34][depth] || 0.34;
-       const lift = [0.026, 0.018, 0.012, 0.008, 0.004, 0.002][depth] || 0.002;
-       return { dim, lift };
-     };
-
      const getZIndex = (offset) => {
        if (offset === 0) {
          return 200;
@@ -2664,7 +2657,7 @@
        const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
        const baseHeight = Math.ceil(getBaseCardHeight({ portrait: portraitQuery.matches }));
        const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom));
-       const pad = Math.ceil(Math.max(18, cardHeight * 0.055));
+       const pad = Math.ceil(clamp(window.innerHeight * 0.026, 18, 28));
 
        shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
        stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
@@ -2770,7 +2763,6 @@
            }
          }
 
-         const appearance = getDepthAppearance(offset);
          const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
 
          card.dataset.stackPos = String(offset);
@@ -2781,8 +2773,6 @@
          card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
          card.style.zIndex = String(zIndex);
          card.style.transform = formatTransform(visual);
-         card.style.setProperty("--discipline-depth-dim", appearance.dim.toFixed(3));
-         card.style.setProperty("--discipline-surface-lift", appearance.lift.toFixed(3));
        });
 
        syncLabels();
@@ -2825,12 +2815,13 @@
        );
 
        activeAnimation = animation;
-       animation.finished.finally(() => {
+       const finishOutgoingAnimation = () => {
          if (activeAnimation === animation) {
            activeAnimation = null;
          }
          card.style.removeProperty("transition");
-       });
+       };
+       animation.finished.then(finishOutgoingAnimation, finishOutgoingAnimation);
      };
 
      const rotate = (direction) => {
