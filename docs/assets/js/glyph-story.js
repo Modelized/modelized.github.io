@@ -525,6 +525,27 @@
     scale: mix(start.scale, end.scale, progress)
   });
 
+  const startMarkTransformAnimation = (start, end, duration) => {
+    if (reducedMotion.matches || typeof mark.animate !== "function") return null;
+
+    return mark.animate(
+      [
+        { transform: formatMarkTransform(start) },
+        { transform: formatMarkTransform(end) }
+      ],
+      {
+        duration,
+        easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        fill: "both"
+      }
+    );
+  };
+
+  const finishMarkTransformAnimation = (animation, metrics) => {
+    mark.style.transform = formatMarkTransform(metrics);
+    animation?.cancel();
+  };
+
   const targetScrollLeft = (index) => {
     const piece = pieces[index];
     if (!piece) return 0;
@@ -908,21 +929,32 @@
     document.body.classList.add("glyph-story-active", "glyph-story-source-hidden");
     await nextFrame();
 
-    const completed = await runFrameTimeline(1180, (progress) => {
+    const entryDuration = 1180;
+    const markAnimation = startMarkTransformAnimation(
+      sourceMetrics,
+      destinationMetrics,
+      entryDuration
+    );
+    const completed = await runFrameTimeline(entryDuration, (progress) => {
       const eased = transitionEase(progress);
-      mark.style.transform = interpolateMarkTransform(
-        sourceMetrics,
-        destinationMetrics,
-        eased
-      );
+      if (!markAnimation) {
+        mark.style.transform = interpolateMarkTransform(
+          sourceMetrics,
+          destinationMetrics,
+          eased
+        );
+      }
       setFloatStrength(eased);
       applyEntryVisual(progress);
     });
-    if (!completed) return;
+    if (!completed) {
+      markAnimation?.cancel();
+      return;
+    }
 
     applyEntryVisual(1);
     setFloatStrength(1);
-    mark.style.transform = formatMarkTransform(destinationMetrics);
+    finishMarkTransformAnimation(markAnimation, destinationMetrics);
     setState("overview");
     await nextFrame();
     clearFrameDrivenStyles();
@@ -968,21 +1000,32 @@
       "glyph-story-measuring-home"
     );
 
-    const completed = await runFrameTimeline(980, (progress) => {
+    const closingDuration = 980;
+    const markAnimation = startMarkTransformAnimation(
+      startMetrics,
+      targetMetrics,
+      closingDuration
+    );
+    const completed = await runFrameTimeline(closingDuration, (progress) => {
       const eased = transitionEase(progress);
       setFloatStrength(1 - eased);
-      mark.style.transform = interpolateMarkTransform(
-        startMetrics,
-        targetMetrics,
-        eased
-      );
+      if (!markAnimation) {
+        mark.style.transform = interpolateMarkTransform(
+          startMetrics,
+          targetMetrics,
+          eased
+        );
+      }
       applyClosingVisual(progress, closingFromFilled, eased);
     });
-    if (!completed) return;
+    if (!completed) {
+      markAnimation?.cancel();
+      return;
+    }
 
     applyClosingVisual(1, closingFromFilled);
     setFloatStrength(0);
-    mark.style.transform = formatMarkTransform(targetMetrics);
+    finishMarkTransformAnimation(markAnimation, targetMetrics);
     document.body.classList.remove("glyph-story-source-hidden");
     await nextFrame();
 
