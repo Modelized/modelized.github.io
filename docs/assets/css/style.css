@@ -2786,10 +2786,7 @@ body.page-home #about {
   .hero-stage {
     --hero-stage-pad-top: 0.35rem;
     --hero-stage-pad-bottom: calc(1.175rem + 2vw);
-    height: max(
-      calc(100svh - var(--page-top-offset)),
-      calc(190cqi + var(--hero-stage-pad-top) + var(--hero-stage-pad-bottom))
-    );
+    height: calc(100svh - var(--page-top-offset));
     min-height: 0;
   }
 
