@@ -53,7 +53,7 @@
   --nav-backdrop-h-mobile: calc(env(safe-area-inset-top, 0px) + 12px + var(--nav-pill-height-mobile) + 18px);
   --nav-backdrop-h-desktop: calc(env(safe-area-inset-top, 0px) + 12px + var(--nav-pill-height-desktop) + 18px);
   --heading-font: "Unbounded", "Arial", sans-serif;
-  --body-font: "Space Grotesk", "Segoe UI", sans-serif;
+  --body-font: "Mona Sans", "Segoe UI", sans-serif;
   --mobile-row-inline: clamp(52px, 11.8vw, 60px);
   --mobile-menu-inline: clamp(36px, 8.4vw, 46px);
   --page-inline-gutter: clamp(2.4rem, 5vw, 6rem);
@@ -1234,6 +1234,7 @@ a {
   max-width: 68ch;
   color: var(--muted);
   font-size: clamp(1.04rem, 2vw, 1.28rem);
+  font-weight: 500;
   line-height: 1.82;
 }
 
@@ -1372,6 +1373,7 @@ a {
 
 .connect-card__meta {
   color: var(--muted);
+  font-weight: 500;
   line-height: 1.45;
 }
 
@@ -1749,6 +1751,7 @@ a {
   max-width: 44ch;
   color: rgba(243, 242, 238, 0.76);
   font-size: clamp(0.99rem, 1.52vw, 1.08rem);
+  font-weight: 500;
   line-height: 1.74;
   width: 100%;
 }
@@ -3995,6 +3998,7 @@ body.glyph-story-active .site-nav {
   margin: var(--glyph-copy-gap) auto 0;
   color: rgba(243, 242, 238, 0.8);
   font-size: clamp(0.88rem, 3.65vw, 1.08rem);
+  font-weight: 500;
   line-height: 1.46;
   text-wrap: pretty;
 }
