@@ -2565,7 +2565,9 @@
      let activeIndex = 0;
      let pointerState = null;
      let metrics = null;
-     let activeAnimation = null;
+     let activeMotion = null;
+     let dragFrame = 0;
+     let queuedDragProgress = 0;
      let queuedSyncFrame = 0;
      let lastViewportWidth = window.innerWidth;
      let lastViewportHeight = window.innerHeight;
@@ -2684,11 +2686,37 @@
      };
 
      const cancelActiveMotion = () => {
-       activeAnimation?.cancel?.();
-       activeAnimation = null;
-       cards.forEach((card) => {
-         card.style.removeProperty("transition");
-         card.getAnimations?.().forEach((animation) => animation.cancel());
+       if (!activeMotion) {
+         return;
+       }
+
+       const { animation, card } = activeMotion;
+       activeMotion = null;
+       animation.cancel();
+       card.style.removeProperty("transition");
+     };
+
+     const cancelQueuedDragState = () => {
+       if (!dragFrame) {
+         return;
+       }
+
+       cancelAnimationFrame(dragFrame);
+       dragFrame = 0;
+       queuedDragProgress = 0;
+     };
+
+     const queueDragState = (dragProgress) => {
+       queuedDragProgress = dragProgress;
+       if (dragFrame) {
+         return;
+       }
+
+       dragFrame = requestAnimationFrame(() => {
+         dragFrame = 0;
+         if (pointerState) {
+           applyState({ dragProgress: queuedDragProgress });
+         }
        });
      };
 
@@ -2765,17 +2793,28 @@
 
          const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
 
-         card.dataset.stackPos = String(offset);
-         card.dataset.stackDepth = String(Math.abs(offset));
-         card.dataset.stackSide = getSide(offset);
-         card.classList.toggle("is-active", offset === 0);
-         card.classList.toggle("is-neighbor", isNeighbor);
-         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
-         card.style.zIndex = String(zIndex);
-         card.style.transform = formatTransform(visual);
+         if (!isDragging) {
+           card.dataset.stackPos = String(offset);
+           card.dataset.stackDepth = String(Math.abs(offset));
+           card.dataset.stackSide = getSide(offset);
+           card.classList.toggle("is-active", offset === 0);
+           card.classList.toggle("is-neighbor", isNeighbor);
+           card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
+         }
+
+         const nextZIndex = String(zIndex);
+         const nextTransform = formatTransform(visual);
+         if (card.style.zIndex !== nextZIndex) {
+           card.style.zIndex = nextZIndex;
+         }
+         if (card.style.transform !== nextTransform) {
+           card.style.transform = nextTransform;
+         }
        });
 
-       syncLabels();
+       if (!isDragging) {
+         syncLabels();
+       }
      };
 
      const animateOutgoingCard = (card, direction, startLayout) => {
@@ -2809,17 +2848,19 @@
          ],
          {
            duration: portraitQuery.matches ? 920 : 820,
-           easing: "cubic-bezier(0.18, 0.86, 0.22, 1)",
-           fill: "both"
+           easing: "cubic-bezier(0.18, 0.86, 0.22, 1)"
          }
        );
 
-       activeAnimation = animation;
+       const motion = { animation, card };
+       activeMotion = motion;
        const finishOutgoingAnimation = () => {
-         if (activeAnimation === animation) {
-           activeAnimation = null;
+         if (activeMotion === motion) {
+           activeMotion = null;
+           card.style.removeProperty("transition");
+         } else if (activeMotion?.card !== card) {
+           card.style.removeProperty("transition");
          }
-         card.style.removeProperty("transition");
        };
        animation.finished.then(finishOutgoingAnimation, finishOutgoingAnimation);
      };
@@ -2847,6 +2888,7 @@
 
      const syncWithoutAnimation = () => {
        cancelActiveMotion();
+       cancelQueuedDragState();
        pointerState = null;
        metrics = measureMetrics();
        stack.classList.add("discipline-stack-viewport--static");
@@ -2916,6 +2958,8 @@
      };
 
      const clearPointer = (event, { snap = false } = {}) => {
+       cancelQueuedDragState();
+
        if (snap) {
          applyState();
        }
@@ -2956,7 +3000,7 @@
        const resistance = outOfBounds ? 1.8 : 0.84;
        const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
        pointerState.progress = progress;
-       applyState({ dragProgress: progress });
+       queueDragState(progress);
      };
 
      const onPointerUp = (event) => {
