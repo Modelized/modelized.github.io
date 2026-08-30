@@ -2490,12 +2490,7 @@ a {
   --word-wght: 820;
 }
 
-.hero-metal,
-.section-display-line,
-.section-display-accent,
-.about-creator-prefix,
-.about-creator-suffix,
-.about-creator-glyph.tagline-script {
+.hero-metal {
   color: transparent;
   -webkit-text-fill-color: transparent;
   -webkit-background-clip: text;
@@ -2504,18 +2499,13 @@ a {
   background-size: var(--metal-period) 100%;
 }
 
-.hero-metal--silver,
-.section-display-line,
-.about-creator-prefix,
-.about-creator-suffix {
+.hero-metal--silver {
   background-image: var(--silver-metal-gradient);
   background-color: #e2e2de;
   animation: metal-stream 24s linear infinite;
 }
 
-.hero-metal--papaya,
-.section-display-accent,
-.about-creator-glyph.tagline-script {
+.hero-metal--papaya {
   background-image: var(--papaya-metal-gradient);
   background-color: var(--papaya);
   filter: saturate(1.035) contrast(1.005);
@@ -3042,12 +3032,7 @@ body.page-home #about {
     transition: none !important;
   }
 
-  .hero-metal,
-  .section-display-line,
-  .section-display-accent,
-  .about-creator-prefix,
-  .about-creator-suffix,
-  .about-creator-glyph.tagline-script {
+  .hero-metal {
     animation: none !important;
     background-position: 50% 50% !important;
   }
@@ -4178,203 +4163,5 @@ body.glyph-story-active .site-nav {
     scroll-behavior: auto !important;
     animation: none !important;
     transition-duration: 1ms !important;
-  }
-}
-/* Shared display typography for the remaining section headlines */
-.section-head h2,
-.about-creator-title {
-  max-width: min(100%, 19ch);
-  font-family: "Anybody", "Arial Narrow", sans-serif;
-  font-size: clamp(2.65rem, 6.15vw, 6.65rem);
-  font-variation-settings: "wght" 860, "wdth" 102;
-  font-optical-sizing: auto;
-  font-weight: 860;
-  line-height: 0.84;
-  letter-spacing: -0.022em;
-  text-wrap: balance;
-}
-
-.section-head .eyebrow {
-  margin-bottom: clamp(0.9rem, 1.7vw, 1.45rem);
-}
-
-.section-display-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.08em 0.16em;
-  width: 100%;
-}
-
-.section-display-line,
-.section-display-accent,
-.about-creator-prefix,
-.about-creator-suffix {
-  display: inline-block;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  -webkit-background-clip: text;
-  background-clip: text;
-  background-repeat: repeat-x;
-}
-
-.section-display-line,
-.about-creator-prefix,
-.about-creator-suffix {
-  background-image: var(--silver-metal-gradient);
-  background-color: #e2e2de;
-  background-size: var(--metal-period) 100%;
-  animation: metal-stream 24s linear infinite;
-}
-
-.section-display-accent {
-  background-image: var(--papaya-metal-gradient);
-  background-color: var(--papaya);
-  background-size: var(--metal-period) 100%;
-  filter: saturate(1.01) contrast(1.005);
-  animation: metal-stream 21s linear infinite;
-}
-
-.section-display-title--disciplines {
-  max-width: 14.5ch;
-}
-
-.section-display-title--disciplines .section-display-accent {
-  flex-basis: 100%;
-  font-size: 0.86em;
-  font-variation-settings: "wght" 690, "wdth" 138;
-  line-height: 0.88;
-  transform: scaleY(1.08);
-  transform-origin: left bottom;
-}
-
-.section-display-title--disciplines .section-display-line {
-  font-variation-settings: "wght" 900, "wdth" 94;
-}
-
-.section-display-title--disciplines .section-display-line--short {
-  font-variation-settings: "wght" 900, "wdth" 128;
-  transform: scaleY(1.12);
-  transform-origin: left center;
-}
-
-.section-display-title--projects {
-  align-items: baseline;
-  max-width: 13ch;
-}
-
-.section-display-title--projects .section-display-accent {
-  font-size: 1.08em;
-  font-variation-settings: "wght" 620, "wdth" 68;
-  transform: scaleY(0.92);
-  transform-origin: center bottom;
-}
-
-.section-display-title--projects .section-display-line {
-  font-variation-settings: "wght" 900, "wdth" 132;
-  transform: scaleY(1.1);
-  transform-origin: left bottom;
-}
-
-.section-display-title--connect {
-  max-width: 15ch;
-}
-
-.section-display-title--connect .section-display-line--lead {
-  font-size: 0.72em;
-  font-variation-settings: "wght" 570, "wdth" 55;
-}
-
-.section-display-title--connect .section-display-accent {
-  font-variation-settings: "wght" 880, "wdth" 128;
-  transform: scaleY(1.08);
-  transform-origin: left bottom;
-}
-
-.section-display-title--connect .section-display-line:last-child {
-  flex-basis: 100%;
-  font-variation-settings: "wght" 820, "wdth" 88;
-}
-
-.about-creator-title {
-  --about-creator-height: 0.96em;
-  gap: 0.1em 0.16em;
-  align-items: baseline;
-}
-
-.about-creator-prefix {
-  font-variation-settings: "wght" 880, "wdth" 90;
-}
-
-.about-creator-suffix {
-  font-variation-settings: "wght" 900, "wdth" 112;
-  transform: scaleY(1.08);
-  transform-origin: left center;
-}
-
-.about-creator-glyph.tagline-script {
-  top: 0;
-  padding: 0;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 0;
-  background-image: var(--papaya-metal-gradient);
-  background-color: var(--papaya);
-  background-repeat: repeat-x;
-  background-size: var(--metal-period) 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  font-family: "Anybody", "Arial Narrow", sans-serif;
-  font-size: 1em;
-  font-variation-settings: "wght" 680, "wdth" 136;
-  font-weight: 680;
-  line-height: 0.96;
-  letter-spacing: -0.018em;
-  animation: metal-stream 21s linear infinite;
-}
-
-@media (max-width: 680px) {
-  .section-head h2,
-  .about-creator-title {
-    max-width: 100%;
-    font-size: clamp(2.55rem, 12.6vw, 4.25rem);
-    line-height: 0.86;
-  }
-
-  .section-display-title--disciplines .section-display-accent {
-    font-size: 0.8em;
-  }
-
-  .section-display-title--projects {
-    gap: 0.08em 0.13em;
-  }
-
-  .section-display-title--connect .section-display-line:last-child {
-    flex-basis: auto;
-  }
-
-  .about-creator-title {
-    font-size: clamp(2.35rem, 10.7vw, 3.65rem);
-  }
-
-  .about-creator-suffix {
-    max-width: 100%;
-    white-space: normal;
-    font-variation-settings: "wght" 900, "wdth" 90;
-  }
-
-  .about-creator-glyph.tagline-script {
-    font-variation-settings: "wght" 680, "wdth" 116;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .section-display-line,
-  .section-display-accent,
-  .about-creator-prefix,
-  .about-creator-suffix,
-  .about-creator-glyph.tagline-script {
-    animation: none !important;
-    background-position: 50% 50% !important;
   }
 }
