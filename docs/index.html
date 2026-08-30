@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Anybody:wdth,wght@50..150,100..900&family=Rock+Salt&family=Space+Grotesk:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260830o">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260830p">
 
   <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg?v=20260828a">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -26,9 +26,27 @@
   <meta property="og:description" content="Shape the Unseen.">
   <meta property="og:url" content="https://modelized.github.io/">
 
-  <script>document.documentElement.classList.add('js');</script>
+  <script>document.documentElement.classList.add('js', 'site-boot-pending');</script>
 </head>
 <body class="page-home" data-base=".">
+  <div class="site-loader" data-site-loader aria-hidden="true">
+    <div class="site-loader__content" role="status" aria-label="Loading Modelized">
+      <svg class="site-loader__logo" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
+        <g fill="currentColor">
+          <path d="M359.89 231.47 379.11 195.53Q381 192 377.5 190.06L272.5 131.94Q269 130 266.97 133.45L238.03 182.55Q236 186 232.7 183.74L169.3 140.26Q166 138 164.5 141.71L117.5 258.29Q116 262 119.71 263.5L154.29 277.5Q158 279 159.61 275.34L186.39 214.66Q188 211 191.24 213.35L246.76 253.65Q250 256 251.97 252.52L282.03 199.48Q284 196 287.54 197.86L354.46 233.14Q358 235 359.89 231.47Z" />
+          <path d="M392.67 311.79 298.33 249.21Q295 247 294.77 250.99L288.23 363.01Q288 367 291.59 365.24L392.41 315.76Q396 314 392.67 311.79Z" />
+          <path fill-rule="evenodd" d="M204.504 283.956a63.484 63.484 0 1 0 0 126.968 63.484 63.484 0 0 0 0-126.968Zm-.118 34.274a28.855 28.855 0 1 1 0 57.71 28.855 28.855 0 0 1 0-57.71Z" />
+        </g>
+      </svg>
+      <span class="stack-loading-spinner site-loader__spinner" aria-hidden="true"></span>
+      <button class="site-loader__skip" type="button" data-site-loader-skip aria-label="Skip loading">
+        <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+          <path d="M8.4 9.15c-.72-.55-1.75-.03-1.75.88v11.94c0 .91 1.03 1.43 1.75.88l6.36-5.12c.55-.44.55-1.28 0-1.72L8.4 9.15Z" />
+          <path d="M17.2 9.15c-.72-.55-1.75-.03-1.75.88v11.94c0 .91 1.03 1.43 1.75.88l6.36-5.12c.55-.44.55-1.28 0-1.72L17.2 9.15Z" />
+        </svg>
+      </button>
+    </div>
+  </div>
   <div class="nav-menu-blur" aria-hidden="true"></div>
   <header class="site-nav" aria-label="Primary">
     <div class="nav-backdrop" aria-hidden="true"></div>
@@ -377,7 +395,7 @@
 
   <div id="footer-slot"></div>
 
-  <script src="assets/js/shell.js?v=20260830j" defer></script>
+  <script src="assets/js/shell.js?v=20260830k" defer></script>
   <script src="assets/js/glyph-story.js?v=20260830l" defer></script>
 </body>
 </html>

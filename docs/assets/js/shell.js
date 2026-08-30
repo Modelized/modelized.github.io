@@ -6,8 +6,11 @@
    const assetVersion = '20260827b';
    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
    const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
+   const SITE_LOADER_REVEAL_DELAY = 220;
+   const SITE_LOADER_SKIP_DELAY = 4200;
    const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
    const iconSvg = (path) => `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">${path}</svg>`;
+   const siteBootGate = createSiteBootGate();
 
    const projects = [
      {
@@ -1219,7 +1222,7 @@
      });
    }
 
-  async function initHeroIntro() {
+  async function initHeroIntro({ waitForFonts = true } = {}) {
     const shouldSkipIntro =
       prefersReducedMotion ||
       getScrollTop() > 8 ||
@@ -1231,7 +1234,7 @@
       return;
     }
 
-    if (document.fonts?.ready) {
+    if (waitForFonts && document.fonts?.ready) {
       await Promise.race([
         document.fonts.ready,
         new Promise((resolve) => window.setTimeout(resolve, 1400))
@@ -2204,7 +2207,8 @@
      const lineHeightValue = parseFloat(computed.lineHeight);
      const lineHeight = Number.isFinite(lineHeightValue) ? lineHeightValue : fontSize;
      const strokeWidth = parseFloat(computed.webkitTextStrokeWidth) || 0;
-     const verticalGuard = Math.ceil(strokeWidth + 2);
+     const visualShift = Math.abs(parseFloat(computed.top) || 0);
+     const verticalGuard = Math.ceil(visualShift + strokeWidth + 2);
 
      rockSaltContext.font = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
 
@@ -2590,6 +2594,7 @@
            loadingFinished = true;
            stack.dataset.stackReady = "true";
            setStackLoading(false);
+           stack.dispatchEvent(new Event("stack:ready"));
          });
        });
      };
@@ -3114,26 +3119,169 @@
      });
    }
 
-   async function boot() {
-     await Promise.all([
-       injectPartial('#nav-slot', 'nav.html'),
-       injectPartial('#footer-slot', 'footer.html')
+   function createSiteBootGate() {
+     const root = document.documentElement;
+     const loader = document.querySelector("[data-site-loader]");
+     const skipButton = document.querySelector("[data-site-loader-skip]");
+     let released = false;
+     let resolveSkip;
+
+     const skipped = new Promise((resolve) => {
+       resolveSkip = resolve;
+     });
+
+     const revealTimer = window.setTimeout(() => {
+       if (!released) {
+         root.classList.add("site-loader-visible");
+         loader?.setAttribute("aria-hidden", "false");
+       }
+     }, SITE_LOADER_REVEAL_DELAY);
+
+     const skipTimer = window.setTimeout(() => {
+       if (!released) {
+         root.classList.add("site-loader-skippable");
+       }
+     }, SITE_LOADER_SKIP_DELAY);
+
+     const onSkip = () => {
+       if (released) {
+         return;
+       }
+
+       skipButton?.setAttribute("disabled", "");
+       resolveSkip?.();
+     };
+
+     skipButton?.addEventListener("click", onSkip, { once: true });
+
+     return {
+       skipped,
+       async release() {
+         if (released) {
+           return;
+         }
+
+         released = true;
+         window.clearTimeout(revealTimer);
+         window.clearTimeout(skipTimer);
+         skipButton?.removeEventListener("click", onSkip);
+         root.classList.remove("site-loader-skippable");
+
+         const wasVisible = root.classList.contains("site-loader-visible");
+         if (wasVisible && !prefersReducedMotion) {
+           root.classList.add("site-loader-releasing");
+           await new Promise((resolve) => window.setTimeout(resolve, 420));
+         }
+
+         root.classList.remove(
+           "site-boot-pending",
+           "site-loader-visible",
+           "site-loader-releasing"
+         );
+         root.classList.add("site-boot-ready");
+         loader?.setAttribute("aria-hidden", "true");
+       }
+     };
+   }
+
+   function waitForWindowLoad() {
+     if (document.readyState === "complete") {
+       return Promise.resolve();
+     }
+
+     return new Promise((resolve) => {
+       window.addEventListener("load", resolve, { once: true });
+     });
+   }
+
+   function waitForImage(image) {
+     if (!image?.src && !image?.currentSrc) {
+       return Promise.resolve();
+     }
+
+     image.loading = "eager";
+
+     const decode = () => {
+       if (typeof image.decode !== "function" || !image.naturalWidth) {
+         return Promise.resolve();
+       }
+
+       return image.decode().catch(() => {});
+     };
+
+     if (image.complete) {
+       return decode();
+     }
+
+     return new Promise((resolve) => {
+       const settle = () => decode().finally(resolve);
+       image.addEventListener("load", settle, { once: true });
+       image.addEventListener("error", resolve, { once: true });
+     });
+   }
+
+   function waitForStackReady(stackId) {
+     const stack = document.getElementById(stackId);
+     if (!stack || stack.dataset.stackReady === "true") {
+       return Promise.resolve();
+     }
+
+     return new Promise((resolve) => {
+       stack.addEventListener("stack:ready", resolve, { once: true });
+     });
+   }
+
+   async function waitForSiteReadiness() {
+     const imagePromises = Array.from(document.images, waitForImage);
+     const fontsReady = document.fonts?.ready || Promise.resolve();
+
+     await Promise.allSettled([
+       waitForWindowLoad(),
+       fontsReady,
+       ...imagePromises,
+       waitForStackReady("discipline-stack"),
+       waitForStackReady("project-stack")
      ]);
 
-     renderProjects();
-     renderDisciplines();
-     initYear();
-     initNav();
-     syncMobileNavState();
-     initAnchorScroll();
-     initSectionSpy();
-     initReveal();
-     initGridFittedTypography();
-     initHeroIntro();
-     initRockSaltSafeAreas();
-     initAboutCreator();
-     initDisciplineStack();
-     initProjectStack();
+     await new Promise((resolve) => {
+       requestAnimationFrame(() => requestAnimationFrame(resolve));
+     });
+   }
+
+   async function boot() {
+     let outcome = "ready";
+
+     try {
+       await Promise.all([
+         injectPartial('#nav-slot', 'nav.html'),
+         injectPartial('#footer-slot', 'footer.html')
+       ]);
+
+       renderProjects();
+       renderDisciplines();
+       initYear();
+       initNav();
+       syncMobileNavState();
+       initAnchorScroll();
+       initSectionSpy();
+       initReveal();
+       initGridFittedTypography();
+       initRockSaltSafeAreas();
+       initAboutCreator();
+       initDisciplineStack();
+       initProjectStack();
+
+       outcome = await Promise.race([
+         waitForSiteReadiness().then(() => "ready"),
+         siteBootGate.skipped.then(() => "skipped")
+       ]);
+     } catch (error) {
+       console.error("Site boot failed", error);
+       outcome = "failed";
+     }
+
+     await siteBootGate.release();
+     initHeroIntro({ waitForFonts: outcome === "ready" });
    }
 
    if (document.readyState === "loading") {
