@@ -2578,6 +2578,14 @@
      const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
      const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
      const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
+     const dragCurve = {
+       inwardScaleLift: [0, 0.032, 0.026, 0.02, 0.016, 0.014],
+       outwardScaleDrop: [0, 0.022, 0.028, 0.032, 0.036, 0.04],
+       inwardXPull: [0, 0.18, 0.15, 0.13, 0.11, 0.1],
+       outwardXPush: [0, 0.14, 0.18, 0.22, 0.26, 0.3],
+       inwardRotateEase: [0, 0.18, 0.14, 0.12, 0.1, 0.08],
+       outwardRotateBoost: [0, 0.08, 0.1, 0.12, 0.14, 0.16]
+     };
 
      const setStackLoading = (isLoading) => {
        shell?.setAttribute("data-stack-loading", isLoading ? "true" : "false");
@@ -2633,8 +2641,10 @@
        }, {});
      };
 
+     const formatTransformValues = (x, y, scale, rotate) =>
+       `translate(calc(-50% + ${x.toFixed(2)}px), ${y.toFixed(2)}px) scale(${scale.toFixed(4)}) rotate(${rotate.toFixed(2)}deg)`;
      const formatTransform = (layout) =>
-       `translate(calc(-50% + ${layout.x.toFixed(2)}px), ${layout.y.toFixed(2)}px) scale(${layout.scale.toFixed(4)}) rotate(${layout.rotate.toFixed(2)}deg)`;
+       formatTransformValues(layout.x, layout.y, layout.scale, layout.rotate);
 
      const getZIndex = (offset) => {
        if (offset === 0) {
@@ -2697,12 +2707,11 @@
      };
 
      const cancelQueuedDragState = () => {
-       if (!dragFrame) {
-         return;
+       if (dragFrame) {
+         cancelAnimationFrame(dragFrame);
+         dragFrame = 0;
        }
 
-       cancelAnimationFrame(dragFrame);
-       dragFrame = 0;
        queuedDragProgress = 0;
      };
 
@@ -2752,41 +2761,39 @@
 
        cards.forEach((card, index) => {
          const offset = index - activeIndex;
-         let visual = getLayoutForOffset(offset);
+         const baseLayout = getLayoutForOffset(offset);
+         let visualX = baseLayout.x;
+         let visualY = baseLayout.y;
+         let visualScale = baseLayout.scale;
+         let visualRotate = baseLayout.rotate;
          let zIndex = getZIndex(offset);
 
          if (isDragging && hasTarget && offset === 0 && dragSign !== 0) {
-           visual = createLayout(
-             currentMetrics.cardWidth * 0.58 * dragMagnitude * dragSign,
-             0,
-             1 - dragMagnitude * 0.024,
-             dragSign * 9.1 * dragMagnitude
-           );
+           visualX = currentMetrics.cardWidth * 0.58 * dragMagnitude * dragSign;
+           visualY = 0;
+           visualScale = 1 - dragMagnitude * 0.024;
+           visualRotate = dragSign * 9.1 * dragMagnitude;
          } else if (isDragging && hasTarget && offset !== 0) {
            const side = Math.sign(offset);
            const depth = Math.min(Math.abs(offset), total - 1);
-           const inwardScaleLift = [0, 0.032, 0.026, 0.02, 0.016, 0.014][depth] || 0.014;
-           const outwardScaleDrop = [0, 0.022, 0.028, 0.032, 0.036, 0.04][depth] || 0.04;
-           const inwardXPull = [0, 0.18, 0.15, 0.13, 0.11, 0.1][depth] || 0.1;
-           const outwardXPush = [0, 0.14, 0.18, 0.22, 0.26, 0.3][depth] || 0.3;
-           const inwardRotateEase = [0, 0.18, 0.14, 0.12, 0.1, 0.08][depth] || 0.08;
-           const outwardRotateBoost = [0, 0.08, 0.1, 0.12, 0.14, 0.16][depth] || 0.16;
+           const inwardScaleLift = dragCurve.inwardScaleLift[depth] || 0.014;
+           const outwardScaleDrop = dragCurve.outwardScaleDrop[depth] || 0.04;
+           const inwardXPull = dragCurve.inwardXPull[depth] || 0.1;
+           const outwardXPush = dragCurve.outwardXPush[depth] || 0.3;
+           const inwardRotateEase = dragCurve.inwardRotateEase[depth] || 0.08;
+           const outwardRotateBoost = dragCurve.outwardRotateBoost[depth] || 0.16;
 
            if (side === inwardSide) {
-             visual = createLayout(
-               visual.x * (1 - inwardXPull * dragMagnitude),
-               0,
-               visual.scale + inwardScaleLift * dragMagnitude,
-               visual.rotate * (1 - inwardRotateEase * dragMagnitude)
-             );
+             visualX *= 1 - inwardXPull * dragMagnitude;
+             visualY = 0;
+             visualScale += inwardScaleLift * dragMagnitude;
+             visualRotate *= 1 - inwardRotateEase * dragMagnitude;
              zIndex += 8 - depth;
            } else if (side === dragSign) {
-             visual = createLayout(
-               visual.x * (1 + outwardXPush * dragMagnitude),
-               0,
-               visual.scale - outwardScaleDrop * dragMagnitude,
-               visual.rotate * (1 + outwardRotateBoost * dragMagnitude)
-             );
+             visualX *= 1 + outwardXPush * dragMagnitude;
+             visualY = 0;
+             visualScale -= outwardScaleDrop * dragMagnitude;
+             visualRotate *= 1 + outwardRotateBoost * dragMagnitude;
              zIndex -= 5 + depth;
            }
          }
@@ -2803,7 +2810,12 @@
          }
 
          const nextZIndex = String(zIndex);
-         const nextTransform = formatTransform(visual);
+         const nextTransform = formatTransformValues(
+           visualX,
+           visualY,
+           visualScale,
+           visualRotate
+         );
          if (card.style.zIndex !== nextZIndex) {
            card.style.zIndex = nextZIndex;
          }
@@ -2946,29 +2958,32 @@
        }
 
        cancelActiveMotion();
-       metrics = measureMetrics();
+       getMetrics();
+       const gestureWidth = Math.max(stack.clientWidth, 1);
        stack.setPointerCapture?.(event.pointerId);
        pointerState = {
          id: event.pointerId,
          x: event.clientX,
          y: event.clientY,
          progress: 0,
-         intent: null
+         intent: null,
+         width: gestureWidth
        };
      };
 
      const clearPointer = (event, { snap = false } = {}) => {
        cancelQueuedDragState();
+       const pointerId = pointerState?.id;
+       pointerState = null;
+       stack.classList.remove("is-dragging");
 
        if (snap) {
          applyState();
        }
 
-       if (event && pointerState?.id === event.pointerId) {
+       if (event && pointerId === event.pointerId) {
          stack.releasePointerCapture?.(event.pointerId);
        }
-
-       pointerState = null;
      };
 
      const onPointerMove = (event) => {
@@ -2985,6 +3000,9 @@
          }
 
          pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
+         if (pointerState.intent === "x") {
+           stack.classList.add("is-dragging");
+         }
        }
 
        if (pointerState.intent !== "x") {
@@ -2992,8 +3010,7 @@
        }
 
        event.preventDefault();
-       const width = Math.max(stack.clientWidth, 1);
-       const raw = deltaX / (width * 0.46);
+       const raw = deltaX / (pointerState.width * 0.46);
        const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
        const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
        const limit = outOfBounds ? 0.18 : 0.94;
@@ -3012,6 +3029,7 @@
        const deltaY = event.clientY - pointerState.y;
        const progress = pointerState.progress || 0;
        const intent = pointerState.intent;
+       const gestureWidth = pointerState.width;
        clearPointer(event);
 
        if (intent !== "x") {
@@ -3024,7 +3042,7 @@
        const hasTarget = targetIndex !== activeIndex;
        if (
          hasTarget &&
-         (Math.abs(deltaX) >= Math.max(stack.clientWidth * 0.11, 42) || Math.abs(progress) >= 0.28) &&
+         (Math.abs(deltaX) >= Math.max(gestureWidth * 0.11, 42) || Math.abs(progress) >= 0.28) &&
          Math.abs(deltaX) > Math.abs(deltaY) * 1.04
        ) {
          rotate(direction);
@@ -3057,6 +3075,11 @@
      stack.addEventListener("pointerup", onPointerUp);
      stack.addEventListener("pointercancel", (event) => clearPointer(event, { snap: true }));
      stack.addEventListener("pointerleave", (event) => clearPointer(event, { snap: true }));
+     stack.addEventListener("lostpointercapture", (event) => {
+       if (pointerState?.id === event.pointerId) {
+         clearPointer(null, { snap: true });
+       }
+     });
 
      metrics = measureMetrics();
      setStackLoading(true);

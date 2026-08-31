@@ -33,6 +33,17 @@
   --card-accent-duration: 460ms;
   --card-hover-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --card-outline-width: 1px;
+  --card-black-metal-gradient: linear-gradient(
+    90deg,
+    #020202 0%,
+    #050505 15%,
+    #0b0b0b 30%,
+    #050505 44%,
+    #010101 57%,
+    #070707 71%,
+    #0d0d0d 86%,
+    #020202 100%
+  );
   --nav-backdrop: linear-gradient(
     to bottom,
     rgba(0,0,0,.46) 0%,
@@ -1279,6 +1290,21 @@ a {
     box-shadow var(--card-accent-duration) var(--card-hover-ease);
 }
 
+.connect-card::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  border-radius: calc(26px - 1px);
+  background: var(--card-black-metal-gradient);
+  background-position: 0 50%;
+  background-repeat: repeat-x;
+  background-size: var(--metal-period) 100%;
+  opacity: 0;
+  transition: opacity var(--card-accent-duration) var(--card-hover-ease);
+  pointer-events: none;
+}
+
 .connect-card > * {
   position: relative;
   z-index: 1;
@@ -1289,6 +1315,12 @@ a {
   --connect-outline-mix: 100%;
   transform: scale(var(--card-hover-scale));
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+}
+
+.connect-card:hover::before,
+.connect-card:focus-visible::before {
+  background-position: var(--hero-metal-story-position) 50%;
+  opacity: 0.88;
 }
 
 .connect-card__icon {
@@ -1666,6 +1698,21 @@ a {
   transform: scale(1);
 }
 
+.discipline-stack-card__surface::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 0;
+  border-radius: calc(32px - 1px);
+  background: var(--card-black-metal-gradient);
+  background-position: 0 50%;
+  background-repeat: repeat-x;
+  background-size: var(--metal-period) 100%;
+  opacity: 0;
+  transition: opacity var(--card-accent-duration) var(--card-hover-ease);
+  pointer-events: none;
+}
+
 .discipline-stack-card__surface::after {
   content: none;
 }
@@ -1807,6 +1854,7 @@ a {
 
 .discipline-stack-viewport.is-dragging .discipline-stack-card {
   transition: none !important;
+  will-change: transform;
 }
 
 @media (hover:hover) and (pointer:fine) {
@@ -1814,6 +1862,10 @@ a {
     transform: scale(var(--card-hover-scale));
   }
 
+  .discipline-stack-card.is-active:hover .discipline-stack-card__surface::before {
+    background-position: var(--hero-metal-story-position) 50%;
+    opacity: 0.88;
+  }
 }
 
 @media (min-width: 1280px) {
