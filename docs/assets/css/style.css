@@ -1981,6 +1981,20 @@ a {
   gap: clamp(2.2rem, 4.5vw, 3.8rem);
 }
 
+.footer-navigation {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.4rem);
+}
+
+.footer-title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--heading-font);
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
 .footer-sitemap {
   display: flex;
   flex-wrap: wrap;
@@ -1994,7 +2008,6 @@ a {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-decoration: none;
-  text-transform: uppercase;
   transition: color 220ms ease;
 }
 
@@ -2007,8 +2020,6 @@ a {
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.5rem;
-  padding-top: clamp(1.35rem, 2.4vw, 1.9rem);
-  border-top: 1px solid var(--line);
   font-size: 0.94rem;
 }
 
