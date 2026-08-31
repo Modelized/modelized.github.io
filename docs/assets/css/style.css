@@ -1959,8 +1959,8 @@ a {
   position: relative;
   margin-top: 3rem;
   padding:
-    clamp(3rem, 6vw, 5rem) 0
-    max(clamp(2rem, 4vw, 3.25rem), env(safe-area-inset-bottom, 0px));
+    clamp(2.5rem, 4vw, 3.5rem) 0
+    max(2rem, env(safe-area-inset-bottom, 0px));
   border-top: 0;
   color: var(--muted);
 }
@@ -1978,12 +1978,12 @@ a {
 
 .footer-content {
   display: grid;
-  gap: clamp(2.2rem, 4.5vw, 3.8rem);
+  gap: clamp(1.75rem, 2.8vw, 2.5rem);
 }
 
 .footer-navigation {
   display: grid;
-  gap: clamp(1rem, 2vw, 1.4rem);
+  gap: clamp(1.25rem, 3vw, 1.5rem);
 }
 
 .footer-title {
@@ -2003,7 +2003,7 @@ a {
 }
 
 .footer-sitemap a {
-  color: var(--text);
+  color: rgba(243, 242, 238, 0.68);
   font-size: clamp(0.86rem, 1.4vw, 1rem);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -2016,10 +2016,13 @@ a {
 }
 
 .footer-meta {
+  position: relative;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
+  min-height: 1.5rem;
+  padding-right: clamp(4.4rem, 7vw, 5.2rem);
   font-size: 0.94rem;
 }
 
@@ -2028,10 +2031,14 @@ a {
 }
 
 .footer-brand {
+  position: absolute;
+  top: 50%;
+  right: 0;
   display: block;
-  width: clamp(3.4rem, 5.4vw, 4.5rem);
+  width: clamp(3.4rem, 5vw, 4rem);
   color: rgba(243, 242, 238, 0.64);
   line-height: 0;
+  transform: translateY(-50%);
   transition: color 220ms ease;
 }
 
