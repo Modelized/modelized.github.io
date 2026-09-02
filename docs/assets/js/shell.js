@@ -2246,9 +2246,11 @@
 
      const textBlocks = Array.from(details.querySelectorAll(".about-copy__title, p"));
      const motion = {
-       expandDuration: 1440,
+       lineDuration: 500,
+       lineStagger: 20,
+       lineDistance: 16,
+       heightLead: 100,
        collapseDuration: 720,
-       lineStagger: 300,
        easing: "cubic-bezier(0.22, 1, 0.36, 1)"
      };
      const revealAnimations = [];
@@ -2306,24 +2308,68 @@
              }
              end = low;
            }
-           lines.push({ text: node.data.slice(start, end), top: row.top - bounds.top, bottom: row.bottom - bounds.top });
+           lines.push({ text: node.data.slice(start, end), bottom: row.bottom - bounds.top });
            start = end;
          });
          return lines.length ? [{ element, node, lines }] : [];
        });
-       lineLayout = { key, blocks, height: details.scrollHeight };
+       lineLayout = {
+         key,
+         blocks,
+         lines: blocks.flatMap((block) => block.lines),
+         height: details.scrollHeight
+       };
        return lineLayout;
+     };
+     const getExpansion = (layout, startHeight) => {
+       if (startHeight === 0 && layout.expansion) return layout.expansion;
+
+       const delays = new Map();
+       const points = [{ time: 0, height: startHeight }];
+       layout.lines.forEach((line) => {
+         if (line.bottom <= startHeight) return;
+         const delay = motion.heightLead + delays.size * motion.lineStagger;
+         delays.set(line, delay);
+         points.push({
+           time: delay,
+           height: Math.max(startHeight, Math.min(layout.height, line.bottom + motion.lineDistance))
+         });
+       });
+       const duration = points[points.length - 1].time + motion.lineDuration;
+       points.push({ time: duration, height: layout.height });
+
+       // Match segment slopes without overshooting the measured line positions.
+       const slopes = points.slice(1).map((point, index) => (
+         (point.height - points[index].height) / (point.time - points[index].time)
+       ));
+       const tangents = points.map((_, index) => {
+         const before = slopes[index - 1] || 0;
+         const after = slopes[index] || 0;
+         return before > 0 && after > 0 ? 2 * before * after / (before + after) : 0;
+       });
+       const keyframes = points.map((point, index) => ({
+         height: `${point.height}px`,
+         offset: point.time / duration,
+         easing: slopes[index] > 0
+           ? `cubic-bezier(${1 / 3}, ${tangents[index] / (3 * slopes[index])}, ${2 / 3}, ${1 - tangents[index + 1] / (3 * slopes[index])})`
+           : "linear"
+       }));
+       const expansion = { delays, duration, keyframes };
+       if (startHeight === 0) layout.expansion = expansion;
+       return expansion;
      };
      const clearLineReveal = () => {
        revealAnimations.forEach((animation) => animation.cancel());
        revealAnimations.length = 0;
        splitBlocks.forEach(({ element, node }) => element.replaceChildren(node));
        splitBlocks.length = 0;
+       details.style.removeProperty("overflow");
      };
-     const revealLines = (layout, startHeight, startTime) => {
-       const distance = layout.height - startHeight;
-       if (distance <= 0) return;
+     const revealLines = (layout, expansion, startTime) => {
+       // The height stays ahead of the reveal; keep the last line's travel unclipped.
+       details.style.overflow = "visible";
        layout.blocks.forEach((block) => {
+         if (!block.lines.some((line) => expansion.delays.has(line))) return;
          const spans = block.lines.map((line) => {
            const span = document.createElement("span");
            span.className = "about-copy__line";
@@ -2333,18 +2379,15 @@
          block.element.replaceChildren(...spans);
          splitBlocks.push(block);
          block.lines.forEach((line, index) => {
-           if (line.bottom <= startHeight) return;
-           // Add a small stagger to the height-linked reveal while keeping its shared finish.
-           const offset = Math.min(0.999, Math.max(0, (line.top - startHeight) / distance));
-           const delay = offset * motion.lineStagger;
+           const delay = expansion.delays.get(line);
+           if (delay === undefined) return;
            const animation = spans[index].animate(
              [
-               { opacity: 0, transform: "translateY(16px)", offset: 0 },
-               { opacity: 0, transform: "translateY(16px)", offset },
-               { opacity: 1, transform: "translateY(0)", offset: 1 }
+               { opacity: 0, transform: `translateY(${motion.lineDistance}px)` },
+               { opacity: 1, transform: "translateY(0)" }
              ],
              {
-               duration: motion.expandDuration - delay,
+               duration: motion.lineDuration,
                delay,
                easing: motion.easing,
                fill: "backwards"
@@ -2421,13 +2464,13 @@
        }
 
        const layout = expanded ? measureLines() : null;
-       const endHeight = layout?.height || 0;
+       const expansion = expanded ? getExpansion(layout, startHeight) : null;
        const startTime = document.timeline.currentTime;
        const animation = details.animate(
-         [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+         expanded ? expansion.keyframes : [{ height: `${startHeight}px` }, { height: "0px" }],
          {
-           duration: expanded ? motion.expandDuration : motion.collapseDuration,
-           easing: motion.easing,
+           duration: expanded ? expansion.duration : motion.collapseDuration,
+           easing: expanded ? "linear" : motion.easing,
            fill: "both"
          }
        );
@@ -2444,7 +2487,7 @@
        };
 
        if (expanded) {
-         revealLines(layout, startHeight, startTime);
+         revealLines(layout, expansion, startTime);
          window.scrollTo({ top: scrollTop, behavior: "instant" });
        } else {
          // Follow the shrinking content only until the user starts scrolling.
