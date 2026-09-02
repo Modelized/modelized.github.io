@@ -2659,7 +2659,8 @@
      let activeIndex = 0;
      let pointerState = null;
      let metrics = null;
-     let activeMotion = null;
+     const motions = new Map();
+     const cardLayouts = new Map();
      let dragFrame = 0;
      let queuedDragProgress = 0;
      let queuedSyncFrame = 0;
@@ -2767,7 +2768,6 @@
 
        shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
        stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
-       stage?.style.setProperty("--discipline-stack-pad-bottom", `${pad}px`);
 
        return {
          cardWidth,
@@ -2789,15 +2789,34 @@
        return currentMetrics.layouts[normalized] || currentMetrics.layouts[0];
      };
 
-     const cancelActiveMotion = () => {
-       if (!activeMotion) {
-         return;
+     const writeLayout = (card, layout) => {
+       const transform = formatTransform(layout);
+       if (card.style.transform !== transform) {
+         card.style.transform = transform;
+       }
+       cardLayouts.set(card, layout);
+     };
+
+     const captureLayouts = () => new Map(cards.map((card) => {
+       const motion = motions.get(card);
+       if (!motion || motion.playState === "finished") {
+         return [card, cardLayouts.get(card)];
        }
 
-       const { animation, card } = activeMotion;
-       activeMotion = null;
-       animation.cancel();
-       card.style.removeProperty("transition");
+       // Read only at a motion handoff, never on each drag frame.
+       const matrix = new DOMMatrixReadOnly(getComputedStyle(card).transform);
+       return [card, createLayout(
+         matrix.m41 + getMetrics().cardWidth / 2,
+         matrix.m42,
+         Math.hypot(matrix.m11, matrix.m12),
+         Math.atan2(matrix.m12, matrix.m11) * 180 / Math.PI
+       )];
+     }));
+
+     const cancelMotions = (layouts) => {
+       motions.forEach((animation) => animation.cancel());
+       motions.clear();
+       layouts?.forEach((layout, card) => writeLayout(card, layout));
      };
 
      const cancelQueuedDragState = () => {
@@ -2841,8 +2860,8 @@
        stack.removeAttribute("tabindex");
      };
 
-     const applyState = ({ dragProgress = 0 } = {}) => {
-       const isDragging = portraitQuery.matches && Math.abs(dragProgress) > 0.001;
+     const applyState = ({ dragProgress = 0, animate = false, outgoingCard = null, direction = 0 } = {}) => {
+       const isDragging = portraitQuery.matches && pointerState?.intent === "x";
        const dragSign = dragProgress === 0 ? 0 : Math.sign(dragProgress);
        const currentMetrics = getMetrics();
        const dragMagnitude = Math.abs(dragProgress);
@@ -2892,6 +2911,14 @@
            }
          }
 
+         const dragStart = isDragging ? pointerState.layouts?.get(card) : null;
+         if (dragStart) {
+           visualX += dragStart.x - baseLayout.x;
+           visualY += dragStart.y - baseLayout.y;
+           visualScale += dragStart.scale - baseLayout.scale;
+           visualRotate += dragStart.rotate - baseLayout.rotate;
+         }
+
          const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
 
          if (!isDragging) {
@@ -2904,7 +2931,7 @@
          }
 
          const nextZIndex = String(zIndex);
-         const nextTransform = formatTransformValues(
+         const nextLayout = createLayout(
            visualX,
            visualY,
            visualScale,
@@ -2913,8 +2940,10 @@
          if (card.style.zIndex !== nextZIndex) {
            card.style.zIndex = nextZIndex;
          }
-         if (card.style.transform !== nextTransform) {
-           card.style.transform = nextTransform;
+         const startLayout = cardLayouts.get(card) || nextLayout;
+         writeLayout(card, nextLayout);
+         if (animate) {
+           animateCard(card, startLayout, nextLayout, card === outgoingCard ? direction : 0);
          }
        });
 
@@ -2923,52 +2952,57 @@
        }
      };
 
-     const animateOutgoingCard = (card, direction, startLayout) => {
+     const animateCard = (card, startLayout, finalLayout, direction = 0) => {
        if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
          return;
        }
 
-       const currentMetrics = getMetrics();
-       const throwSign = direction > 0 ? -1 : 1;
-       const finalLayout = getLayoutForOffset(direction > 0 ? -1 : 1);
-       const midLayout = createLayout(
-         throwSign * currentMetrics.cardWidth * (portraitQuery.matches ? 0.56 : 0.52),
-         0,
-         0.968,
-         throwSign * (portraitQuery.matches ? 12.8 : 10.4)
-       );
-       const tuckLayout = createLayout(
-         finalLayout.x * 1.18,
-         0,
-         Math.min(0.982, finalLayout.scale * 1.012),
-         finalLayout.rotate + throwSign * 1.35
-       );
+       const startTransform = formatTransform(startLayout);
+       const finalTransform = formatTransform(finalLayout);
+       if (startTransform === finalTransform && !direction) {
+         return;
+       }
 
-       card.style.transition = "none";
-       const animation = card.animate(
-         [
-           { transform: formatTransform(startLayout) },
+       const keyframes = [{ transform: startTransform }];
+       if (direction) {
+         const throwSign = direction > 0 ? -1 : 1;
+         const midLayout = createLayout(
+           throwSign * getMetrics().cardWidth * (portraitQuery.matches ? 0.56 : 0.52),
+           0,
+           0.968,
+           throwSign * (portraitQuery.matches ? 12.8 : 10.4)
+         );
+         const tuckLayout = createLayout(
+           finalLayout.x * 1.18,
+           0,
+           Math.min(0.982, finalLayout.scale * 1.012),
+           finalLayout.rotate + throwSign * 1.35
+         );
+         keyframes.push(
            { transform: formatTransform(midLayout), offset: 0.5 },
-           { transform: formatTransform(tuckLayout), offset: 0.82 },
-           { transform: formatTransform(finalLayout) }
-         ],
-         {
-           duration: portraitQuery.matches ? 920 : 820,
-           easing: "cubic-bezier(0.18, 0.86, 0.22, 1)"
-         }
-       );
+           { transform: formatTransform(tuckLayout), offset: 0.82 }
+         );
+       }
+       keyframes.push({ transform: finalTransform });
 
-       const motion = { animation, card };
-       activeMotion = motion;
-       const finishOutgoingAnimation = () => {
-         if (activeMotion === motion) {
-           activeMotion = null;
-           card.style.removeProperty("transition");
-         } else if (activeMotion?.card !== card) {
-           card.style.removeProperty("transition");
+       const animation = card.animate(keyframes, {
+         duration: direction ? (portraitQuery.matches ? 920 : 820) : 560,
+         easing: direction
+           ? "cubic-bezier(0.18, 0.86, 0.22, 1)"
+           : "cubic-bezier(0.2, 0.82, 0.22, 1)"
+       });
+       motions.set(card, animation);
+       const finishAnimation = () => {
+         if (motions.get(card) === animation) {
+           motions.delete(card);
          }
        };
-       animation.finished.then(finishOutgoingAnimation, finishOutgoingAnimation);
+       animation.finished.then(finishAnimation, finishAnimation);
+     };
+
+     const settleCards = () => {
+       cancelMotions(captureLayouts());
+       applyState({ animate: true });
      };
 
      const rotate = (direction) => {
@@ -2978,30 +3012,23 @@
 
        const targetIndex = clamp(activeIndex + direction, 0, total - 1);
        if (targetIndex === activeIndex) {
-         applyState();
+         settleCards();
          return false;
        }
 
        const outgoingCard = cards[activeIndex];
-       const outgoingStart = getLayoutForOffset(0);
-
-       cancelActiveMotion();
+       cancelMotions(captureLayouts());
        activeIndex = targetIndex;
-       applyState();
-       animateOutgoingCard(outgoingCard, direction, outgoingStart);
+       applyState({ animate: true, outgoingCard, direction });
        return true;
      };
 
      const syncWithoutAnimation = () => {
-       cancelActiveMotion();
+       cancelMotions();
        cancelQueuedDragState();
        pointerState = null;
        metrics = measureMetrics();
-       stack.classList.add("discipline-stack-viewport--static");
        applyState();
-       requestAnimationFrame(() => {
-         stack.classList.remove("discipline-stack-viewport--static");
-       });
      };
 
      const bindMediaSync = () => {
@@ -3051,7 +3078,6 @@
          return;
        }
 
-       cancelActiveMotion();
        getMetrics();
        const gestureWidth = Math.max(stack.clientWidth, 1);
        stack.setPointerCapture?.(event.pointerId);
@@ -3066,17 +3092,22 @@
      };
 
      const clearPointer = (event, { snap = false } = {}) => {
+       if (!pointerState || (event && pointerState.id !== event.pointerId)) {
+         return;
+       }
+
        cancelQueuedDragState();
-       const pointerId = pointerState?.id;
+       const pointerId = pointerState.id;
+       const wasDragging = pointerState.intent === "x";
        pointerState = null;
        stack.classList.remove("is-dragging");
 
-       if (snap) {
-         applyState();
+       if (snap && wasDragging) {
+         settleCards();
        }
 
-       if (event && pointerId === event.pointerId) {
-         stack.releasePointerCapture?.(event.pointerId);
+       if (stack.hasPointerCapture?.(pointerId)) {
+         stack.releasePointerCapture(pointerId);
        }
      };
 
@@ -3095,6 +3126,8 @@
 
          pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
          if (pointerState.intent === "x") {
+           pointerState.layouts = captureLayouts();
+           cancelMotions(pointerState.layouts);
            stack.classList.add("is-dragging");
          }
        }
@@ -3127,7 +3160,6 @@
        clearPointer(event);
 
        if (intent !== "x") {
-         applyState();
          return;
        }
 
@@ -3141,7 +3173,7 @@
        ) {
          rotate(direction);
        } else {
-         applyState();
+         settleCards();
        }
      };
 
@@ -3168,7 +3200,11 @@
      stack.addEventListener("pointermove", onPointerMove);
      stack.addEventListener("pointerup", onPointerUp);
      stack.addEventListener("pointercancel", (event) => clearPointer(event, { snap: true }));
-     stack.addEventListener("pointerleave", (event) => clearPointer(event, { snap: true }));
+     stack.addEventListener("pointerleave", (event) => {
+       if (!stack.hasPointerCapture?.(event.pointerId)) {
+         clearPointer(event, { snap: true });
+       }
+     });
      stack.addEventListener("lostpointercapture", (event) => {
        if (pointerState?.id === event.pointerId) {
          clearPointer(null, { snap: true });
@@ -3178,11 +3214,7 @@
      metrics = measureMetrics();
      setStackLoading(true);
      stack.dataset.stackReady = "false";
-     stack.classList.add("discipline-stack-viewport--static");
      applyState();
-     requestAnimationFrame(() => {
-       stack.classList.remove("discipline-stack-viewport--static");
-     });
      bindMediaSync();
 
      window.addEventListener("resize", () => {

@@ -303,9 +303,10 @@ a {
 }
 
 .section {
+  --section-block-space: clamp(4.4rem, 8vw, 7.4rem);
   position: relative;
   z-index: 1;
-  padding: clamp(4.4rem, 9vw, 8.4rem) 0;
+  padding: var(--section-block-space) 0;
 }
 
 .site-footer {
@@ -1243,10 +1244,6 @@ a {
   transform: rotate(180deg);
 }
 
-.connect.section {
-  padding-bottom: clamp(2.15rem, 4.7vw, 3.95rem);
-}
-
 .connect-grid {
   margin-top: 1.35rem;
   display: grid;
@@ -1482,7 +1479,8 @@ a {
 
 .disciplines.section,
 .projects.section {
-  padding-bottom: clamp(1.5rem, 3vw, 2.75rem);
+  /* The stack stage keeps the shared bottom space inside its clipping area. */
+  padding-bottom: 0;
 }
 
 .discipline-stack-shell {
@@ -1490,7 +1488,6 @@ a {
   --discipline-card-width: min(100%, 50rem);
   --discipline-card-height: clamp(22rem, 39vw, 28rem);
   --discipline-stack-pad-top: clamp(0.38rem, 0.85vw, 0.7rem);
-  --discipline-stack-pad-bottom: clamp(1.95rem, 4.6vw, 3.2rem);
   --discipline-stack-pad-inline: clamp(0.3rem, 1.2vw, 0.85rem);
 }
 
@@ -1540,7 +1537,7 @@ a {
   padding:
     var(--discipline-stack-pad-top)
     var(--discipline-stack-pad-inline)
-    var(--discipline-stack-pad-bottom);
+    var(--section-block-space);
   overflow: visible;
 }
 
@@ -1661,7 +1658,6 @@ a {
   overflow: visible;
   transform-origin: center center;
   pointer-events: none;
-  transition: transform 560ms cubic-bezier(0.2, 0.82, 0.22, 1);
 }
 
 .discipline-stack-card.is-active {
@@ -1846,12 +1842,7 @@ a {
   height: 0.66rem;
 }
 
-.discipline-stack-viewport--static .discipline-stack-card {
-  transition: none !important;
-}
-
 .discipline-stack-viewport.is-dragging .discipline-stack-card {
-  transition: none !important;
   will-change: transform;
 }
 
@@ -1874,7 +1865,6 @@ a {
 
 .project-stack-shell {
   --discipline-card-height: clamp(24.2rem, 34vw, 29.5rem);
-  --discipline-stack-pad-bottom: clamp(1.85rem, 4.3vw, 3rem);
 }
 
 .project-stack-card {
@@ -2027,7 +2017,6 @@ a {
 
 .site-footer {
   position: relative;
-  margin-top: 3rem;
   padding:
     clamp(2.5rem, 4vw, 3.5rem) 0
     max(2rem, env(safe-area-inset-bottom, 0px));
@@ -2231,7 +2220,6 @@ a {
     --discipline-card-width: 100%;
     --discipline-card-height: clamp(32.4rem, 104vw, 39.5rem);
     --discipline-stack-pad-top: 0.28rem;
-    --discipline-stack-pad-bottom: clamp(4.8rem, 18vw, 6.7rem);
     --discipline-stack-pad-inline: 0.15rem;
   }
 
@@ -2259,7 +2247,6 @@ a {
 
   .discipline-stack-shell {
     --discipline-stack-pad-top: 0.3rem;
-    --discipline-stack-pad-bottom: clamp(5.4rem, 19vw, 7.4rem);
     --discipline-stack-pad-inline: 0.15rem;
   }
 
