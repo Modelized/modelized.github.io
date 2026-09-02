@@ -11,6 +11,7 @@
    const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
    const siteBootGate = createSiteBootGate();
 
+   // Image bounds are visible artwork [x, y, width, height] in source pixels, excluding shadows.
    const projects = [
      {
        slug: "istage",
@@ -20,9 +21,12 @@
          "A pixel-perfect recreation of the iOS Lock Screen for Android, including Dynamic Island, Live Activities, and extensive customization features — all powered by KLCK.",
        categories: ["Development", "Design"],
        icon: "assets/img/iStage-icon-dark.png",
-       image: "assets/img/hero-iStage-series.png",
-       imageRatio: 1,
-       imageSizing: "compact",
+       image: {
+         src: "assets/img/hero-iStage-series.png",
+         width: 2160,
+         height: 2160,
+         bounds: [412, 204, 1338, 1752]
+       },
        url: "https://modelized.github.io/iStage/"
      },
      {
@@ -33,8 +37,12 @@
          "A native macOS frontend for vphone, built to launch and manage iOS virtual machines without relying on the terminal. It combines VM controls with a built-in viewer for running and interacting with virtual devices.",
        categories: ["Development", "Engineering"],
        icon: "assets/img/Vanta-icon-dark.png",
-       image: "assets/img/hero-Vanta.png",
-       imageRatio: 2184 / 1648
+       image: {
+         src: "assets/img/hero-Vanta.png",
+         width: 2184,
+         height: 1648,
+         bounds: [111, 75, 1962, 1439]
+       }
      },
      {
        slug: "sherlockgenes",
@@ -43,8 +51,12 @@
        description:
          "An interactive program for analyzing patterns of inheritance from pedigree data. It uses family relationships and observed traits to narrow possible genotypes and determine which modes of inheritance fit a pedigree.",
        categories: ["Development", "Research"],
-       image: "assets/img/hero-SherlockGenes.png",
-       imageRatio: 2784 / 1880
+       image: {
+         src: "assets/img/hero-SherlockGenes.png",
+         width: 2784,
+         height: 1880,
+         bounds: [111, 75, 2562, 1670]
+       }
      },
      {
        slug: "truevision",
@@ -149,6 +161,7 @@
        const year = fragment.querySelector(".project-stack-card__year");
        const description = fragment.querySelector(".project-stack-card__body");
        const icon = fragment.querySelector(".project-stack-card__icon");
+       const media = fragment.querySelector(".project-stack-card__media");
        const image = fragment.querySelector(".project-stack-card__image");
        const categories = fragment.querySelector(".project-stack-card__categories");
        const projectLink = fragment.querySelector(".project-stack-card__link");
@@ -162,12 +175,6 @@
          }
          if (project.icon) {
            card.classList.add("has-icon");
-         }
-         if (project.imageRatio) {
-           card.dataset.imageRatio = String(project.imageRatio);
-         }
-         if (project.imageSizing) {
-           card.dataset.imageSizing = project.imageSizing;
          }
        }
 
@@ -185,17 +192,23 @@
          }
        }
 
-       if (image) {
+       if (media && image) {
          if (project.image) {
-           image.hidden = false;
-           image.src = project.image;
+           const { src, width, height, bounds } = project.image;
+           const [x, y, contentWidth, contentHeight] = bounds;
+           media.hidden = false;
+           media.style.aspectRatio = `${contentWidth} / ${contentHeight}`;
+           media.style.setProperty("--project-image-inline-scale", String(Math.min(1, contentWidth / contentHeight)));
+           image.src = src;
            image.alt = `${project.title} project preview`;
-           if (project.imageRatio) {
-             image.dataset.imageRatio = String(project.imageRatio);
-           }
+           image.width = width;
+           image.height = height;
+           image.style.width = `${(width / contentWidth) * 100}%`;
+           image.style.left = `${(-x / contentWidth) * 100}%`;
+           image.style.top = `${(-y / contentHeight) * 100}%`;
            image.draggable = false;
          } else {
-           image.remove();
+           media.remove();
          }
        }
 
@@ -1289,6 +1302,11 @@
     const fitConfigurations = new WeakMap();
     const activeWeightAnimations = new Map();
     const activeMetalClockAnimations = new Map();
+    const metalRoot = document.querySelector(".page-wrap");
+    const metalClockGroups = new Map([
+      ["hero-metal-model-stream", new Set()],
+      ["hero-metal-story-stream", new Set()]
+    ]);
     const fitSignatures = new WeakMap();
 
     const measureGlyph = (word, weight, width, trackingEm) => {
@@ -1742,6 +1760,36 @@
     let responsiveRefitPending = false;
     let responsiveRefitStartedAt = 0;
 
+    const syncMetalClockGroups = () => {
+      if (!metalRoot || typeof metalRoot.getAnimations !== "function") return;
+
+      const animations = metalRoot.getAnimations({ subtree: true });
+      metalClockGroups.forEach((group, animationName) => {
+        const members = animations.filter((animation) => animation.animationName === animationName);
+        const clock = members.find((animation) => animation.effect?.target === metalRoot);
+        const added = group.has(clock)
+          ? members.filter((animation) => !group.has(animation))
+          : members;
+        group.clear();
+        members.forEach((animation) => group.add(animation));
+        if (!clock) return;
+
+        const synchronize = () => {
+          if (!group.has(clock) || clock.startTime === null) return;
+          added.forEach((animation) => {
+            if (animation === clock || !group.has(animation)) return;
+            animation.playbackRate = clock.playbackRate;
+            animation.startTime = clock.startTime;
+          });
+        };
+        if (clock.pending) {
+          clock.ready.then(synchronize, () => {});
+        } else {
+          synchronize();
+        }
+      });
+    };
+
     const setMetalPlaybackRate = (animations, rate) => {
       animations.forEach((animation) => {
         if (typeof animation.updatePlaybackRate === "function") {
@@ -1774,14 +1822,9 @@
       duration,
       delay
     ) => {
-      const clock = document.querySelector(".page-wrap");
-      if (!clock || typeof clock.getAnimations !== "function") return;
-
       cancelMetalClockAnimation(animationName);
-      const animations = clock.getAnimations().filter(
-        (animation) => animation.animationName === animationName
-      );
-      if (!animations.length) return;
+      const animations = metalClockGroups.get(animationName);
+      if (!animations?.size) return;
 
       const controller = {
         animations,
@@ -1817,6 +1860,7 @@
     };
 
     const playSharedMetalArrival = () => {
+      syncMetalClockGroups();
       playMetalClockArrival("hero-metal-model-stream", 640, 400);
       playMetalClockArrival("hero-metal-story-stream", 900, 650);
     };
@@ -1828,7 +1872,6 @@
       controller.cancelled = true;
       window.clearTimeout(controller.timerId);
       cancelAnimationFrame(controller.rafId);
-      setMetalPlaybackRate(controller.metalAnimations, 1);
       activeWeightAnimations.delete(word);
     };
 
@@ -1839,8 +1882,7 @@
         delay = 0,
         weightAtProgress = null,
         stateAtProgress = null,
-        opacityAtProgress = null,
-        metalRateAtProgress = null
+        opacityAtProgress = null
       }
     ) => {
       const configuration = fitConfigurations.get(word);
@@ -1851,17 +1893,10 @@
       }
 
       cancelWeightAnimation(word);
-      const metalAnimations = metalRateAtProgress &&
-        typeof word.getAnimations === "function"
-        ? word.getAnimations().filter(
-          (animation) => animation.animationName === "metal-stream"
-        )
-        : [];
       const controller = {
         cancelled: false,
         timerId: 0,
-        rafId: 0,
-        metalAnimations
+        rafId: 0
       };
       activeWeightAnimations.set(word, controller);
 
@@ -1884,12 +1919,6 @@
             ? String(opacityAtProgress(progress))
             : "1";
 
-          if (metalRateAtProgress) {
-            setMetalPlaybackRate(
-              controller.metalAnimations,
-              metalRateAtProgress(progress)
-            );
-          }
           if (progress < 1) {
             controller.rafId = requestAnimationFrame(tick);
             return;
@@ -1900,7 +1929,6 @@
             solveFittedState(configuration, configuration.finalWeight)
           );
           word.style.opacity = "1";
-          setMetalPlaybackRate(controller.metalAnimations, 1);
           activeWeightAnimations.delete(word);
         };
 
@@ -1912,8 +1940,7 @@
       selector,
       duration,
       delayForWord,
-      reveal,
-      accelerateMetal = false
+      reveal
     ) => {
       document.querySelectorAll(selector).forEach((word) => {
         animateFittedWeight(word, {
@@ -1925,9 +1952,6 @@
           ),
           opacityAtProgress: reveal
             ? (progress) => Math.min(1, progress / 0.16)
-            : null,
-          metalRateAtProgress: accelerateMetal
-            ? (progress) => 1 + (3.2 * (1 - arrivalEase(progress)))
             : null
         });
       });
@@ -2025,6 +2049,10 @@
       lastOrientation = orientation;
       lastStackedHomeLayout = stackedLayout;
 
+      if (widthChanged || orientationChanged || layoutChanged) {
+        syncMetalClockGroups();
+      }
+
       if (layoutChanged || orientationChanged) {
         scheduleSettledFit(260, true, true);
         return;
@@ -2067,7 +2095,12 @@
       "change",
       handleHomeLayoutChange
     );
-    window.addEventListener("pageshow", () => scheduleSettledFit(0, true));
+    window.addEventListener("pageshow", () => {
+      syncMetalClockGroups();
+      scheduleSettledFit(0, true);
+    });
+    window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", syncMetalClockGroups);
+    syncMetalClockGroups();
     document.querySelector(".hero-brand-lockup")?.addEventListener("click", (event) => {
       if (
         prefersReducedMotion ||
@@ -2246,8 +2279,8 @@
 
      const textBlocks = Array.from(details.querySelectorAll(".about-copy__title, p"));
      const motion = {
-       lineDuration: 720,
-       lineStagger: 12,
+       lineDuration: 1080,
+       lineStagger: 20,
        lineDistance: 16,
        heightLead: 100,
        collapseDuration: 720,
@@ -2737,7 +2770,7 @@
      const surface = card.querySelector(".project-stack-card__surface");
      const layout = surface?.querySelector(".project-stack-card__layout");
      const content = surface?.querySelector(".project-stack-card__content");
-     const image = surface?.querySelector(".project-stack-card__image:not([hidden])");
+     const media = surface?.querySelector(".project-stack-card__media:not([hidden])");
 
      if (!surface || !layout || !content) {
        return 0;
@@ -2749,13 +2782,9 @@
      const paddingBottom = parseFloat(surfaceStyles.paddingBottom) || 0;
      const rowGap = parseFloat(layoutStyles.rowGap || layoutStyles.gap) || 0;
      const contentHeight = content.scrollHeight || content.getBoundingClientRect().height || 0;
-     const imageBoundsHeight = image ? Math.max(image.scrollHeight || 0, image.getBoundingClientRect().height || 0) : 0;
-     const imageWidth = image ? Math.max(image.getBoundingClientRect().width || 0, image.offsetWidth || 0) : 0;
-     const imageRatio = image ? parseFloat(image.dataset.imageRatio || card.dataset.imageRatio || "") || 0 : 0;
-     const estimatedImageHeight = imageRatio && imageWidth ? imageWidth / imageRatio : 0;
-     const imageHeight = Math.max(imageBoundsHeight, estimatedImageHeight);
+     const imageHeight = media?.offsetHeight || 0;
 
-     if (!image) {
+     if (!media) {
        return Math.ceil(paddingTop + paddingBottom + contentHeight);
      }
 
@@ -2773,7 +2802,7 @@
      getBaseCardHeight,
      measureCard,
      mediaSelector,
-     onMediaReady
+     extraBlockSpace = 0
    }) {
      const stack = document.getElementById(stackId);
      const shell = stack?.closest(".discipline-stack-shell");
@@ -2790,7 +2819,13 @@
      let pointerState = null;
      let metrics = null;
      const motions = new Map();
-     const cardLayouts = new Map();
+     const cardStates = cards.map((card, index) => ({
+       card,
+       index,
+       layout: null,
+       transform: "",
+       zIndex: ""
+     }));
      let dragFrame = 0;
      let queuedDragProgress = 0;
      let queuedSyncFrame = 0;
@@ -2893,7 +2928,7 @@
        const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
        const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
        const baseHeight = Math.ceil(getBaseCardHeight({ portrait: portraitQuery.matches }));
-       const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom));
+       const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom) + extraBlockSpace * 2);
        const pad = Math.ceil(clamp(window.innerHeight * 0.026, 18, 28));
 
        shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
@@ -2919,18 +2954,24 @@
        return currentMetrics.layouts[normalized] || currentMetrics.layouts[0];
      };
 
-     const writeLayout = (card, layout) => {
+     const writeLayout = (state, layout, zIndex = state.zIndex) => {
        const transform = formatTransform(layout);
-       if (card.style.transform !== transform) {
-         card.style.transform = transform;
+       const nextZIndex = String(zIndex);
+       if (state.zIndex !== nextZIndex) {
+         state.card.style.zIndex = nextZIndex;
+         state.zIndex = nextZIndex;
        }
-       cardLayouts.set(card, layout);
+       if (state.transform !== transform) {
+         state.card.style.transform = transform;
+         state.transform = transform;
+       }
+       state.layout = layout;
      };
 
-     const captureLayouts = () => new Map(cards.map((card) => {
+     const captureLayouts = () => new Map(cardStates.map(({ card, layout }) => {
        const motion = motions.get(card);
        if (!motion || motion.playState === "finished") {
-         return [card, cardLayouts.get(card)];
+         return [card, createLayout(layout.x, layout.y, layout.scale, layout.rotate)];
        }
 
        // Read only at a motion handoff, never on each drag frame.
@@ -2943,10 +2984,9 @@
        )];
      }));
 
-     const cancelMotions = (layouts) => {
+     const cancelMotions = () => {
        motions.forEach((animation) => animation.cancel());
        motions.clear();
-       layouts?.forEach((layout, card) => writeLayout(card, layout));
      };
 
      const cancelQueuedDragState = () => {
@@ -2967,7 +3007,11 @@
        dragFrame = requestAnimationFrame(() => {
          dragFrame = 0;
          if (pointerState) {
-           applyState({ dragProgress: queuedDragProgress });
+           if (portraitQuery.matches) {
+             applyDragState(queuedDragProgress);
+           } else {
+             applyState();
+           }
          }
        });
      };
@@ -2990,96 +3034,109 @@
        stack.removeAttribute("tabindex");
      };
 
-     const applyState = ({ dragProgress = 0, animate = false, outgoingCard = null, direction = 0 } = {}) => {
-       const isDragging = portraitQuery.matches && pointerState?.intent === "x";
+     const prepareDrag = () => {
+       const layouts = captureLayouts();
+       cancelMotions();
+       pointerState.cardWidth = getMetrics().cardWidth;
+       pointerState.cards = cardStates.map((state) => {
+         const offset = state.index - activeIndex;
+         const depth = Math.min(Math.abs(offset), total - 1);
+         const base = getLayoutForOffset(offset);
+         const start = layouts.get(state.card);
+         const zIndex = getZIndex(offset);
+         writeLayout(state, start);
+
+         return {
+           state,
+           offset,
+           side: Math.sign(offset),
+           base,
+           zIndex,
+           delta: createLayout(start.x - base.x, start.y - base.y, start.scale - base.scale, start.rotate - base.rotate),
+           layout: createLayout(base.x, base.y, base.scale, base.rotate),
+           inward: {
+             x: dragCurve.inwardXPull[depth] || 0.1,
+             scale: dragCurve.inwardScaleLift[depth] || 0.014,
+             rotate: dragCurve.inwardRotateEase[depth] || 0.08,
+             zIndex: zIndex + 8 - depth
+           },
+           outward: {
+             x: dragCurve.outwardXPush[depth] || 0.3,
+             scale: dragCurve.outwardScaleDrop[depth] || 0.04,
+             rotate: dragCurve.outwardRotateBoost[depth] || 0.16,
+             zIndex: zIndex - 5 - depth
+           }
+         };
+       });
+       stack.classList.add("is-dragging");
+     };
+
+     const applyDragState = (dragProgress) => {
        const dragSign = dragProgress === 0 ? 0 : Math.sign(dragProgress);
-       const currentMetrics = getMetrics();
        const dragMagnitude = Math.abs(dragProgress);
        const inwardSide = dragSign === 0 ? 0 : -dragSign;
        const hasTarget =
          dragSign === 0 ||
          (dragSign < 0 ? activeIndex < total - 1 : activeIndex > 0);
 
-       stack.classList.toggle("is-dragging", isDragging);
+       pointerState.cards.forEach(({ state, offset, side, base, delta, layout, inward, outward, zIndex: baseZIndex }) => {
+         let visualX = base.x;
+         let visualY = base.y;
+         let visualScale = base.scale;
+         let visualRotate = base.rotate;
+         let zIndex = baseZIndex;
 
-       cards.forEach((card, index) => {
-         const offset = index - activeIndex;
-         const baseLayout = getLayoutForOffset(offset);
-         let visualX = baseLayout.x;
-         let visualY = baseLayout.y;
-         let visualScale = baseLayout.scale;
-         let visualRotate = baseLayout.rotate;
-         let zIndex = getZIndex(offset);
-
-         if (isDragging && hasTarget && offset === 0 && dragSign !== 0) {
-           visualX = currentMetrics.cardWidth * 0.58 * dragMagnitude * dragSign;
+         if (hasTarget && offset === 0 && dragSign !== 0) {
+           visualX = pointerState.cardWidth * 0.58 * dragMagnitude * dragSign;
            visualY = 0;
            visualScale = 1 - dragMagnitude * 0.024;
            visualRotate = dragSign * 9.1 * dragMagnitude;
-         } else if (isDragging && hasTarget && offset !== 0) {
-           const side = Math.sign(offset);
-           const depth = Math.min(Math.abs(offset), total - 1);
-           const inwardScaleLift = dragCurve.inwardScaleLift[depth] || 0.014;
-           const outwardScaleDrop = dragCurve.outwardScaleDrop[depth] || 0.04;
-           const inwardXPull = dragCurve.inwardXPull[depth] || 0.1;
-           const outwardXPush = dragCurve.outwardXPush[depth] || 0.3;
-           const inwardRotateEase = dragCurve.inwardRotateEase[depth] || 0.08;
-           const outwardRotateBoost = dragCurve.outwardRotateBoost[depth] || 0.16;
-
+         } else if (hasTarget && offset !== 0) {
            if (side === inwardSide) {
-             visualX *= 1 - inwardXPull * dragMagnitude;
+             visualX *= 1 - inward.x * dragMagnitude;
              visualY = 0;
-             visualScale += inwardScaleLift * dragMagnitude;
-             visualRotate *= 1 - inwardRotateEase * dragMagnitude;
-             zIndex += 8 - depth;
+             visualScale += inward.scale * dragMagnitude;
+             visualRotate *= 1 - inward.rotate * dragMagnitude;
+             zIndex = inward.zIndex;
            } else if (side === dragSign) {
-             visualX *= 1 + outwardXPush * dragMagnitude;
+             visualX *= 1 + outward.x * dragMagnitude;
              visualY = 0;
-             visualScale -= outwardScaleDrop * dragMagnitude;
-             visualRotate *= 1 + outwardRotateBoost * dragMagnitude;
-             zIndex -= 5 + depth;
+             visualScale -= outward.scale * dragMagnitude;
+             visualRotate *= 1 + outward.rotate * dragMagnitude;
+             zIndex = outward.zIndex;
            }
          }
 
-         const dragStart = isDragging ? pointerState.layouts?.get(card) : null;
-         if (dragStart) {
-           visualX += dragStart.x - baseLayout.x;
-           visualY += dragStart.y - baseLayout.y;
-           visualScale += dragStart.scale - baseLayout.scale;
-           visualRotate += dragStart.rotate - baseLayout.rotate;
-         }
+         layout.x = visualX + delta.x;
+         layout.y = visualY + delta.y;
+         layout.scale = visualScale + delta.scale;
+         layout.rotate = visualRotate + delta.rotate;
+         writeLayout(state, layout, zIndex);
+       });
+     };
 
+     const applyState = ({ animate = false, fromLayouts = null, outgoingCard = null, direction = 0 } = {}) => {
+       stack.classList.remove("is-dragging");
+       cardStates.forEach((state) => {
+         const { card, index } = state;
+         const offset = index - activeIndex;
+         const layout = getLayoutForOffset(offset);
+         const startLayout = fromLayouts?.get(card) || state.layout || layout;
          const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
 
-         if (!isDragging) {
-           card.dataset.stackPos = String(offset);
-           card.dataset.stackDepth = String(Math.abs(offset));
-           card.dataset.stackSide = getSide(offset);
-           card.classList.toggle("is-active", offset === 0);
-           card.classList.toggle("is-neighbor", isNeighbor);
-           card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
-         }
-
-         const nextZIndex = String(zIndex);
-         const nextLayout = createLayout(
-           visualX,
-           visualY,
-           visualScale,
-           visualRotate
-         );
-         if (card.style.zIndex !== nextZIndex) {
-           card.style.zIndex = nextZIndex;
-         }
-         const startLayout = cardLayouts.get(card) || nextLayout;
-         writeLayout(card, nextLayout);
+         card.dataset.stackPos = String(offset);
+         card.dataset.stackDepth = String(Math.abs(offset));
+         card.dataset.stackSide = getSide(offset);
+         card.classList.toggle("is-active", offset === 0);
+         card.classList.toggle("is-neighbor", isNeighbor);
+         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
+         writeLayout(state, layout, getZIndex(offset));
          if (animate) {
-           animateCard(card, startLayout, nextLayout, card === outgoingCard ? direction : 0);
+           animateCard(card, startLayout, layout, card === outgoingCard ? direction : 0);
          }
        });
 
-       if (!isDragging) {
-         syncLabels();
-       }
+       syncLabels();
      };
 
      const animateCard = (card, startLayout, finalLayout, direction = 0) => {
@@ -3131,8 +3188,9 @@
      };
 
      const settleCards = () => {
-       cancelMotions(captureLayouts());
-       applyState({ animate: true });
+       const fromLayouts = captureLayouts();
+       cancelMotions();
+       applyState({ animate: true, fromLayouts });
      };
 
      const rotate = (direction) => {
@@ -3147,9 +3205,10 @@
        }
 
        const outgoingCard = cards[activeIndex];
-       cancelMotions(captureLayouts());
+       const fromLayouts = captureLayouts();
+       cancelMotions();
        activeIndex = targetIndex;
-       applyState({ animate: true, outgoingCard, direction });
+       applyState({ animate: true, fromLayouts, outgoingCard, direction });
        return true;
      };
 
@@ -3181,7 +3240,6 @@
            }
 
            media.dataset.stackMediaReady = "true";
-           onMediaReady?.(media, media.closest(".discipline-stack-card"));
            readyCount += 1;
            queueSyncWithoutAnimation();
            if (readyCount >= mediaNodes.length) {
@@ -3256,9 +3314,7 @@
 
          pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
          if (pointerState.intent === "x") {
-           pointerState.layouts = captureLayouts();
-           cancelMotions(pointerState.layouts);
-           stack.classList.add("is-dragging");
+           prepareDrag();
          }
        }
 
@@ -3391,26 +3447,18 @@
        items: disciplines,
        getAriaLabel: (item) => `Core disciplines cards. ${item.title} is in focus.`,
        getBaseCardHeight,
-       measureCard: measureDisciplineCard
+       measureCard: measureDisciplineCard,
+       extraBlockSpace: 8
      });
    }
 
    function initProjectStack() {
-     const classifyProjectImage = (image, card) => {
-       if (!image || !card || !image.naturalWidth || !image.naturalHeight) {
-         return;
-       }
-
-       const aspectRatio = image.naturalWidth / image.naturalHeight;
-       card.dataset.imageRatio = String(aspectRatio);
-     };
-
      const getBaseCardHeight = ({ portrait }) => {
-       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
        if (portrait) {
-         return Math.min(Math.max(window.innerWidth * 1.04, 32.4 * rem), 39.5 * rem);
+         return 0;
        }
 
+       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
        if (window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches) {
          return Math.min(Math.max(window.innerWidth * 0.365, 21.5 * rem), 25.6 * rem);
        }
@@ -3428,8 +3476,7 @@
        getAriaLabel: (item) => `Current project cards. ${item.title} is in focus.`,
        getBaseCardHeight,
        measureCard: measureProjectCard,
-       mediaSelector: ".project-stack-card__image",
-       onMediaReady: classifyProjectImage
+       mediaSelector: ".project-stack-card__image"
      });
    }
 
