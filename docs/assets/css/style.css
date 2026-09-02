@@ -1880,8 +1880,9 @@ a {
   display: block;
   padding:
     clamp(1.5rem, 2.8vw, 2.2rem)
-    clamp(1.52rem, 3vw, 2.3rem)
-    clamp(1.54rem, 2.95vw, 2.24rem);
+    calc(clamp(1.52rem, 3vw, 2.3rem) + 0.6rem)
+    clamp(1.54rem, 2.95vw, 2.24rem)
+    clamp(1.52rem, 3vw, 2.3rem);
 }
 
 .project-stack-card__layout {
@@ -1889,7 +1890,7 @@ a {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   align-content: center;
-  gap: clamp(1.2rem, 2.1vw, 1.8rem);
+  gap: clamp(1.6rem, 2.7vw, 2.4rem);
   height: 100%;
 }
 
@@ -2282,7 +2283,7 @@ a {
   }
 
   .project-stack-card__surface {
-    padding: 1.32rem 1.22rem 1.28rem;
+    padding: 1.32rem 1.22rem 1.58rem;
   }
 
   .project-stack-card__heading {
