@@ -1199,7 +1199,7 @@ a {
 
 .about-copy__title {
   margin: 0 0 0.7em;
-  color: var(--accent-orange);
+  color: rgba(243, 242, 238, 0.9);
   font-family: var(--body-font);
   font-size: 1.18em;
   font-weight: 600;
@@ -1742,13 +1742,16 @@ a {
 
 .discipline-stack-card__title {
   margin: 0;
-  max-width: 10ch;
   font-family: var(--heading-font);
   font-size: clamp(1.55rem, 3vw, 2.45rem);
   font-weight: 700;
   line-height: 0.96;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+}
+
+.discipline-stack-card__title:not(.project-stack-card__title) {
+  max-width: 10ch;
 }
 
 .discipline-stack-card__body {
@@ -1952,7 +1955,6 @@ a {
 }
 
 .project-stack-card__title {
-  max-width: none;
   font-size: clamp(1.45rem, 2.8vw, 2.4rem);
   line-height: 0.94;
   letter-spacing: -0.015em;
@@ -2267,8 +2269,11 @@ a {
   }
 
   .discipline-stack-card__title {
-    max-width: 8ch;
     font-size: clamp(1.5rem, 6.1vw, 2.2rem);
+  }
+
+  .discipline-stack-card__title:not(.project-stack-card__title) {
+    max-width: 8ch;
   }
 
   .discipline-stack-card__body {
