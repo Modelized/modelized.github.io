@@ -2246,8 +2246,8 @@
 
      const textBlocks = Array.from(details.querySelectorAll(".about-copy__title, p"));
      const motion = {
-       lineDuration: 500,
-       lineStagger: 20,
+       lineDuration: 720,
+       lineStagger: 12,
        lineDistance: 16,
        heightLead: 100,
        collapseDuration: 720,
@@ -2325,36 +2325,19 @@
        if (startHeight === 0 && layout.expansion) return layout.expansion;
 
        const delays = new Map();
-       const points = [{ time: 0, height: startHeight }];
        layout.lines.forEach((line) => {
          if (line.bottom <= startHeight) return;
          const delay = motion.heightLead + delays.size * motion.lineStagger;
          delays.set(line, delay);
-         points.push({
-           time: delay,
-           height: Math.max(startHeight, Math.min(layout.height, line.bottom + motion.lineDistance))
-         });
        });
-       const duration = points[points.length - 1].time + motion.lineDuration;
-       points.push({ time: duration, height: layout.height });
-
-       // Match segment slopes without overshooting the measured line positions.
-       const slopes = points.slice(1).map((point, index) => (
-         (point.height - points[index].height) / (point.time - points[index].time)
-       ));
-       const tangents = points.map((_, index) => {
-         const before = slopes[index - 1] || 0;
-         const after = slopes[index] || 0;
-         return before > 0 && after > 0 ? 2 * before * after / (before + after) : 0;
-       });
-       const keyframes = points.map((point, index) => ({
-         height: `${point.height}px`,
-         offset: point.time / duration,
-         easing: slopes[index] > 0
-           ? `cubic-bezier(${1 / 3}, ${tangents[index] / (3 * slopes[index])}, ${2 / 3}, ${1 - tangents[index + 1] / (3 * slopes[index])})`
-           : "linear"
-       }));
-       const expansion = { delays, duration, keyframes };
+       const duration = motion.lineDuration + (delays.size
+         ? motion.heightLead + (delays.size - 1) * motion.lineStagger
+         : 0);
+       const expansion = {
+         delays,
+         duration,
+         keyframes: [{ height: `${startHeight}px` }, { height: `${layout.height}px` }]
+       };
        if (startHeight === 0) layout.expansion = expansion;
        return expansion;
      };
@@ -2366,7 +2349,7 @@
        details.style.removeProperty("overflow");
      };
      const revealLines = (layout, expansion, startTime) => {
-       // The height stays ahead of the reveal; keep the last line's travel unclipped.
+       // Keep the last line's travel unclipped.
        details.style.overflow = "visible";
        layout.blocks.forEach((block) => {
          if (!block.lines.some((line) => expansion.delays.has(line))) return;
@@ -2470,7 +2453,7 @@
          expanded ? expansion.keyframes : [{ height: `${startHeight}px` }, { height: "0px" }],
          {
            duration: expanded ? expansion.duration : motion.collapseDuration,
-           easing: expanded ? "linear" : motion.easing,
+           easing: motion.easing,
            fill: "both"
          }
        );
