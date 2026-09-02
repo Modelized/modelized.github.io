@@ -1216,6 +1216,11 @@ a {
   overflow: hidden;
 }
 
+.about-copy__line {
+  display: block;
+  white-space: nowrap;
+}
+
 .about-copy__details[hidden],
 .about-copy__toggle[hidden] {
   display: none;
