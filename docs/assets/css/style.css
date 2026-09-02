@@ -1842,7 +1842,7 @@ a {
   height: 0.66rem;
 }
 
-.discipline-stack-viewport.is-dragging .discipline-stack-card {
+.discipline-stack-viewport.is-moving .discipline-stack-card {
   will-change: transform;
 }
 
