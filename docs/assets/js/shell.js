@@ -9,15 +9,15 @@
    const SITE_LOADER_REVEAL_DELAY = 220;
    const SITE_LOADER_SKIP_DELAY = 4200;
    const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
-   const iconSvg = (path) => `<svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">${path}</svg>`;
    const siteBootGate = createSiteBootGate();
 
    const projects = [
      {
        slug: "istage",
        title: "iStage",
+       year: 2026,
        description:
-         "A pixel-perfect recreation of the iOS Lock Screen for Android, with built-in Dynamic Island, stock wallpapers and deep personalization — all powered by KLCK.",
+         "A pixel-perfect recreation of the iOS Lock Screen for Android, including Dynamic Island, Live Activities, and extensive customization features — all powered by KLCK.",
        categories: ["Development", "Design"],
        icon: "assets/img/iStage-icon-dark.png",
        image: "assets/img/hero-iStage-series.png",
@@ -28,8 +28,9 @@
      {
        slug: "vanta",
        title: "Vanta",
+       year: 2025,
        description:
-         "A native macOS launcher engineered for iOS virtual machines (vphone-aio). It replaces terminal-heavy workflows with a clean graphical interface and a dedicated viewer, making low-level VM management visually intuitive.",
+         "A native macOS frontend for vphone, built to launch and manage iOS virtual machines without relying on the terminal. It combines VM controls with a built-in viewer for running and interacting with virtual devices.",
        categories: ["Development", "Engineering"],
        icon: "assets/img/Vanta-icon-dark.png",
        image: "assets/img/hero-Vanta.png",
@@ -38,8 +39,9 @@
      {
        slug: "sherlockgenes",
        title: "SherlockGenes",
+       year: 2025,
        description:
-         "An interactive pedigree analysis program that estimates the risk of genetic disorders. It processes family connections to make complex inheritance predictions visually accessible.",
+         "An interactive program for analyzing patterns of inheritance from pedigree data. It uses family relationships and observed traits to narrow possible genotypes and determine which modes of inheritance fit a pedigree.",
        categories: ["Development", "Research"],
        image: "assets/img/hero-SherlockGenes.png",
        imageRatio: 2784 / 1880
@@ -47,22 +49,17 @@
      {
        slug: "truevision",
        title: "TrueVision",
+       year: 2025,
        description:
-         "An AI-based crowd density analysis system designed to detect and visualize dangerous congestion in real time. Using computer vision, it analyzes video input to estimate relative positions and evaluate density, presenting intuitive visual data such as the number of detected people, density levels, and risk stages to effectively monitor crowd flow.",
+         "A computer vision system for detecting and visualizing dangerous crowd congestion in real time. It analyzes people and their relative positions in video to estimate crowd density and display changing levels of risk.",
        categories: ["Development", "Engineering", "Research"]
-     },
-     {
-       slug: "airtime-cabin",
-       title: "AirTime Cabin",
-       description:
-         "A hyper realistic virtual flight relaxation app for iOS and visionOS. Designed for focus and meditation, it dynamically simulates real world flight phases — triggering aviation announcements synchronized with the flight, weather shifts, and immersive 3D sky visuals outside the window.",
-       categories: ["Development", "Design"]
      },
      {
        slug: "aero",
        title: "Aero",
+       year: 2024,
        description:
-         "A conceptual next-generation operating system designed ahead of its time, focusing on deep personalization and seamless UI/UX. It features Space — a fully customized and optimized environment tailored by the user, alongside context-aware action suggestions based on user data. It also introduces an interactive Activity Indicator that the navigation bar expands to display relevant live activities.",
+         "A concept for a next-generation operating system built around personalization and adaptability. Its interface includes Space, a customizable environment shaped around the user, contextual action suggestions, and an expandable Activity Indicator for live information.",
        categories: ["Design"]
      }
    ];
@@ -73,18 +70,16 @@
        tone: "development",
        title: "Development",
        text:
-         "Building native applications and computational systems. From developing macOS and iOS software to building intelligent models in Python, I focus on translating complex logic into functional code.",
+         "I build native applications and computational tools, primarily using Swift and Python. My work spans mobile apps, experimental systems, and small research tools. Development is where I test ideas, see what works in practice, and refine them through use.",
        arsenalKind: "development",
        arsenal: [
+         { iconUrl: simpleIcon("swift"), label: "Swift" },
+         { iconUrl: simpleIcon("python"), label: "Python" },
          { iconUrl: simpleIcon("c"), label: "C" },
          { iconUrl: simpleIcon("cplusplus"), label: "C++" },
-         { iconUrl: simpleIcon("python"), label: "Python" },
-         { iconUrl: simpleIcon("swift"), label: "Swift" },
-         { iconUrl: simpleIcon("kotlin"), label: "Kotlin" },
          { iconUrl: simpleIcon("javascript"), label: "JavaScript" },
          { iconUrl: simpleIcon("html5"), label: "HTML" },
-         { iconUrl: simpleIcon("gnubash"), label: "Bash" },
-         { iconSvg: iconSvg('<path d="M4.2 5.2h5.2M4.2 9.8h7.8M4.2 14.4h11.6"/><path d="m12.2 4.3 3.6 3.6-3.6 3.6"/>'), label: "Makefile" }
+         { iconUrl: simpleIcon("kotlin"), label: "Kotlin" }
        ]
      },
      {
@@ -92,35 +87,21 @@
        tone: "engineering",
        title: "Engineering",
        text:
-         "Diving into the core of operating systems and device environments. My work involves Custom ROM development and low-level system exploration, studying how device architectures function from the inside out to build highly optimized environments.",
-       arsenalKind: "engineering",
-       arsenal: [
-         { iconSvg: iconSvg('<path d="M5 12.4a5 5 0 0 1 10 0v1.2H5Z"/><path d="m7.4 7.6-.72-1.08"/><path d="m12.6 7.6.72-1.08"/><circle cx="8.9" cy="10.1" r=".66" fill="currentColor" stroke="none"/><circle cx="11.1" cy="10.1" r=".66" fill="currentColor" stroke="none"/>'), label: "Custom ROM Building" },
-         { iconSvg: iconSvg('<path d="M10 4.2 14 5.7v3.8c0 2.6-1.6 4.8-4 5.9-2.4-1.1-4-3.3-4-5.9V5.7L10 4.2Z"/><path d="m12.7 12.7 2.6 2.6"/><circle cx="12.1" cy="12.1" r="2.3"/>'), label: "iOS Security Analysis" },
-         { iconSvg: iconSvg('<path d="m6.4 6.2-3.1 3.8 3.1 3.8"/><path d="m13.6 6.2 3.1 3.8-3.1 3.8"/><path d="m11 4.8-2 10.4"/>'), label: "Reverse Engineering" },
-         { iconSvg: iconSvg('<rect x="4.1" y="4.5" width="11.8" height="8.2" rx="1.8"/><path d="M6.5 15.5h7"/><path d="M8 12.7v2.8M12 12.7v2.8"/>'), label: "System Virtualization" }
-       ]
+         "I explore how operating systems and devices function beneath the interface. My work involves custom ROM development, system modification, and low-level experimentation within Android environments. These projects help me grasp how software, hardware, and system architecture interact in practice."
      },
      {
        slug: "design",
        tone: "design",
        title: "Design",
        text:
-         "Designing the visual layer of the software I build. I treat UI/UX as the final phase of development — bringing aesthetics into the software environment to create visually compelling and intuitive interfaces."
-     },
-     {
-       slug: "music",
-       tone: "music",
-       title: "Music",
-       text:
-         "Translating emotions and invisible moods into sound. It is a process of taking the unspoken feelings we experience in life and arranging them into a sonic space."
+         "I shape the visual and interactive aspects of the software I create. I design interfaces with careful attention to layout, motion, hierarchy, and interaction. To me, design is integral to how a system communicates."
      },
      {
        slug: "research",
        tone: "research",
        title: "Research",
        text:
-         "Exploring the intersection of biological systems and computer science. My research interests span across neuroscience, stem cells, and genetics. By leveraging bioinformatics, my focus is on decoding the complex patterns of neural cells and biological data, analyzing the fundamental mechanics of living systems."
+         "I study living systems through biology and computer science. My main interests include neural signaling, genetics, stem-cell differentiation, tissue regeneration, and how biological systems change under different conditions. I also use computational methods to organize information, test ideas, and explore biological questions that would be difficult to investigate through observation alone."
      }
    ];
 
@@ -165,6 +146,7 @@
        const fragment = template.content.cloneNode(true);
        const card = fragment.querySelector(".project-stack-card");
        const title = fragment.querySelector(".project-stack-card__title");
+       const year = fragment.querySelector(".project-stack-card__year");
        const description = fragment.querySelector(".project-stack-card__body");
        const icon = fragment.querySelector(".project-stack-card__icon");
        const image = fragment.querySelector(".project-stack-card__image");
@@ -190,6 +172,7 @@
        }
 
        if (title) title.textContent = project.title;
+       if (year) year.textContent = String(project.year);
        if (description) description.textContent = project.description;
 
        if (icon) {

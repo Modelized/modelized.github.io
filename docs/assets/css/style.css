@@ -1238,6 +1238,14 @@ a {
   line-height: 1.82;
 }
 
+.about-copy > p {
+  margin: 0;
+}
+
+.about-copy > p + p {
+  margin-top: 1em;
+}
+
 .connect.section {
   padding-bottom: clamp(2.15rem, 4.7vw, 3.95rem);
 }
@@ -1786,7 +1794,7 @@ a {
   justify-content: center;
   width: 1.52rem;
   height: 1.52rem;
-  border: 1px solid rgba(243, 242, 238, 0.14);
+  border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
@@ -1799,7 +1807,6 @@ a {
 
 .discipline-stack-card__arsenal[data-arsenal-kind] .discipline-pill__icon {
   background: rgba(255, 255, 255, 0.052);
-  border-color: rgba(243, 242, 238, 0.14);
   color: #e8e7e1;
 }
 
@@ -1925,6 +1932,27 @@ a {
   gap: 0.9rem;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.project-stack-card__name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.project-stack-card__year {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 0.35rem 0.6rem;
+  border: var(--card-outline-width) solid currentColor;
+  border-radius: 999px;
+  color: var(--accent-orange);
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .project-stack-card__icon {
@@ -2275,11 +2303,6 @@ a {
 
   .project-stack-card__title {
     font-size: clamp(1.5rem, 6.1vw, 2.2rem);
-  }
-
-  .project-stack-card--airtime-cabin .project-stack-card__title {
-    white-space: nowrap;
-    font-size: clamp(1.18rem, 5.4vw, 1.92rem);
   }
 
   .project-stack-card__body {
