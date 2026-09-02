@@ -2819,10 +2819,6 @@
        layouts?.forEach((layout, card) => writeLayout(card, layout));
      };
 
-     const syncMotionHint = () => {
-       stack.classList.toggle("is-moving", pointerState?.intent === "x" || motions.size > 0);
-     };
-
      const cancelQueuedDragState = () => {
        if (dragFrame) {
          cancelAnimationFrame(dragFrame);
@@ -2874,9 +2870,7 @@
          dragSign === 0 ||
          (dragSign < 0 ? activeIndex < total - 1 : activeIndex > 0);
 
-       if (animate) {
-         stack.classList.add("is-moving");
-       }
+       stack.classList.toggle("is-dragging", isDragging);
 
        cards.forEach((card, index) => {
          const offset = index - activeIndex;
@@ -2954,7 +2948,6 @@
        });
 
        if (!isDragging) {
-         syncMotionHint();
          syncLabels();
        }
      };
@@ -3002,7 +2995,6 @@
        const finishAnimation = () => {
          if (motions.get(card) === animation) {
            motions.delete(card);
-           syncMotionHint();
          }
        };
        animation.finished.then(finishAnimation, finishAnimation);
@@ -3108,6 +3100,7 @@
        const pointerId = pointerState.id;
        const wasDragging = pointerState.intent === "x";
        pointerState = null;
+       stack.classList.remove("is-dragging");
 
        if (snap && wasDragging) {
          settleCards();
@@ -3135,7 +3128,7 @@
          if (pointerState.intent === "x") {
            pointerState.layouts = captureLayouts();
            cancelMotions(pointerState.layouts);
-           stack.classList.add("is-moving");
+           stack.classList.add("is-dragging");
          }
        }
 
