@@ -285,8 +285,6 @@
                image.referrerPolicy = "no-referrer";
                image.draggable = false;
                icon.appendChild(image);
-             } else if (item.iconSvg) {
-               icon.innerHTML = item.iconSvg;
              }
 
              const label = document.createElement("span");
@@ -2238,6 +2236,119 @@
      });
    }
 
+   function initAboutDisclosure() {
+     const details = document.getElementById("about-details");
+     const toggle = document.querySelector(".about-copy__toggle");
+     const label = toggle?.querySelector("[data-about-toggle-label]");
+     if (!details || !toggle || !label) {
+       return;
+     }
+
+     const sections = Array.from(details.querySelectorAll(".about-copy__section"));
+     const revealAnimations = [];
+     let expanded = false;
+     let heightAnimation = null;
+     let anchorFrame = 0;
+     let anchorTop = null;
+     let viewportWidth = window.innerWidth;
+
+     const releaseScrollAnchor = () => {
+       cancelAnimationFrame(anchorFrame);
+       anchorFrame = 0;
+       anchorTop = null;
+     };
+     const alignToggle = () => {
+       if (anchorTop === null) return;
+       const delta = toggle.getBoundingClientRect().top - anchorTop;
+       if (Math.abs(delta) > 0.5) {
+         window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: "instant" });
+       }
+     };
+     const trackCollapse = () => {
+       anchorFrame = 0;
+       alignToggle();
+       if (heightAnimation && !expanded && anchorTop !== null) {
+         anchorFrame = requestAnimationFrame(trackCollapse);
+       }
+     };
+     const cancelAnimations = () => {
+       releaseScrollAnchor();
+       heightAnimation?.cancel();
+       heightAnimation = null;
+       revealAnimations.forEach((animation) => animation.cancel());
+       revealAnimations.length = 0;
+     };
+     details.hidden = true;
+     toggle.hidden = false;
+     window.addEventListener("wheel", releaseScrollAnchor, { passive: true });
+     window.addEventListener("touchstart", releaseScrollAnchor, { passive: true });
+     window.addEventListener("resize", () => {
+       if (window.innerWidth === viewportWidth) return;
+       viewportWidth = window.innerWidth;
+       cancelAnimations();
+       details.hidden = !expanded;
+     });
+
+     toggle.addEventListener("click", () => {
+       const scrollTop = window.scrollY;
+       const toggleTop = toggle.getBoundingClientRect().top;
+       const startHeight = details.hidden ? 0 : details.getBoundingClientRect().height;
+
+       cancelAnimations();
+       expanded = !expanded;
+       details.hidden = false;
+       details.inert = !expanded;
+       toggle.setAttribute("aria-expanded", String(expanded));
+       label.textContent = expanded ? "Show less" : "Show more";
+       if (!expanded && toggleTop >= 0 && toggleTop < window.innerHeight) {
+         anchorTop = toggleTop;
+       }
+
+       if (prefersReducedMotion || typeof details.animate !== "function") {
+         details.hidden = !expanded;
+         alignToggle();
+         releaseScrollAnchor();
+         return;
+       }
+
+       const endHeight = expanded ? details.scrollHeight : 0;
+       const animation = details.animate(
+         [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+         { duration: 720, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "both" }
+       );
+       heightAnimation = animation;
+       animation.onfinish = () => {
+         if (heightAnimation !== animation) return;
+         details.hidden = !expanded;
+         animation.cancel();
+         heightAnimation = null;
+         alignToggle();
+         releaseScrollAnchor();
+       };
+
+       if (expanded) {
+         window.scrollTo({ top: scrollTop, behavior: "instant" });
+         sections.forEach((section, index) => {
+           revealAnimations.push(section.animate(
+             [
+               { opacity: 0, transform: "translateY(16px)" },
+               { opacity: 1, transform: "translateY(0)" }
+             ],
+             {
+               duration: 720,
+               delay: index * 65,
+               easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+               fill: "backwards"
+             }
+           ));
+         });
+       } else {
+         // Follow the shrinking content only until the user starts scrolling.
+         trackCollapse();
+       }
+     });
+   }
+
    function initAboutCreator() {
      const title = document.querySelector(".about-creator-title");
      if (!title) {
@@ -3301,6 +3412,7 @@
        renderProjects();
        renderDisciplines();
        initYear();
+       initAboutDisclosure();
        initNav();
        syncMobileNavState();
        initAnchorScroll();
