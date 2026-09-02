@@ -2306,11 +2306,11 @@ a {
 
   .project-stack-card__layout {
     grid-template-columns: 1fr;
-    gap: 1.6rem;
+    gap: 2.2rem;
   }
 
   .project-stack-card__media {
-    --project-image-size: 19rem;
+    --project-image-size: 17rem;
   }
 
 }
