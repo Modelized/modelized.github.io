@@ -1897,6 +1897,7 @@ a {
 .project-stack-card__content {
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
   gap: clamp(1rem, 1.6vw, 1.3rem);
 }
@@ -1951,6 +1952,7 @@ a {
 }
 
 .project-stack-card__title {
+  min-width: 0;
   font-size: clamp(1.45rem, 2.8vw, 2.4rem);
   line-height: 0.94;
   letter-spacing: -0.015em;
@@ -2005,7 +2007,7 @@ a {
 }
 
 .project-stack-card__media {
-  --project-image-size: clamp(15rem, 25vw, 22rem);
+  --project-image-size: clamp(13.5rem, 22.5vw, 20rem);
   position: relative;
   width: calc(var(--project-image-size) * var(--project-image-inline-scale, 1));
   max-width: 100%;

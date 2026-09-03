@@ -47,6 +47,7 @@
      {
        slug: "sherlockgenes",
        title: "SherlockGenes",
+       titleParts: ["Sherlock", "Genes"],
        year: 2025,
        description:
          "An interactive program for analyzing patterns of inheritance from pedigree data. It uses family relationships and observed traits to narrow possible genotypes and determine which modes of inheritance fit a pedigree.",
@@ -178,7 +179,13 @@
          }
        }
 
-       if (title) title.textContent = project.title;
+       if (title) {
+         const parts = project.titleParts || [project.title];
+         parts.forEach((part, partIndex) => {
+           if (partIndex > 0) title.append(document.createElement("wbr"));
+           title.append(document.createTextNode(part));
+         });
+       }
        if (year) year.textContent = String(project.year);
        if (description) description.textContent = project.description;
 
