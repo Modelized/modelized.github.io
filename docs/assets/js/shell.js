@@ -1756,7 +1756,7 @@
 
     let settledFitTimer = 0;
     const stackedHomeLayout = window.matchMedia(
-      "(max-width: 900px), (min-width: 901px) and (max-aspect-ratio: 9 / 16)"
+      "(max-width: 900px), (width > 900px) and (max-aspect-ratio: 9 / 16)"
     );
     let lastViewportWidth = window.innerWidth;
     let lastViewportHeight = window.innerHeight;
@@ -3431,57 +3431,47 @@
      window.addEventListener("pageshow", syncWithoutAnimation);
    }
 
-   function initDisciplineStack() {
-     const getBaseCardHeight = ({ portrait }) => {
+   function createStackHeightResolver(sizes) {
+     return ({ portrait }) => {
+       const size = portrait
+         ? sizes.portrait
+         : window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches
+           ? sizes.landscape
+           : window.innerWidth <= 980 ? sizes.narrow : sizes.wide;
+       if (!size) return 0;
        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-       if (portrait) {
-         return Math.min(Math.max(window.innerWidth * 0.84, 25.8 * rem), 30.4 * rem);
-       }
-
-       if (window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches) {
-         return Math.min(Math.max(window.innerWidth * 0.33, 18.8 * rem), 22.8 * rem);
-       }
-
-       if (window.innerWidth <= 980) {
-         return Math.min(Math.max(window.innerWidth * 0.4, 20 * rem), 24 * rem);
-       }
-
-       return Math.min(Math.max(window.innerWidth * 0.39, 22 * rem), 28 * rem);
+       const [viewportRatio, minRem, maxRem] = size;
+       return Math.min(Math.max(window.innerWidth * viewportRatio, minRem * rem), maxRem * rem);
      };
+   }
 
+   function initDisciplineStack() {
      initStackDeck({
        stackId: "discipline-stack",
        items: disciplines,
        getAriaLabel: (item) => `Core disciplines cards. ${item.title} is in focus.`,
-       getBaseCardHeight,
+       getBaseCardHeight: createStackHeightResolver({
+         portrait: [0.84, 25.8, 30.4],
+         landscape: [0.33, 18.8, 22.8],
+         narrow: [0.4, 20, 24],
+         wide: [0.39, 22, 28]
+       }),
        measureCard: measureDisciplineCard,
        extraBlockSpace: 8
      });
    }
 
    function initProjectStack() {
-     const getBaseCardHeight = ({ portrait }) => {
-       if (portrait) {
-         return 0;
-       }
-
-       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-       if (window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches) {
-         return Math.min(Math.max(window.innerWidth * 0.365, 21.5 * rem), 25.6 * rem);
-       }
-
-       if (window.innerWidth <= 980) {
-         return Math.min(Math.max(window.innerWidth * 0.47, 22.8 * rem), 27.2 * rem);
-       }
-
-       return Math.min(Math.max(window.innerWidth * 0.325, 24.2 * rem), 29.5 * rem);
-     };
-
      initStackDeck({
        stackId: "project-stack",
        items: projects,
        getAriaLabel: (item) => `Current project cards. ${item.title} is in focus.`,
-       getBaseCardHeight,
+       getBaseCardHeight: createStackHeightResolver({
+         portrait: null,
+         landscape: [0.365, 21.5, 25.6],
+         narrow: [0.47, 22.8, 27.2],
+         wide: [0.325, 24.2, 29.5]
+       }),
        measureCard: measureProjectCard,
        mediaSelector: ".project-stack-card__image"
      });

@@ -38,7 +38,7 @@
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const stackedLayout = window.matchMedia(
-    "(max-width: 900px), (min-width: 901px) and (max-aspect-ratio: 9 / 16)"
+    "(max-width: 900px), (width > 900px) and (max-aspect-ratio: 9 / 16)"
   );
   if (
     !visual ||
