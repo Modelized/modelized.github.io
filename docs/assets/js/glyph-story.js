@@ -22,15 +22,9 @@
   const progressItems = Array.from(root.querySelectorAll("[data-glyph-progress]"));
   const motions = pieces.map((piece) => piece.querySelector(".glyph-piece__motion"));
   const forms = pieces.map((piece) => piece.querySelector(".glyph-piece__form"));
-  const fillPaths = Array.from(
-    root.querySelectorAll(".glyph-piece__art .glyph-piece__fill")
-  );
-  const artPaths = Array.from(
-    root.querySelectorAll(".glyph-piece__art .glyph-piece__outline")
-  );
-  const glowPaths = Array.from(
-    root.querySelectorAll(".glyph-piece__glow .glyph-piece__outline")
-  );
+  const fillPaths = Array.from(root.querySelectorAll(".glyph-piece__art .glyph-piece__fill"));
+  const artPaths = Array.from(root.querySelectorAll(".glyph-piece__art .glyph-piece__outline"));
+  const glowPaths = Array.from(root.querySelectorAll(".glyph-piece__glow .glyph-piece__outline"));
   const glowLayers = pieces.map((piece) => piece.querySelector(".glyph-piece__glow"));
   const outlinePaths = [...artPaths, ...glowPaths];
   const keys = pieces.map((piece) => piece.dataset.glyphPiece);
@@ -92,32 +86,26 @@
   const visited = new Set();
   const dashLengths = new WeakMap();
 
-  const nextFrame = () => new Promise((resolve) => {
-    requestAnimationFrame(() => requestAnimationFrame(resolve));
-  });
+  const nextFrame = () =>
+    new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
 
-  const clamp = (value, minimum, maximum) => (
-    Math.min(maximum, Math.max(minimum, value))
-  );
+  const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
 
   const setFloatStrength = (value) => {
-    root.style.setProperty(
-      "--glyph-float-strength",
-      String(clamp(value, 0, 1))
-    );
+    root.style.setProperty("--glyph-float-strength", String(clamp(value, 0, 1)));
   };
 
-  const mix = (start, end, progress) => (
-    start + ((end - start) * progress)
-  );
+  const mix = (start, end, progress) => start + (end - start) * progress;
 
   const cubicBezier = (x1, y1, x2, y2) => {
     const sample = (point1, point2, value) => {
       const inverse = 1 - value;
       return (
-        (3 * inverse * inverse * value * point1) +
-        (3 * inverse * value * value * point2) +
-        (value * value * value)
+        3 * inverse * inverse * value * point1 +
+        3 * inverse * value * value * point2 +
+        value * value * value
       );
     };
 
@@ -149,19 +137,15 @@
         const svg = path.ownerSVGElement;
         const svgRect = svg?.getBoundingClientRect();
         const viewBox = svg?.viewBox?.baseVal;
-        const renderedScale = (
+        const renderedScale =
           svgRect &&
           viewBox &&
           viewBox.width > 0 &&
           viewBox.height > 0 &&
           svgRect.width > 0 &&
           svgRect.height > 0
-        )
-          ? Math.min(
-            svgRect.width / viewBox.width,
-            svgRect.height / viewBox.height
-          )
-          : 1;
+            ? Math.min(svgRect.width / viewBox.width, svgRect.height / viewBox.height)
+            : 1;
         if (Number.isFinite(measuredLength) && measuredLength > 0) {
           dashLength = Math.ceil(measuredLength * renderedScale);
         }
@@ -224,9 +208,7 @@
   };
 
   const setPathDash = (path, progress) => {
-    path.style.strokeDashoffset = String(
-      dashLengthFor(path) * (1 - clamp(progress, 0, 1))
-    );
+    path.style.strokeDashoffset = String(dashLengthFor(path) * (1 - clamp(progress, 0, 1)));
   };
 
   const applyEntryVisual = (progress) => {
@@ -248,11 +230,7 @@
     });
   };
 
-  const applyClosingVisual = (
-    progress,
-    fromFilled,
-    easedProgress = transitionEase(progress)
-  ) => {
+  const applyClosingVisual = (progress, fromFilled, easedProgress = transitionEase(progress)) => {
     const visualProgress = easedProgress;
     const outlineProgress = 1 - visualProgress;
 
@@ -276,16 +254,10 @@
   const applyAssemblyVisual = (progress) => {
     const bloomPeak = 0.3;
     const bloomIn = transitionEase(clamp(progress / bloomPeak, 0, 1));
-    const bloomReleaseProgress = clamp(
-      (progress - bloomPeak) / (1 - bloomPeak),
-      0,
-      1
-    );
+    const bloomReleaseProgress = clamp((progress - bloomPeak) / (1 - bloomPeak), 0, 1);
     const bloomSpread = 1 - Math.pow(1 - clamp(progress, 0, 1), 2.2);
     const fillProgress = transitionEase(clamp((progress - 0.28) / 0.66, 0, 1));
-    const bloomOpacity = progress <= bloomPeak
-      ? bloomIn
-      : Math.pow(1 - bloomReleaseProgress, 1.08);
+    const bloomOpacity = progress <= bloomPeak ? bloomIn : Math.pow(1 - bloomReleaseProgress, 1.08);
     const bloomScale = mix(0.16, 1.94, bloomSpread);
 
     bloom.style.opacity = String(bloomOpacity);
@@ -364,12 +336,13 @@
     for (let index = verticalStart; index <= verticalEnd; index += 1) {
       const isCenter = index === 0;
       const isMajor = index % 4 === 0;
-      const color = isCenter && focusGrid
-        ? "rgba(255, 159, 85, 0.28)"
-        : isMajor
-          ? "rgba(255, 168, 98, 0.09)"
-          : "rgba(255, 255, 255, 0.032)";
-      drawLine(centerX + (index * spacing), 0, centerX + (index * spacing), height, color);
+      const color =
+        isCenter && focusGrid
+          ? "rgba(255, 159, 85, 0.28)"
+          : isMajor
+            ? "rgba(255, 168, 98, 0.09)"
+            : "rgba(255, 255, 255, 0.032)";
+      drawLine(centerX + index * spacing, 0, centerX + index * spacing, height, color);
     }
 
     const horizontalStart = -Math.ceil(centerY / spacing);
@@ -377,12 +350,13 @@
     for (let index = horizontalStart; index <= horizontalEnd; index += 1) {
       const isCenter = index === 0;
       const isMajor = index % 4 === 0;
-      const color = isCenter && focusGrid
-        ? "rgba(255, 159, 85, 0.28)"
-        : isMajor
-          ? "rgba(255, 168, 98, 0.09)"
-          : "rgba(255, 255, 255, 0.032)";
-      drawLine(0, centerY + (index * spacing), width, centerY + (index * spacing), color);
+      const color =
+        isCenter && focusGrid
+          ? "rgba(255, 159, 85, 0.28)"
+          : isMajor
+            ? "rgba(255, 168, 98, 0.09)"
+            : "rgba(255, 255, 255, 0.032)";
+      drawLine(0, centerY + index * spacing, width, centerY + index * spacing, color);
     }
   };
 
@@ -391,19 +365,15 @@
     gridDrawFrame = requestAnimationFrame(drawGlyphGrid);
   };
 
-  const rotationForProgress = (progress) => (
-    Math.sin(clamp(progress, 0, pieces.length - 1) * (Math.PI / 2)) * 90
-  );
+  const rotationForProgress = (progress) =>
+    Math.sin(clamp(progress, 0, pieces.length - 1) * (Math.PI / 2)) * 90;
 
-  const easeInOutCubic = (value) => (
-    value < 0.5
-      ? 4 * value * value * value
-      : 1 - (Math.pow((-2 * value) + 2, 3) / 2)
-  );
+  const easeInOutCubic = (value) =>
+    value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
 
   const rectCenter = (rect) => ({
-    x: rect.left + (rect.width / 2),
-    y: rect.top + (rect.height / 2)
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
   });
 
   const setScrollLocked = (locked) => {
@@ -461,18 +431,9 @@
     const focusState = state === "focus";
 
     previousButton.disabled = !focusState || activeIndex === 0;
-    nextButton.disabled = (
-      !focusState ||
-      activeIndex === pieces.length - 1
-    );
-    previousButton.setAttribute(
-      "aria-hidden",
-      focusState ? "false" : "true"
-    );
-    nextButton.setAttribute(
-      "aria-hidden",
-      focusState ? "false" : "true"
-    );
+    nextButton.disabled = !focusState || activeIndex === pieces.length - 1;
+    previousButton.setAttribute("aria-hidden", focusState ? "false" : "true");
+    nextButton.setAttribute("aria-hidden", focusState ? "false" : "true");
   };
 
   const setState = (nextState) => {
@@ -484,11 +445,10 @@
       piece.disabled = nextState !== "overview";
     });
     control.disabled = nextState !== "overview" && nextState !== "focus";
-    finishButton.disabled = (
+    finishButton.disabled =
       nextState !== "focus" ||
       visited.size !== pieces.length ||
-      !finishButton.classList.contains("is-visible")
-    );
+      !finishButton.classList.contains("is-visible");
     closeButton.disabled = nextState !== "epilogue";
     rail.tabIndex = nextState === "focus" ? 0 : -1;
     updateEdgeControls();
@@ -499,12 +459,12 @@
     const size = Math.max(1, Math.min(frameRect.width, frameRect.height));
     const center = rectCenter(frameRect);
     return {
-      left: center.x - (size / 2),
-      top: center.y - (size / 2),
+      left: center.x - size / 2,
+      top: center.y - size / 2,
       width: size,
       height: size,
-      right: center.x + (size / 2),
-      bottom: center.y + (size / 2)
+      right: center.x + size / 2,
+      bottom: center.y + size / 2
     };
   };
 
@@ -521,24 +481,20 @@
     };
   };
 
-  const formatMarkTransform = ({ x, y, scale }) => (
-    `translate3d(${x}px, ${y}px, 0) scale(${scale})`
-  );
+  const formatMarkTransform = ({ x, y, scale }) => `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
 
-  const interpolateMarkTransform = (start, end, progress) => formatMarkTransform({
-    x: mix(start.x, end.x, progress),
-    y: mix(start.y, end.y, progress),
-    scale: mix(start.scale, end.scale, progress)
-  });
+  const interpolateMarkTransform = (start, end, progress) =>
+    formatMarkTransform({
+      x: mix(start.x, end.x, progress),
+      y: mix(start.y, end.y, progress),
+      scale: mix(start.scale, end.scale, progress)
+    });
 
   const startMarkTransformAnimation = (start, end, duration) => {
     if (reducedMotion.matches || typeof mark.animate !== "function") return null;
 
     return mark.animate(
-      [
-        { transform: formatMarkTransform(start) },
-        { transform: formatMarkTransform(end) }
-      ],
+      [{ transform: formatMarkTransform(start) }, { transform: formatMarkTransform(end) }],
       {
         duration,
         easing: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -556,7 +512,7 @@
     const piece = pieces[index];
     if (!piece) return 0;
     const maximum = Math.max(0, rail.scrollWidth - rail.clientWidth);
-    const centered = piece.offsetLeft - ((rail.clientWidth - piece.offsetWidth) / 2);
+    const centered = piece.offsetLeft - (rail.clientWidth - piece.offsetWidth) / 2;
     return clamp(centered, 0, maximum);
   };
 
@@ -568,9 +524,7 @@
     return Math.max(1, rail.clientWidth);
   };
 
-  const railProgress = () => (
-    clamp(rail.scrollLeft / Math.max(1, railStep()), 0, pieces.length - 1)
-  );
+  const railProgress = () => clamp(rail.scrollLeft / Math.max(1, railStep()), 0, pieces.length - 1);
 
   const syncProgress = () => {
     const activeKey = keys[activeIndex];
@@ -645,27 +599,15 @@
       const delta = index - progress;
       const distance = Math.abs(delta);
       piece.style.setProperty("--rail-rotation", `${currentRotation.toFixed(3)}deg`);
-      piece.style.setProperty(
-        "--rail-scale",
-        String(clamp(1 - (distance * 0.075), 0.91, 1))
-      );
-      piece.style.setProperty(
-        "--rail-opacity",
-        String(clamp(1 - (distance * 1.08), 0, 1))
-      );
+      piece.style.setProperty("--rail-scale", String(clamp(1 - distance * 0.075, 0.91, 1)));
+      piece.style.setProperty("--rail-opacity", String(clamp(1 - distance * 1.08, 0, 1)));
     });
 
     panels.forEach((panel, index) => {
       const delta = index - progress;
       const distance = Math.abs(delta);
-      panel.style.setProperty(
-        "--panel-shift",
-        `${(clamp(delta, -1, 1) * 42).toFixed(2)}px`
-      );
-      panel.style.setProperty(
-        "--panel-opacity",
-        String(clamp(1 - (distance * 1.06), 0, 1))
-      );
+      panel.style.setProperty("--panel-shift", `${(clamp(delta, -1, 1) * 42).toFixed(2)}px`);
+      panel.style.setProperty("--panel-opacity", String(clamp(1 - distance * 1.06, 0, 1)));
     });
 
     if (nearest !== activeIndex) setActiveIndex(nearest);
@@ -678,12 +620,7 @@
   };
 
   const commitRailSelection = () => {
-    if (
-      state !== "focus" ||
-      transitioning ||
-      programmaticScroll ||
-      pointerGesture
-    ) {
+    if (state !== "focus" || transitioning || programmaticScroll || pointerGesture) {
       return;
     }
 
@@ -722,7 +659,7 @@
 
     const step = (now) => {
       const progress = Math.min(1, (now - startedAt) / duration);
-      rail.scrollLeft = start + (distance * easeInOutCubic(progress));
+      rail.scrollLeft = start + distance * easeInOutCubic(progress);
       updateRailVisuals();
 
       if (progress < 1) {
@@ -779,15 +716,15 @@
     const rotationDelta = startRotation - targetRotation;
 
     if (!reducedMotion.matches) {
-      await Promise.all(motions.map((motion, index) => animateElement(
-        motion,
-        translationKeyframes(before[index], after[index], rotationDelta),
-        {
-          duration,
-          easing: settleEase,
-          fill: "both"
-        }
-      )));
+      await Promise.all(
+        motions.map((motion, index) =>
+          animateElement(motion, translationKeyframes(before[index], after[index], rotationDelta), {
+            duration,
+            easing: settleEase,
+            fill: "both"
+          })
+        )
+      );
     }
 
     currentRotation = targetRotation;
@@ -818,12 +755,7 @@
     activeIndex = 0;
     pointerGesture = null;
     rail.scrollLeft = 0;
-    root.classList.remove(
-      "is-transitioning",
-      "is-filled",
-      "is-closing",
-      "is-reflowing"
-    );
+    root.classList.remove("is-transitioning", "is-filled", "is-closing", "is-reflowing");
     clearFrameDrivenStyles();
     deactivateBloom();
     root.style.removeProperty("--glyph-float-strength");
@@ -945,11 +877,7 @@
     const completed = await runFrameTimeline(entryDuration, (progress) => {
       const eased = transitionEase(progress);
       if (!markAnimation) {
-        mark.style.transform = interpolateMarkTransform(
-          sourceMetrics,
-          destinationMetrics,
-          eased
-        );
+        mark.style.transform = interpolateMarkTransform(sourceMetrics, destinationMetrics, eased);
       }
       setFloatStrength(eased);
       applyEntryVisual(progress);
@@ -974,10 +902,7 @@
   };
 
   const closeStory = async () => {
-    if (
-      (state !== "overview" && state !== "epilogue") ||
-      transitioning
-    ) {
+    if ((state !== "overview" && state !== "epilogue") || transitioning) {
       return;
     }
 
@@ -1002,26 +927,15 @@
     mark.style.transform = formatMarkTransform(startMetrics);
     mark.style.opacity = "1";
     applyClosingVisual(0, closingFromFilled);
-    document.body.classList.remove(
-      "glyph-story-active",
-      "glyph-story-measuring-home"
-    );
+    document.body.classList.remove("glyph-story-active", "glyph-story-measuring-home");
 
     const closingDuration = 980;
-    const markAnimation = startMarkTransformAnimation(
-      startMetrics,
-      targetMetrics,
-      closingDuration
-    );
+    const markAnimation = startMarkTransformAnimation(startMetrics, targetMetrics, closingDuration);
     const completed = await runFrameTimeline(closingDuration, (progress) => {
       const eased = transitionEase(progress);
       setFloatStrength(1 - eased);
       if (!markAnimation) {
-        mark.style.transform = interpolateMarkTransform(
-          startMetrics,
-          targetMetrics,
-          eased
-        );
+        mark.style.transform = interpolateMarkTransform(startMetrics, targetMetrics, eased);
       }
       applyClosingVisual(progress, closingFromFilled, eased);
     });
@@ -1036,12 +950,7 @@
     document.body.classList.remove("glyph-story-source-hidden");
     await nextFrame();
 
-    root.classList.remove(
-      "is-open",
-      "is-closing",
-      "is-transitioning",
-      "is-filled"
-    );
+    root.classList.remove("is-open", "is-closing", "is-transitioning", "is-filled");
     root.hidden = true;
     root.inert = true;
     root.setAttribute("aria-hidden", "true");
@@ -1123,10 +1032,8 @@
 
   const handleRailWheel = (event) => {
     if (state !== "focus" || transitioning) return;
-    const horizontalIntent = (
-      event.shiftKey ||
-      Math.abs(event.deltaX) > Math.max(4, Math.abs(event.deltaY) * 0.85)
-    );
+    const horizontalIntent =
+      event.shiftKey || Math.abs(event.deltaX) > Math.max(4, Math.abs(event.deltaY) * 0.85);
     if (!horizontalIntent) return;
 
     keyboardSession = false;
@@ -1145,11 +1052,7 @@
   };
 
   const handlePointerMove = (event) => {
-    if (
-      !pointerGesture ||
-      pointerGesture.id !== event.pointerId ||
-      pointerGesture.decided
-    ) {
+    if (!pointerGesture || pointerGesture.id !== event.pointerId || pointerGesture.decided) {
       return;
     }
 
@@ -1185,16 +1088,17 @@
     }
   };
 
-  const focusableElements = () => Array.from(root.querySelectorAll(
-    "button:not([disabled]), [href], [tabindex]:not([tabindex='-1'])"
-  )).filter((element) => {
-    const style = getComputedStyle(element);
-    return (
-      style.visibility !== "hidden" &&
-      style.display !== "none" &&
-      element.getAttribute("aria-hidden") !== "true"
-    );
-  });
+  const focusableElements = () =>
+    Array.from(
+      root.querySelectorAll("button:not([disabled]), [href], [tabindex]:not([tabindex='-1'])")
+    ).filter((element) => {
+      const style = getComputedStyle(element);
+      return (
+        style.visibility !== "hidden" &&
+        style.display !== "none" &&
+        element.getAttribute("aria-hidden") !== "true"
+      );
+    });
 
   const handleKeydown = (event) => {
     if (state === "closed") return;
@@ -1209,9 +1113,7 @@
 
     if (state === "focus" && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
-      animateRailTo(
-        activeIndex + (event.key === "ArrowRight" ? 1 : -1)
-      );
+      animateRailTo(activeIndex + (event.key === "ArrowRight" ? 1 : -1));
       return;
     }
 
@@ -1277,9 +1179,13 @@
   };
 
   trigger.addEventListener("click", openStory);
-  root.addEventListener("pointerdown", () => {
-    keyboardSession = false;
-  }, { capture: true, passive: true });
+  root.addEventListener(
+    "pointerdown",
+    () => {
+      keyboardSession = false;
+    },
+    { capture: true, passive: true }
+  );
   control.addEventListener("click", handleControl);
   previousButton.addEventListener("click", () => {
     animateRailTo(activeIndex - 1);
@@ -1307,9 +1213,8 @@
     trigger.disabled = false;
   });
 
-  const gridResizeObserver = typeof ResizeObserver === "function"
-    ? new ResizeObserver(scheduleGridDraw)
-    : null;
+  const gridResizeObserver =
+    typeof ResizeObserver === "function" ? new ResizeObserver(scheduleGridDraw) : null;
   gridResizeObserver?.observe(visual);
   setState("closed");
   resetExploration();

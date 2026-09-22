@@ -1,1227 +1,1242 @@
- (function(){
-   "use strict";
-
-   const body = document.body;
-   const base = (body?.getAttribute('data-base') || '.').trim();
-   const assetVersion = '20260831c';
-   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
-   const SITE_LOADER_REVEAL_DELAY = 220;
-   const SITE_LOADER_SKIP_DELAY = 4200;
-   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
-   const siteBootGate = createSiteBootGate();
-
-   // Image bounds are visible artwork [x, y, width, height] in source pixels, excluding shadows.
-   const projects = [
-     {
-       slug: "istage",
-       title: "iStage",
-       year: 2026,
-       description:
-         "A pixel-perfect recreation of the iOS Lock Screen for Android, including Dynamic Island, Live Activities, and extensive customization features — all powered by KLCK.",
-       categories: ["Development", "Design"],
-       icon: "assets/img/iStage-icon-dark.png",
-       image: {
-         src: "assets/img/hero-iStage-series.png",
-         width: 2160,
-         height: 2160,
-         bounds: [412, 204, 1338, 1752]
-       },
-       url: "https://modelized.github.io/iStage/"
-     },
-     {
-       slug: "vanta",
-       title: "Vanta",
-       year: 2025,
-       description:
-         "A native macOS frontend for vphone, built to launch and manage iOS virtual machines without relying on the terminal. It combines VM controls with a built-in viewer for running and interacting with virtual devices.",
-       categories: ["Development", "Engineering"],
-       icon: "assets/img/Vanta-icon-dark.png",
-       image: {
-         src: "assets/img/hero-Vanta.png",
-         width: 2184,
-         height: 1648,
-         bounds: [111, 75, 1962, 1439]
-       }
-     },
-     {
-       slug: "sherlockgenes",
-       title: "SherlockGenes",
-       titleParts: ["Sherlock", "Genes"],
-       year: 2025,
-       description:
-         "An interactive program for analyzing patterns of inheritance from pedigree data. It uses family relationships and observed traits to narrow possible genotypes and determine which modes of inheritance fit a pedigree.",
-       categories: ["Development", "Research"],
-       image: {
-         src: "assets/img/hero-SherlockGenes.png",
-         width: 2784,
-         height: 1880,
-         bounds: [111, 75, 2562, 1670]
-       }
-     },
-     {
-       slug: "truevision",
-       title: "TrueVision",
-       year: 2025,
-       description:
-         "A computer vision system for detecting and visualizing dangerous crowd congestion in real time. It analyzes people and their relative positions in video to estimate crowd density and display changing levels of risk.",
-       categories: ["Development", "Engineering", "Research"]
-     },
-     {
-       slug: "aero",
-       title: "Aero",
-       year: 2024,
-       description:
-         "A concept for a next-generation operating system built around personalization and adaptability. Its interface includes Space, a customizable environment shaped around the user, contextual action suggestions, and an expandable Activity Indicator for live information.",
-       categories: ["Design"]
-     }
-   ];
-
-   const disciplines = [
-     {
-       slug: "development",
-       tone: "development",
-       title: "Development",
-       text:
-         "I build native applications and computational tools, primarily using Swift and Python. My work spans mobile apps, experimental systems, and small research tools. Development is where I test ideas, see what works in practice, and refine them through use.",
-       arsenalKind: "development",
-       arsenal: [
-         { iconUrl: simpleIcon("swift"), label: "Swift" },
-         { iconUrl: simpleIcon("python"), label: "Python" },
-         { iconUrl: simpleIcon("c"), label: "C" },
-         { iconUrl: simpleIcon("cplusplus"), label: "C++" },
-         { iconUrl: simpleIcon("javascript"), label: "JavaScript" },
-         { iconUrl: simpleIcon("html5"), label: "HTML" },
-         { iconUrl: simpleIcon("kotlin"), label: "Kotlin" }
-       ]
-     },
-     {
-       slug: "engineering",
-       tone: "engineering",
-       title: "Engineering",
-       text:
-         "I explore how operating systems and devices function beneath the interface. My work involves custom ROM development, system modification, and low-level experimentation within Android environments. These projects help me grasp how software, hardware, and system architecture interact in practice."
-     },
-     {
-       slug: "design",
-       tone: "design",
-       title: "Design",
-       text:
-         "I shape the visual and interactive aspects of the software I create. I design interfaces with careful attention to layout, motion, hierarchy, and interaction. To me, design is integral to how a system communicates."
-     },
-     {
-       slug: "research",
-       tone: "research",
-       title: "Research",
-       text:
-         "I study living systems through biology and computer science. My main interests include neural signaling, genetics, stem-cell differentiation, tissue regeneration, and how biological systems change under different conditions. I also use computational methods to organize information, test ideas, and explore biological questions that would be difficult to investigate through observation alone."
-     }
-   ];
-
-   function getPartialUrl(file) {
-     if (!base || base === ".") {
-       return `assets/partials/${file}?v=${assetVersion}`;
-     }
-
-     const normalized = base.endsWith("/") ? base.slice(0, -1) : base;
-     return `${normalized}/assets/partials/${file}?v=${assetVersion}`;
-   }
-
-   async function injectPartial(selector, file) {
-     const slot = document.querySelector(selector);
-     if (!slot) {
-       return;
-     }
-
-     try {
-       const response = await fetch(getPartialUrl(file));
-       if (!response.ok) {
-         throw new Error(`${file} fetch failed: ${response.status}`);
-       }
-       slot.innerHTML = await response.text();
-     } catch (error) {
-       console.error("Partial load failed", error);
-     }
-   }
-
-   function renderProjects() {
-     const stack = document.getElementById("project-stack");
-     const template = document.getElementById("project-card-template");
-
-     if (!stack || !template) {
-       return;
-     }
-
-     stack.innerHTML = "";
-     delete stack.dataset.stackReady;
-
-     projects.forEach((project, index) => {
-       const fragment = template.content.cloneNode(true);
-       const card = fragment.querySelector(".project-stack-card");
-       const title = fragment.querySelector(".project-stack-card__title");
-       const year = fragment.querySelector(".project-stack-card__year");
-       const description = fragment.querySelector(".project-stack-card__body");
-       const icon = fragment.querySelector(".project-stack-card__icon");
-       const media = fragment.querySelector(".project-stack-card__media");
-       const image = fragment.querySelector(".project-stack-card__image");
-       const categories = fragment.querySelector(".project-stack-card__categories");
-       const projectLink = fragment.querySelector(".project-stack-card__link");
-
-       if (card) {
-         card.dataset.index = String(index);
-         card.dataset.slug = project.slug;
-         card.classList.add(`project-stack-card--${project.slug}`);
-         if (project.image) {
-           card.classList.add("has-media");
-         }
-         if (project.icon) {
-           card.classList.add("has-icon");
-         }
-       }
-
-       if (title) {
-         const parts = project.titleParts || [project.title];
-         parts.forEach((part, partIndex) => {
-           if (partIndex > 0) title.append(document.createElement("wbr"));
-           title.append(document.createTextNode(part));
-         });
-       }
-       if (year) year.textContent = String(project.year);
-       if (description) description.textContent = project.description;
-
-       if (icon) {
-         if (project.icon) {
-           icon.hidden = false;
-           icon.src = project.icon;
-           icon.alt = `${project.title} icon`;
-         } else {
-           icon.remove();
-         }
-       }
-
-       if (media && image) {
-         if (project.image) {
-           const { src, width, height, bounds } = project.image;
-           const [x, y, contentWidth, contentHeight] = bounds;
-           media.hidden = false;
-           media.style.aspectRatio = `${contentWidth} / ${contentHeight}`;
-           media.style.setProperty("--project-image-inline-scale", String(Math.min(1, contentWidth / contentHeight)));
-           image.src = src;
-           image.alt = `${project.title} project preview`;
-           image.width = width;
-           image.height = height;
-           image.style.width = `${(width / contentWidth) * 100}%`;
-           image.style.left = `${(-x / contentWidth) * 100}%`;
-           image.style.top = `${(-y / contentHeight) * 100}%`;
-           image.draggable = false;
-         } else {
-           media.remove();
-         }
-       }
-
-       if (categories) {
-         if (project.categories?.length) {
-           categories.hidden = false;
-           project.categories.forEach((category) => {
-             const pill = document.createElement("span");
-             pill.className = "discipline-pill project-category-pill";
-
-             const label = document.createElement("span");
-             label.className = "discipline-pill__label";
-             label.textContent = category;
-
-             pill.appendChild(label);
-             categories.appendChild(pill);
-           });
-         } else {
-           categories.remove();
-         }
-       }
-
-       if (projectLink) {
-         if (project.url) {
-           projectLink.hidden = false;
-           projectLink.href = project.url;
-           projectLink.setAttribute("aria-label", `Open ${project.title}`);
-         } else {
-           projectLink.remove();
-         }
-       }
-
-       stack.appendChild(fragment);
-     });
-   }
-
-   function renderDisciplines() {
-     const stack = document.getElementById("discipline-stack");
-     const template = document.getElementById("discipline-card-template");
-
-     if (!stack || !template) {
-       return;
-     }
-
-     stack.innerHTML = "";
-     delete stack.dataset.stackReady;
-
-     disciplines.forEach((discipline, index) => {
-       const fragment = template.content.cloneNode(true);
-       const card = fragment.querySelector(".discipline-stack-card");
-       const title = fragment.querySelector(".discipline-stack-card__title");
-       const bodyText = fragment.querySelector(".discipline-stack-card__body");
-       const arsenal = fragment.querySelector(".discipline-stack-card__arsenal");
-
-       if (card) {
-         card.dataset.index = String(index);
-         card.dataset.slug = discipline.slug;
-         card.dataset.tone = discipline.tone;
-         card.classList.add(`discipline-stack-card--${discipline.slug}`);
-       }
-
-       if (title) title.textContent = discipline.title;
-       if (bodyText) bodyText.textContent = discipline.text;
-
-       if (arsenal) {
-         if (discipline.arsenal?.length) {
-           arsenal.hidden = false;
-           arsenal.dataset.arsenalKind = discipline.arsenalKind || "";
-
-           discipline.arsenal.forEach((item) => {
-             const pill = document.createElement("span");
-             pill.className = "discipline-pill";
-             if (item.label) {
-               pill.classList.add(`discipline-pill--${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`);
-             }
-
-             const icon = document.createElement("span");
-             icon.className = "discipline-pill__icon";
-             icon.setAttribute("aria-hidden", "true");
-
-             if (item.iconUrl) {
-               const image = document.createElement("img");
-               image.src = item.iconUrl;
-               image.alt = "";
-               image.loading = "lazy";
-               image.decoding = "async";
-               image.referrerPolicy = "no-referrer";
-               image.draggable = false;
-               icon.appendChild(image);
-             }
-
-             const label = document.createElement("span");
-             label.className = "discipline-pill__label";
-             label.textContent = item.label;
-
-             pill.append(icon, label);
-             arsenal.appendChild(pill);
-           });
-         } else {
-           arsenal.remove();
-         }
-       }
-
-       stack.appendChild(fragment);
-     });
-   }
-
-   function initYear() {
-     const year = String(new Date().getFullYear());
-     document.querySelectorAll("[data-year]").forEach((node) => {
-       node.textContent = year;
-     });
-     document.querySelectorAll("[data-year-prefix]").forEach((node) => {
-       node.textContent = year.slice(0, 2);
-     });
-     document.querySelectorAll("[data-year-suffix]").forEach((node) => {
-       node.textContent = year.slice(-2);
-     });
-     document.querySelectorAll("[data-year-label]").forEach((node) => {
-       node.setAttribute("aria-label", year);
-     });
-   }
-
-   function getScrollTop() {
-     const scrollEl = document.scrollingElement || document.documentElement || document.body;
-     return Math.max(
-       window.scrollY || 0,
-       window.pageYOffset || 0,
-       scrollEl?.scrollTop || 0
-     );
-   }
-
-   function createSettledScheduler(callback) {
-     const timers = [];
-
-     const clear = () => {
-       while (timers.length) {
-         window.clearTimeout(timers.pop());
-       }
-     };
-
-     const schedule = (baseDelay = 0, beforeSchedule) => {
-       clear();
-       beforeSchedule?.();
-
-       SETTLE_PASS_DELAYS.forEach((offset) => {
-         timers.push(window.setTimeout(callback, baseDelay + offset));
-       });
-     };
-
-     return { clear, schedule };
-   }
-
-   function getNavOffset(){
-     const nav = document.querySelector('.nav');
-     if (!nav) return 24;
-
-     const row = nav.querySelector('.row');
-     const rect = row ? row.getBoundingClientRect() : nav.getBoundingClientRect();
-     return Math.ceil(rect.bottom + 18);
-   }
-
-   function isPortraitMobile(){
-     return window.matchMedia('(max-width:900px) and (orientation:portrait)').matches;
-   }
-
-   function isNavMenuOpen(nav){
-     return !!nav?.classList.contains('nav--open');
-   }
-
-   function isPortraitMenuActive(nav){
-     return isPortraitMobile() && isNavMenuOpen(nav);
-   }
-
-   function clearPortraitMenuLayoutVars(){
-     const root = document.documentElement;
-     root.style.removeProperty('--menu-blur-top');
-     root.style.removeProperty('--menu-blur-height');
-     root.style.removeProperty('--mobile-row-inline');
-     root.style.removeProperty('--mobile-menu-inline');
-     root.style.removeProperty('--mobile-menu-top');
-     root.style.removeProperty('--mobile-brand-shift-x');
-     root.style.removeProperty('--mobile-brand-shift-y');
-     root.style.removeProperty('--mobile-wordmark-font-size');
-     root.style.removeProperty('--mobile-wordmark-right');
-     root.style.removeProperty('--mobile-wordmark-bottom');
-   }
-
-   function clearPortraitBrandLock(nav){
-     if (!nav) return;
-     delete nav.dataset.brandShiftLocked;
-     delete nav.dataset.brandShiftX;
-     delete nav.dataset.brandShiftY;
-   }
-
-   function setPortraitBrandShift(nav, shiftX, shiftY){
-     if (!nav) return;
-     const root = document.documentElement;
-     const normalizedX = Math.round(shiftX);
-     const normalizedY = Math.round(shiftY);
-
-     root.style.setProperty('--mobile-brand-shift-x', `${normalizedX}px`);
-     root.style.setProperty('--mobile-brand-shift-y', `${normalizedY}px`);
-     nav.dataset.brandShiftLocked = '1';
-     nav.dataset.brandShiftX = String(normalizedX);
-     nav.dataset.brandShiftY = String(normalizedY);
-   }
-
-   function syncPortraitMenuBlurViewport(){
-     const root = document.documentElement;
-     if (!isPortraitMobile()) return null;
-
-     const scrollTop = Math.round(window.scrollY || window.pageYOffset || 0);
-     const viewportTop = 0;
-     const viewportHeight = Math.round(window.innerHeight || document.documentElement.clientHeight || 0);
-     const viewportWidth = Math.round(window.innerWidth || document.documentElement.clientWidth || 0);
-     const viewportBottom = viewportTop + viewportHeight;
-
-     root.style.setProperty('--menu-blur-top', `${scrollTop + viewportTop}px`);
-     root.style.setProperty('--menu-blur-height', `${Math.max(0, viewportHeight)}px`);
-
-     return { viewportHeight, viewportWidth, viewportBottom };
-   }
-
-   function syncPortraitMobileMenuLayout(nav){
-     const root = document.documentElement;
-     if (!nav || !isPortraitMobile()){
-       clearPortraitMenuLayoutVars();
-       return;
-     }
-
-     const viewport = syncPortraitMenuBlurViewport();
-     if (!viewport) return;
-     const { viewportHeight, viewportWidth, viewportBottom } = viewport;
-
-     const menuInline = Math.round(Math.min(Math.max(viewportWidth * 0.084, 36), 46));
-     root.style.setProperty('--mobile-menu-inline', `${menuInline}px`);
-
-     const row = nav.querySelector('.row');
-     const rowRect = row ? row.getBoundingClientRect() : null;
-     const compositionLift = rowRect
-       ? Math.round(Math.min(Math.max(rowRect.height * 0.15, 6), 8))
-       : 0;
-     const sheetContent = nav.querySelector('.sheet-content');
-     if (rowRect && sheetContent){
-       const sheetContentRect = sheetContent.getBoundingClientRect();
-       const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.154, 92), 126));
-       const menuTop = Math.round(Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) - compositionLift);
-       root.style.setProperty('--mobile-menu-top', `${menuTop}px`);
-     }
-
-     const shouldAlignBrand = isNavMenuOpen(nav);
-
-     const hasBrandShift =
-       root.style.getPropertyValue('--mobile-brand-shift-x').trim() !== '' &&
-       root.style.getPropertyValue('--mobile-brand-shift-y').trim() !== '';
-     const brandShiftLocked = nav.dataset.brandShiftLocked === '1';
-     const lockedShiftX = Number.parseFloat(nav.dataset.brandShiftX || '');
-     const lockedShiftY = Number.parseFloat(nav.dataset.brandShiftY || '');
-     const hasLockedShift = Number.isFinite(lockedShiftX) && Number.isFinite(lockedShiftY);
-
-     if (shouldAlignBrand && brandShiftLocked && hasLockedShift){
-       if (!hasBrandShift){
-         setPortraitBrandShift(nav, lockedShiftX, lockedShiftY);
-       }
-     } else if (shouldAlignBrand && (!brandShiftLocked || !hasBrandShift)){
-       const brand = nav.querySelector('.brand');
-       const logo = nav.querySelector('.brand-logo');
-       const firstLink = nav.querySelector('.mobile-menu a');
-       if (brand && firstLink && rowRect){
-         const logoRect = (logo || brand).getBoundingClientRect();
-         const firstLinkRect = firstLink.getBoundingClientRect();
-         const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.01, 4), 8));
-         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
-         const minLogoTop = Math.round(rowRect.top + 6);
-         const targetTop = Math.max(alignedTop, minLogoTop) - compositionLift;
-         const visualLeftInset = logoRect.width * (115 / 512);
-         const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
-         const shiftY = Math.round(targetTop - logoRect.top);
-
-         setPortraitBrandShift(nav, shiftX, shiftY);
-       }
-     } else {
-       root.style.removeProperty('--mobile-brand-shift-x');
-       root.style.removeProperty('--mobile-brand-shift-y');
-       clearPortraitBrandLock(nav);
-     }
-
-     const wordmark = document.querySelector('.mobile-menu-wordmark');
-     if (!wordmark) return;
-
-     const baseRight = Math.round(Math.min(Math.max(viewportWidth * 0.03, 14), 24));
-     const baseBottom = Math.round(Math.min(Math.max(viewportHeight * 0.12, 76), 108));
-     let fontSize = Math.round(Math.min(Math.max(viewportHeight * 0.108, 88), 124));
-
-     root.style.setProperty('--mobile-wordmark-right', `${baseRight}px`);
-     root.style.setProperty('--mobile-wordmark-bottom', `${baseBottom}px`);
-     root.style.setProperty('--mobile-wordmark-font-size', `${fontSize}px`);
-
-     let wordmarkRect = wordmark.getBoundingClientRect();
-     if (wordmarkRect.height > 0){
-       const desiredHeight = viewportHeight * 0.72;
-       fontSize = Math.round(Math.min(Math.max(fontSize * (desiredHeight / wordmarkRect.height), 92), 144));
-       root.style.setProperty('--mobile-wordmark-font-size', `${fontSize}px`);
-
-       wordmarkRect = wordmark.getBoundingClientRect();
-       const overflowBottom = Math.max(0, wordmarkRect.bottom - (viewportBottom - 18));
-       const overflowRight = Math.max(0, wordmarkRect.right - (viewportWidth - 12));
-       const correctedBottom = baseBottom + Math.ceil(overflowBottom) + 4;
-       const correctedRight = baseRight + Math.ceil(overflowRight);
-
-       root.style.setProperty('--mobile-wordmark-bottom', `${correctedBottom}px`);
-       root.style.setProperty('--mobile-wordmark-right', `${correctedRight}px`);
-     }
-   }
-
-   function clearTransientMobileMenuState(nav){
-     if (isNavMenuOpen(nav)) return;
-     const sheet = nav?.querySelector('#mobile-sheet');
-     nav?.classList.remove('nav--opening');
-     body.classList.remove('nav-menu-open');
-     body.classList.remove('nav-menu-closing');
-     body.classList.remove('no-scroll');
-     if (sheet){
-       sheet.setAttribute('aria-hidden', 'true');
-       sheet.setAttribute('inert', '');
-       sheet.hidden = true;
-     }
-     clearPortraitBrandLock(nav);
-     clearPortraitMenuLayoutVars();
-   }
-
-   function setNavOpenState(nav, open){
-     const toggle = nav?.querySelector('.nav-toggle');
-     const sheet  = nav?.querySelector('#mobile-sheet');
-
-     if (!nav || !toggle) return;
-
-     window.clearTimeout(setNavOpenState._stateTimer);
-
-     if (open){
-       if (sheet){
-         sheet.hidden = false;
-         sheet.removeAttribute('inert');
-         sheet.setAttribute('aria-hidden', 'false');
-       }
-       nav.classList.add('nav--open');
-       nav.classList.add('nav--opening');
-       body.classList.remove('nav-menu-closing');
-
-       requestAnimationFrame(() => {
-         syncPortraitMobileMenuLayout(nav);
-         body.classList.add('nav-menu-open');
-         body.classList.add('no-scroll');
-         requestAnimationFrame(() => {
-           nav.classList.remove('nav--opening');
-         });
-       });
-     } else {
-       nav.classList.remove('nav--open');
-       nav.classList.remove('nav--opening');
-       body.classList.remove('nav-menu-open');
-       body.classList.add('nav-menu-closing');
-       body.classList.remove('no-scroll');
-       if (sheet){
-         sheet.setAttribute('aria-hidden', 'true');
-         sheet.setAttribute('inert', '');
-       }
-     }
-
-     toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-     toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-
-     setNavOpenState._stateTimer = window.setTimeout(() => {
-       if (!open) {
-         clearTransientMobileMenuState(nav);
-       }
-     }, open ? 0 : 360);
-   }
-
-   function closeMobileNav(){
-     const nav = document.querySelector('.nav');
-     if (!nav) return;
-     setNavOpenState(nav, false);
-   }
-
-   function syncMobileNavState(){
-     const nav = document.querySelector('.nav');
-     if (!nav) return;
-
-     if (!isPortraitMobile() && isNavMenuOpen(nav)){
-       setNavOpenState(nav, false);
-       return;
-     }
-
-     if (!isPortraitMenuActive(nav)){
-       clearTransientMobileMenuState(nav);
-       return;
-     }
-
-     syncPortraitMobileMenuLayout(nav);
-   }
-
-   function initMobileMenuDelays(){
-     const items = Array.from(document.querySelectorAll('.mobile-menu li'));
-     if (!items.length) return;
-
-     const fallbackDelays = [0.00, 0.04, 0.08, 0.12, 0.16, 0.20, 0.25, 0.31];
-
-     items.forEach((item, index) => {
-       const existing = item.style.getPropertyValue('--menu-delay').trim();
-       if (existing) return;
-       const delay = fallbackDelays[index] ?? (0.31 + (index - fallbackDelays.length + 1) * 0.06);
-       item.style.setProperty('--menu-delay', `${delay}s`);
-     });
-   }
-
-   function initNavBackdrop(){
-     if (document.body.dataset.backdropInit === '1') return;
-     document.body.dataset.backdropInit = '1';
-
-     let backdrop = document.querySelector('.nav-backdrop');
-     let last = null;
-     let ticking = false;
-     const isHomeBackdropSuppressed = () => document.body.dataset.homeBackdropSuppressed === '1';
-
-     const getScrolled = () => {
-       return getScrollTop() > 4 && !isHomeBackdropSuppressed();
-     };
-
-     const resetBackdropState = () => {
-       if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
-       backdrop?.classList.remove('is-visible');
-       document.body.classList.remove('nav--scrolled');
-       last = null;
-     };
-
-     const compute = () => {
-       ticking = false;
-       const scrolled = getScrolled();
-
-       if (scrolled !== last){
-         if (!backdrop) backdrop = document.querySelector('.nav-backdrop');
-         if (backdrop) backdrop.classList.toggle('is-visible', scrolled);
-
-         document.body.classList.toggle('nav--scrolled', scrolled);
-         last = scrolled;
-       }
-     };
-
-     const onChange = () => {
-       if (ticking) return;
-       ticking = true;
-       requestAnimationFrame(compute);
-     };
-
-     const settledChange = createSettledScheduler(onChange);
-     const scheduleSettledChange = (baseDelay = 0) => {
-       settledChange.schedule(baseDelay, resetBackdropState);
-     };
-
-     compute();
-     window.addEventListener('scroll', onChange, { passive:true });
-     window.addEventListener('resize', () => scheduleSettledChange(80));
-     window.addEventListener('orientationchange', () => scheduleSettledChange(140));
-     window.addEventListener('pageshow', () => scheduleSettledChange(80));
-   }
-
-   function initMenuThumb(){
-     const menu = document.querySelector('ul.menu');
-     if (!menu) return;
-
-     if (menu.dataset.thumbInit === '1') return;
-     menu.dataset.thumbInit = '1';
-
-     const allLinks = [...menu.querySelectorAll('a')];
-     const links = allLinks.filter(a => a.matches('[data-nav-link]'));
-     if (!links.length) return;
-
-     const normHash = (h) => {
-       if (!h || h === '#hero') return '';
-       return h;
-     };
-
-     allLinks.forEach(a => a.classList.remove('is-current'));
-
-     const currentHash = normHash(location.hash);
-     let current = null;
-
-     for (const a of links){
-       const href = normHash(a.getAttribute('href'));
-       if (href === currentHash){
-         current = a;
-         break;
-       }
-     }
-
-     if (!current) current = links[0];
-     if (current) current.classList.add('is-current');
-
-     const setThumbTo = (a, show = true) => {
-       if (!a){
-         menu.style.setProperty('--menu-thumb-o', '0');
-         return;
-       }
-
-       const mr = menu.getBoundingClientRect();
-       const r  = a.getBoundingClientRect();
-       const ms = getComputedStyle(menu);
-
-       const padStr = ms.getPropertyValue('--menu-thumb-pad').trim();
-       const padNum = parseFloat(padStr);
-       const pad = Number.isFinite(padNum) ? padNum : 10;
-
-       const borderLeftNum = parseFloat(ms.borderLeftWidth);
-       const borderLeft = Number.isFinite(borderLeftNum) ? borderLeftNum : 0;
-
-       const x  = (r.left - mr.left) - borderLeft - pad;
-       const w  = r.width + pad * 2;
-
-       menu.style.setProperty('--menu-thumb-x', `${x}px`);
-       menu.style.setProperty('--menu-thumb-w', `${w}px`);
-       menu.style.setProperty('--menu-thumb-o', show ? '1' : '0');
-     };
-
-     const setTargetClass = (targetEl) => {
-       for (const a of allLinks) a.classList.remove('is-target');
-       if (targetEl) targetEl.classList.add('is-target');
-     };
-
-     const snapToCurrent = () => {
-       const cur = menu.querySelector('a.is-current');
-       if (cur){
-         setThumbTo(cur, true);
-         setTargetClass(cur);
-       }else{
-         setThumbTo(null, false);
-         setTargetClass(null);
-       }
-     };
-
-     menu.classList.add('thumb-init');
-     snapToCurrent();
-     requestAnimationFrame(() => menu.classList.remove('thumb-init'));
-
-     const realign = () => {
-       if (menu.dataset.thumbHovering) return;
-       snapToCurrent();
-     };
-
-     window.addEventListener('resize', realign);
-     window.addEventListener('orientationchange', realign);
-     window.addEventListener('modelized:navcurrentchange', realign);
-     if (document.fonts?.ready) document.fonts.ready.then(realign);
-
-     if (typeof ResizeObserver !== 'undefined'){
-       const ro = new ResizeObserver(realign);
-       ro.observe(menu);
-     }
-
-     let raf = 0;
-     let target = menu.querySelector('a.is-current') || links[0];
-     let leaveTimer = 0;
-
-     const isHoverPointer = (e) => {
-       return e && (e.pointerType === 'mouse' || e.pointerType === 'pen');
-     };
-
-     const nearestLinkByX = (clientX) => {
-       let best = links[0];
-       let bestD = Infinity;
-       for (const a of links){
-         const r = a.getBoundingClientRect();
-         const cx = (r.left + r.right) / 2;
-         const d = Math.abs(clientX - cx);
-         if (d < bestD){ bestD = d; best = a; }
-       }
-       return best;
-     };
-
-     const tick = () => {
-       raf = 0;
-       setThumbTo(target, true);
-       setTargetClass(target);
-     };
-
-     const cancelLeave = () => {
-       if (leaveTimer){
-         clearTimeout(leaveTimer);
-         leaveTimer = 0;
-       }
-     };
-
-     const scheduleLeave = () => {
-       cancelLeave();
-       leaveTimer = setTimeout(() => {
-         delete menu.dataset.thumbHovering;
-         snapToCurrent();
-       }, 180);
-     };
-
-     menu.addEventListener('pointerenter', (e) => {
-       if (!isHoverPointer(e)) return;
-       cancelLeave();
-       menu.dataset.thumbHovering = '1';
-     });
-
-     menu.addEventListener('pointermove', (e) => {
-       if (!isHoverPointer(e)) return;
-       cancelLeave();
-       menu.dataset.thumbHovering = '1';
-
-       const next = nearestLinkByX(e.clientX);
-       if (next !== target) target = next;
-       if (!raf) raf = requestAnimationFrame(tick);
-     });
-
-     menu.addEventListener('pointerleave', (e) => {
-       if (!isHoverPointer(e)){
-         delete menu.dataset.thumbHovering;
-         snapToCurrent();
-         return;
-       }
-       scheduleLeave();
-     });
-
-     if (!('PointerEvent' in window)){
-       menu.addEventListener('mousemove', (e) => {
-         menu.dataset.thumbHovering = '1';
-         const next = nearestLinkByX(e.clientX);
-         if (next !== target) target = next;
-         if (!raf) raf = requestAnimationFrame(tick);
-       });
-       menu.addEventListener('mouseleave', () => {
-         delete menu.dataset.thumbHovering;
-         snapToCurrent();
-       });
-     }
-   }
-
-   function scrollToTarget(hash) {
-     if (!hash || hash === "#") {
-       return null;
-     }
-
-     const target = document.querySelector(hash);
-     if (!target) {
-       return null;
-     }
-
-     if (hash === '#hero'){
-       window.scrollTo({
-         top: 0,
-         behavior: prefersReducedMotion ? "auto" : "smooth"
-       });
-       return 0;
-     }
-
-     const destination = Math.max(0, target.getBoundingClientRect().top + window.scrollY - getNavOffset());
-
-     window.scrollTo({
-       top: destination,
-       behavior: prefersReducedMotion ? "auto" : "smooth"
-     });
-
-     return destination;
-   }
-
-   function initAnchorScroll(){
-     document.addEventListener('click', (event) => {
-       const anchor = event.target.closest('a[href^="#"]');
-       if (!anchor) return;
-
-       const hash = anchor.getAttribute('href');
-       if (!hash || hash === '#') return;
-
-       const target = document.querySelector(hash);
-       if (!target) return;
-
-       event.preventDefault();
-       scrollToTarget(hash);
-
-       const nav = document.querySelector('.nav');
-       if (nav?.classList.contains('nav--open')){
-         closeMobileNav();
-       }
-     });
-   }
-
-   function initNav(){
-     const nav    = document.querySelector('.nav');
-     const toggle = document.querySelector('.nav-toggle');
-     const sheet  = document.getElementById('mobile-sheet');
-
-     if (toggle && sheet && nav){
-       toggle.addEventListener('click', () => {
-         const open = !nav.classList.contains('nav--open');
-         setNavOpenState(nav, open);
-       });
-
-       document.addEventListener('keydown', (e) => {
-         if (e.key === 'Escape' && nav.classList.contains('nav--open')){
-           setNavOpenState(nav, false);
-         }
-       });
-
-       window.addEventListener('resize', syncMobileNavState);
-       window.addEventListener('orientationchange', syncMobileNavState);
-       window.addEventListener('pageshow', syncMobileNavState);
-     }
-
-     const brand = document.querySelector('.brand');
-     const logo  = document.querySelector('.brand-logo');
-
-     function update(){
-       if (brand && logo && logo.naturalWidth > 0){
-         brand.classList.add('has-logo');
-       }
-     }
-
-     if (logo){
-       if (logo.complete) update();
-       logo.addEventListener('load',  update);
-       logo.addEventListener('error', () => {
-         if (brand) brand.classList.remove('has-logo');
-       });
-     }
-
-     initMenuThumb();
-     initMobileMenuDelays();
-     initNavBackdrop();
-     syncMobileNavState();
-   }
-
-   function initSectionSpy() {
-     const links = Array.from(document.querySelectorAll("[data-nav-link]"));
-     if (!links.length) {
-       return;
-     }
-
-     const map = new Map();
-     links.forEach((link) => {
-       const hash = link.getAttribute("href");
-       if (!hash || !hash.startsWith("#")) {
-         return;
-       }
-       const section = document.querySelector(hash);
-       if (section) {
-         const group = map.get(section) || [];
-         group.push(link);
-         map.set(section, group);
-       }
-     });
-
-     const sectionsInOrder = Array.from(map.keys()).sort((a, b) => {
-       const rectA = a.getBoundingClientRect();
-       const rectB = b.getBoundingClientRect();
-       return (rectA.top + window.scrollY) - (rectB.top + window.scrollY);
-     });
-
-     const setActive = (targetLinks) => {
-       links.forEach((item) => {
-         item.classList.remove("is-active");
-         item.classList.remove("is-current");
-       });
-       if (!targetLinks) {
-         window.dispatchEvent(new Event('modelized:navcurrentchange'));
-         return;
-       }
-
-       targetLinks.forEach((item) => {
-         item.classList.add("is-active");
-         item.classList.add("is-current");
-       });
-       window.dispatchEvent(new Event('modelized:navcurrentchange'));
-     };
-
-     const firstLinkForHash = (hash) => {
-       if (!hash) {
-         return links[0];
-       }
-       return links.find((item) => item.getAttribute("href") === hash) || links[0];
-     };
-
-     const setActiveByHash = (hash) => {
-       if (!hash) {
-         const homeLinks = links.filter((item) => item.getAttribute("href") === "#hero");
-         setActive(homeLinks.length ? homeLinks : [links[0]]);
-         return;
-       }
-       const matching = links.filter((item) => item.getAttribute("href") === hash);
-       setActive(matching.length ? matching : [firstLinkForHash(hash)]);
-     };
-
-     const homeSection = document.querySelector("#hero");
-     let lockedHash = "";
-     let lockTimer = 0;
-
-     const clearScrollLock = () => {
-       if (lockTimer) {
-         clearTimeout(lockTimer);
-         lockTimer = 0;
-       }
-       lockedHash = "";
-     };
-
-     const releaseScrollLock = () => {
-       clearScrollLock();
-       syncFromViewport();
-     };
-
-     const scheduleScrollLockRelease = (delay = 140) => {
-       if (!lockedHash) return;
-       if (lockTimer) {
-         clearTimeout(lockTimer);
-       }
-       lockTimer = window.setTimeout(releaseScrollLock, delay);
-     };
-
-     setActiveByHash(location.hash);
-
-     if (!("IntersectionObserver" in window)) {
-       return;
-     }
-
-     const syncFromViewport = () => {
-       if (lockedHash) {
-         setActiveByHash(lockedHash);
-         return;
-       }
-
-       const footer = document.querySelector('.site-footer');
-       const lastSection = sectionsInOrder[sectionsInOrder.length - 1] || null;
-
-       if (footer && lastSection) {
-         const footerRect = footer.getBoundingClientRect();
-         const footerVisible = footerRect.top < window.innerHeight && footerRect.bottom > 0;
-
-         if (footerVisible) {
-           const lastHash = lastSection.id ? `#${lastSection.id}` : "";
-           setActiveByHash(lastHash);
-           return;
-         }
-       }
-
-       const focusLine = Math.max(
-         getNavOffset() + 18,
-         Math.round(window.innerHeight * 0.34)
-       );
-
-       let currentSection = homeSection || sectionsInOrder[0] || null;
-
-       sectionsInOrder.forEach((section) => {
-         const rect = section.getBoundingClientRect();
-         if (rect.top <= focusLine) {
-           currentSection = section;
-         }
-       });
-
-       if (!currentSection) {
-         return;
-       }
-
-       const currentHash = currentSection.id ? `#${currentSection.id}` : "";
-       setActiveByHash(currentHash);
-     };
-
-     const observer = new IntersectionObserver(
-       () => {
-         syncFromViewport();
-       },
-       {
-         rootMargin: "-18% 0px -58% 0px",
-         threshold: [0, 0.01, 0.1, 0.25, 0.5]
-       }
-     );
-
-     map.forEach((_link, section) => observer.observe(section));
-     requestAnimationFrame(syncFromViewport);
-
-     links.forEach((link) => {
-       link.addEventListener('click', () => {
-         const nextHash = link.getAttribute('href');
-         if (!nextHash || !nextHash.startsWith('#')) return;
-
-         clearScrollLock();
-         lockedHash = nextHash;
-         setActiveByHash(lockedHash);
-         scheduleScrollLockRelease(prefersReducedMotion ? 0 : 180);
-       });
-     });
-
-     let scrollSyncRaf = 0;
-     window.addEventListener('scroll', () => {
-       scheduleScrollLockRelease(140);
-       if (scrollSyncRaf) {
-         return;
-       }
-       scrollSyncRaf = requestAnimationFrame(() => {
-         scrollSyncRaf = 0;
-         syncFromViewport();
-       });
-     }, { passive: true });
-
-     window.addEventListener('orientationchange', clearScrollLock);
-     window.addEventListener('resize', releaseScrollLock);
-   }
-
-   function applyRevealStagger() {
-     const sections = Array.from(document.querySelectorAll(".section"));
-
-     sections.forEach((section) => {
-       const revealItems = Array.from(section.querySelectorAll("[data-reveal]"));
-
-       revealItems.forEach((element, index) => {
-         const rawDelay = Number(element.getAttribute("data-reveal-delay"));
-         const delay = Number.isFinite(rawDelay) ? rawDelay : Math.min(index * 95, 520);
-
-         element.style.setProperty("--reveal-delay", `${delay}ms`);
-         element.style.setProperty("--reveal-distance", index === 0 ? "16px" : "24px");
-       });
-     });
-   }
-
-   function initReveal() {
-     const revealElements = Array.from(document.querySelectorAll("[data-reveal]"));
-     if (!revealElements.length) {
-       return;
-     }
-
-     applyRevealStagger();
-     revealElements.forEach((element) => element.classList.add("reveal"));
-
-     const heroRevealElements = revealElements.filter((element) => element.closest("#hero"));
-     const shouldPrewarmHero = () => {
-       return getScrollTop() > Math.max(64, window.innerHeight * 0.16);
-     };
-     const settleHeroReveal = (observer) => {
-       if (!shouldPrewarmHero()) {
-         return;
-       }
-
-       heroRevealElements.forEach((element) => {
-         element.classList.add("is-visible");
-         observer?.unobserve?.(element);
-       });
-     };
-
-     if (prefersReducedMotion || !("IntersectionObserver" in window)) {
-       revealElements.forEach((element) => element.classList.add("is-visible"));
-       settleHeroReveal();
-       return;
-     }
-
-     const revealElement = (element, observer) => {
-       if (element.classList.contains("is-visible")) {
-         return;
-       }
-       element.classList.add("is-visible");
-       observer?.unobserve?.(element);
-     };
-
-     const inView = (element) => {
-       const rect = element.getBoundingClientRect();
-       const vh = window.innerHeight || document.documentElement.clientHeight;
-       const vw = window.innerWidth || document.documentElement.clientWidth;
-       return rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
-     };
-
-     const observer = new IntersectionObserver(
-       (entries, obs) => {
-         entries.forEach((entry) => {
-           if (!entry.isIntersecting) {
-             return;
-           }
-           revealElement(entry.target, obs);
-         });
-       },
-       {
-         root: null,
-         rootMargin: "0px 0px -1% 0px",
-         threshold: 0
-       }
-     );
-
-     revealElements.forEach((element) => observer.observe(element));
-     const revealVisibleNow = () => {
-       revealElements.forEach((element) => {
-         if (!element.classList.contains("is-visible") && inView(element)) {
-           revealElement(element, observer);
-         }
-       });
-     };
-     requestAnimationFrame(revealVisibleNow);
-     settleHeroReveal(observer);
-     requestAnimationFrame(() => settleHeroReveal(observer));
-     window.setTimeout(() => {
-       settleHeroReveal(observer);
-       revealVisibleNow();
-     }, 120);
-     window.addEventListener("resize", revealVisibleNow);
-     window.addEventListener("pageshow", () => {
-       settleHeroReveal(observer);
-       revealVisibleNow();
-     });
-   }
+(function () {
+  "use strict";
+
+  const body = document.body;
+  const base = (body?.getAttribute("data-base") || ".").trim();
+  const assetVersion = "20260831c";
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
+  const SITE_LOADER_REVEAL_DELAY = 220;
+  const SITE_LOADER_SKIP_DELAY = 4200;
+  const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
+  const siteBootGate = createSiteBootGate();
+
+  // Image bounds are visible artwork [x, y, width, height] in source pixels, excluding shadows.
+  const projects = [
+    {
+      slug: "istage",
+      title: "iStage",
+      year: 2026,
+      description:
+        "A pixel-perfect recreation of the iOS Lock Screen for Android, including Dynamic Island, Live Activities, and extensive customization features — all powered by KLCK.",
+      categories: ["Development", "Design"],
+      icon: "assets/img/iStage-icon-dark.png",
+      image: {
+        src: "assets/img/hero-iStage-series.png",
+        width: 2160,
+        height: 2160,
+        bounds: [412, 204, 1338, 1752]
+      },
+      url: "https://modelized.github.io/iStage/"
+    },
+    {
+      slug: "vanta",
+      title: "Vanta",
+      year: 2025,
+      description:
+        "A native macOS frontend for vphone, built to launch and manage iOS virtual machines without relying on the terminal. It combines VM controls with a built-in viewer for running and interacting with virtual devices.",
+      categories: ["Development", "Engineering"],
+      icon: "assets/img/Vanta-icon-dark.png",
+      image: {
+        src: "assets/img/hero-Vanta.png",
+        width: 2184,
+        height: 1648,
+        bounds: [111, 75, 1962, 1439]
+      }
+    },
+    {
+      slug: "sherlockgenes",
+      title: "SherlockGenes",
+      titleParts: ["Sherlock", "Genes"],
+      year: 2025,
+      description:
+        "An interactive program for analyzing patterns of inheritance from pedigree data. It uses family relationships and observed traits to narrow possible genotypes and determine which modes of inheritance fit a pedigree.",
+      categories: ["Development", "Research"],
+      image: {
+        src: "assets/img/hero-SherlockGenes.png",
+        width: 2784,
+        height: 1880,
+        bounds: [111, 75, 2562, 1670]
+      }
+    },
+    {
+      slug: "truevision",
+      title: "TrueVision",
+      year: 2025,
+      description:
+        "A computer vision system for detecting and visualizing dangerous crowd congestion in real time. It analyzes people and their relative positions in video to estimate crowd density and display changing levels of risk.",
+      categories: ["Development", "Engineering", "Research"]
+    },
+    {
+      slug: "aero",
+      title: "Aero",
+      year: 2024,
+      description:
+        "A concept for a next-generation operating system built around personalization and adaptability. Its interface includes Space, a customizable environment shaped around the user, contextual action suggestions, and an expandable Activity Indicator for live information.",
+      categories: ["Design"]
+    }
+  ];
+
+  const disciplines = [
+    {
+      slug: "development",
+      tone: "development",
+      title: "Development",
+      text: "I build native applications and computational tools, primarily using Swift and Python. My work spans mobile apps, experimental systems, and small research tools. Development is where I test ideas, see what works in practice, and refine them through use.",
+      arsenalKind: "development",
+      arsenal: [
+        { iconUrl: simpleIcon("swift"), label: "Swift" },
+        { iconUrl: simpleIcon("python"), label: "Python" },
+        { iconUrl: simpleIcon("c"), label: "C" },
+        { iconUrl: simpleIcon("cplusplus"), label: "C++" },
+        { iconUrl: simpleIcon("javascript"), label: "JavaScript" },
+        { iconUrl: simpleIcon("html5"), label: "HTML" },
+        { iconUrl: simpleIcon("kotlin"), label: "Kotlin" }
+      ]
+    },
+    {
+      slug: "engineering",
+      tone: "engineering",
+      title: "Engineering",
+      text: "I explore how operating systems and devices function beneath the interface. My work involves custom ROM development, system modification, and low-level experimentation within Android environments. These projects help me grasp how software, hardware, and system architecture interact in practice."
+    },
+    {
+      slug: "design",
+      tone: "design",
+      title: "Design",
+      text: "I shape the visual and interactive aspects of the software I create. I design interfaces with careful attention to layout, motion, hierarchy, and interaction. To me, design is integral to how a system communicates."
+    },
+    {
+      slug: "research",
+      tone: "research",
+      title: "Research",
+      text: "I study living systems through biology and computer science. My main interests include neural signaling, genetics, stem-cell differentiation, tissue regeneration, and how biological systems change under different conditions. I also use computational methods to organize information, test ideas, and explore biological questions that would be difficult to investigate through observation alone."
+    }
+  ];
+
+  function getPartialUrl(file) {
+    if (!base || base === ".") {
+      return `assets/partials/${file}?v=${assetVersion}`;
+    }
+
+    const normalized = base.endsWith("/") ? base.slice(0, -1) : base;
+    return `${normalized}/assets/partials/${file}?v=${assetVersion}`;
+  }
+
+  async function injectPartial(selector, file) {
+    const slot = document.querySelector(selector);
+    if (!slot) {
+      return;
+    }
+
+    try {
+      const response = await fetch(getPartialUrl(file));
+      if (!response.ok) {
+        throw new Error(`${file} fetch failed: ${response.status}`);
+      }
+      slot.innerHTML = await response.text();
+    } catch (error) {
+      console.error("Partial load failed", error);
+    }
+  }
+
+  function renderProjects() {
+    const stack = document.getElementById("project-stack");
+    const template = document.getElementById("project-card-template");
+
+    if (!stack || !template) {
+      return;
+    }
+
+    stack.innerHTML = "";
+    delete stack.dataset.stackReady;
+
+    projects.forEach((project, index) => {
+      const fragment = template.content.cloneNode(true);
+      const card = fragment.querySelector(".project-stack-card");
+      const title = fragment.querySelector(".project-stack-card__title");
+      const year = fragment.querySelector(".project-stack-card__year");
+      const description = fragment.querySelector(".project-stack-card__body");
+      const icon = fragment.querySelector(".project-stack-card__icon");
+      const media = fragment.querySelector(".project-stack-card__media");
+      const image = fragment.querySelector(".project-stack-card__image");
+      const categories = fragment.querySelector(".project-stack-card__categories");
+      const projectLink = fragment.querySelector(".project-stack-card__link");
+
+      if (card) {
+        card.dataset.index = String(index);
+        card.dataset.slug = project.slug;
+        card.classList.add(`project-stack-card--${project.slug}`);
+        if (project.image) {
+          card.classList.add("has-media");
+        }
+        if (project.icon) {
+          card.classList.add("has-icon");
+        }
+      }
+
+      if (title) {
+        const parts = project.titleParts || [project.title];
+        parts.forEach((part, partIndex) => {
+          if (partIndex > 0) title.append(document.createElement("wbr"));
+          title.append(document.createTextNode(part));
+        });
+      }
+      if (year) year.textContent = String(project.year);
+      if (description) description.textContent = project.description;
+
+      if (icon) {
+        if (project.icon) {
+          icon.hidden = false;
+          icon.src = project.icon;
+          icon.alt = `${project.title} icon`;
+        } else {
+          icon.remove();
+        }
+      }
+
+      if (media && image) {
+        if (project.image) {
+          const { src, width, height, bounds } = project.image;
+          const [x, y, contentWidth, contentHeight] = bounds;
+          media.hidden = false;
+          media.style.aspectRatio = `${contentWidth} / ${contentHeight}`;
+          media.style.setProperty(
+            "--project-image-inline-scale",
+            String(Math.min(1, contentWidth / contentHeight))
+          );
+          image.src = src;
+          image.alt = `${project.title} project preview`;
+          image.width = width;
+          image.height = height;
+          image.style.width = `${(width / contentWidth) * 100}%`;
+          image.style.left = `${(-x / contentWidth) * 100}%`;
+          image.style.top = `${(-y / contentHeight) * 100}%`;
+          image.draggable = false;
+        } else {
+          media.remove();
+        }
+      }
+
+      if (categories) {
+        if (project.categories?.length) {
+          categories.hidden = false;
+          project.categories.forEach((category) => {
+            const pill = document.createElement("span");
+            pill.className = "discipline-pill project-category-pill";
+
+            const label = document.createElement("span");
+            label.className = "discipline-pill__label";
+            label.textContent = category;
+
+            pill.appendChild(label);
+            categories.appendChild(pill);
+          });
+        } else {
+          categories.remove();
+        }
+      }
+
+      if (projectLink) {
+        if (project.url) {
+          projectLink.hidden = false;
+          projectLink.href = project.url;
+          projectLink.setAttribute("aria-label", `Open ${project.title}`);
+        } else {
+          projectLink.remove();
+        }
+      }
+
+      stack.appendChild(fragment);
+    });
+  }
+
+  function renderDisciplines() {
+    const stack = document.getElementById("discipline-stack");
+    const template = document.getElementById("discipline-card-template");
+
+    if (!stack || !template) {
+      return;
+    }
+
+    stack.innerHTML = "";
+    delete stack.dataset.stackReady;
+
+    disciplines.forEach((discipline, index) => {
+      const fragment = template.content.cloneNode(true);
+      const card = fragment.querySelector(".discipline-stack-card");
+      const title = fragment.querySelector(".discipline-stack-card__title");
+      const bodyText = fragment.querySelector(".discipline-stack-card__body");
+      const arsenal = fragment.querySelector(".discipline-stack-card__arsenal");
+
+      if (card) {
+        card.dataset.index = String(index);
+        card.dataset.slug = discipline.slug;
+        card.dataset.tone = discipline.tone;
+        card.classList.add(`discipline-stack-card--${discipline.slug}`);
+      }
+
+      if (title) title.textContent = discipline.title;
+      if (bodyText) bodyText.textContent = discipline.text;
+
+      if (arsenal) {
+        if (discipline.arsenal?.length) {
+          arsenal.hidden = false;
+          arsenal.dataset.arsenalKind = discipline.arsenalKind || "";
+
+          discipline.arsenal.forEach((item) => {
+            const pill = document.createElement("span");
+            pill.className = "discipline-pill";
+            if (item.label) {
+              pill.classList.add(
+                `discipline-pill--${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+              );
+            }
+
+            const icon = document.createElement("span");
+            icon.className = "discipline-pill__icon";
+            icon.setAttribute("aria-hidden", "true");
+
+            if (item.iconUrl) {
+              const image = document.createElement("img");
+              image.src = item.iconUrl;
+              image.alt = "";
+              image.loading = "lazy";
+              image.decoding = "async";
+              image.referrerPolicy = "no-referrer";
+              image.draggable = false;
+              icon.appendChild(image);
+            }
+
+            const label = document.createElement("span");
+            label.className = "discipline-pill__label";
+            label.textContent = item.label;
+
+            pill.append(icon, label);
+            arsenal.appendChild(pill);
+          });
+        } else {
+          arsenal.remove();
+        }
+      }
+
+      stack.appendChild(fragment);
+    });
+  }
+
+  function initYear() {
+    const year = String(new Date().getFullYear());
+    document.querySelectorAll("[data-year]").forEach((node) => {
+      node.textContent = year;
+    });
+    document.querySelectorAll("[data-year-prefix]").forEach((node) => {
+      node.textContent = year.slice(0, 2);
+    });
+    document.querySelectorAll("[data-year-suffix]").forEach((node) => {
+      node.textContent = year.slice(-2);
+    });
+    document.querySelectorAll("[data-year-label]").forEach((node) => {
+      node.setAttribute("aria-label", year);
+    });
+  }
+
+  function getScrollTop() {
+    const scrollEl = document.scrollingElement || document.documentElement || document.body;
+    return Math.max(window.scrollY || 0, window.pageYOffset || 0, scrollEl?.scrollTop || 0);
+  }
+
+  function createSettledScheduler(callback) {
+    const timers = [];
+
+    const clear = () => {
+      while (timers.length) {
+        window.clearTimeout(timers.pop());
+      }
+    };
+
+    const schedule = (baseDelay = 0, beforeSchedule) => {
+      clear();
+      beforeSchedule?.();
+
+      SETTLE_PASS_DELAYS.forEach((offset) => {
+        timers.push(window.setTimeout(callback, baseDelay + offset));
+      });
+    };
+
+    return { clear, schedule };
+  }
+
+  function getNavOffset() {
+    const nav = document.querySelector(".nav");
+    if (!nav) return 24;
+
+    const row = nav.querySelector(".row");
+    const rect = row ? row.getBoundingClientRect() : nav.getBoundingClientRect();
+    return Math.ceil(rect.bottom + 18);
+  }
+
+  function isPortraitMobile() {
+    return window.matchMedia("(max-width:900px) and (orientation:portrait)").matches;
+  }
+
+  function isNavMenuOpen(nav) {
+    return !!nav?.classList.contains("nav--open");
+  }
+
+  function isPortraitMenuActive(nav) {
+    return isPortraitMobile() && isNavMenuOpen(nav);
+  }
+
+  function clearPortraitMenuLayoutVars() {
+    const root = document.documentElement;
+    root.style.removeProperty("--menu-blur-top");
+    root.style.removeProperty("--menu-blur-height");
+    root.style.removeProperty("--mobile-row-inline");
+    root.style.removeProperty("--mobile-menu-inline");
+    root.style.removeProperty("--mobile-menu-top");
+    root.style.removeProperty("--mobile-brand-shift-x");
+    root.style.removeProperty("--mobile-brand-shift-y");
+    root.style.removeProperty("--mobile-wordmark-font-size");
+    root.style.removeProperty("--mobile-wordmark-right");
+    root.style.removeProperty("--mobile-wordmark-bottom");
+  }
+
+  function clearPortraitBrandLock(nav) {
+    if (!nav) return;
+    delete nav.dataset.brandShiftLocked;
+    delete nav.dataset.brandShiftX;
+    delete nav.dataset.brandShiftY;
+  }
+
+  function setPortraitBrandShift(nav, shiftX, shiftY) {
+    if (!nav) return;
+    const root = document.documentElement;
+    const normalizedX = Math.round(shiftX);
+    const normalizedY = Math.round(shiftY);
+
+    root.style.setProperty("--mobile-brand-shift-x", `${normalizedX}px`);
+    root.style.setProperty("--mobile-brand-shift-y", `${normalizedY}px`);
+    nav.dataset.brandShiftLocked = "1";
+    nav.dataset.brandShiftX = String(normalizedX);
+    nav.dataset.brandShiftY = String(normalizedY);
+  }
+
+  function syncPortraitMenuBlurViewport() {
+    const root = document.documentElement;
+    if (!isPortraitMobile()) return null;
+
+    const scrollTop = Math.round(window.scrollY || window.pageYOffset || 0);
+    const viewportTop = 0;
+    const viewportHeight = Math.round(
+      window.innerHeight || document.documentElement.clientHeight || 0
+    );
+    const viewportWidth = Math.round(
+      window.innerWidth || document.documentElement.clientWidth || 0
+    );
+    const viewportBottom = viewportTop + viewportHeight;
+
+    root.style.setProperty("--menu-blur-top", `${scrollTop + viewportTop}px`);
+    root.style.setProperty("--menu-blur-height", `${Math.max(0, viewportHeight)}px`);
+
+    return { viewportHeight, viewportWidth, viewportBottom };
+  }
+
+  function syncPortraitMobileMenuLayout(nav) {
+    const root = document.documentElement;
+    if (!nav || !isPortraitMobile()) {
+      clearPortraitMenuLayoutVars();
+      return;
+    }
+
+    const viewport = syncPortraitMenuBlurViewport();
+    if (!viewport) return;
+    const { viewportHeight, viewportWidth, viewportBottom } = viewport;
+
+    const menuInline = Math.round(Math.min(Math.max(viewportWidth * 0.084, 36), 46));
+    root.style.setProperty("--mobile-menu-inline", `${menuInline}px`);
+
+    const row = nav.querySelector(".row");
+    const rowRect = row ? row.getBoundingClientRect() : null;
+    const compositionLift = rowRect
+      ? Math.round(Math.min(Math.max(rowRect.height * 0.15, 6), 8))
+      : 0;
+    const sheetContent = nav.querySelector(".sheet-content");
+    if (rowRect && sheetContent) {
+      const sheetContentRect = sheetContent.getBoundingClientRect();
+      const menuGap = Math.round(Math.min(Math.max(viewportHeight * 0.154, 92), 126));
+      const menuTop = Math.round(
+        Math.max(72, rowRect.bottom + menuGap - sheetContentRect.top) - compositionLift
+      );
+      root.style.setProperty("--mobile-menu-top", `${menuTop}px`);
+    }
+
+    const shouldAlignBrand = isNavMenuOpen(nav);
+
+    const hasBrandShift =
+      root.style.getPropertyValue("--mobile-brand-shift-x").trim() !== "" &&
+      root.style.getPropertyValue("--mobile-brand-shift-y").trim() !== "";
+    const brandShiftLocked = nav.dataset.brandShiftLocked === "1";
+    const lockedShiftX = Number.parseFloat(nav.dataset.brandShiftX || "");
+    const lockedShiftY = Number.parseFloat(nav.dataset.brandShiftY || "");
+    const hasLockedShift = Number.isFinite(lockedShiftX) && Number.isFinite(lockedShiftY);
+
+    if (shouldAlignBrand && brandShiftLocked && hasLockedShift) {
+      if (!hasBrandShift) {
+        setPortraitBrandShift(nav, lockedShiftX, lockedShiftY);
+      }
+    } else if (shouldAlignBrand && (!brandShiftLocked || !hasBrandShift)) {
+      const brand = nav.querySelector(".brand");
+      const logo = nav.querySelector(".brand-logo");
+      const firstLink = nav.querySelector(".mobile-menu a");
+      if (brand && firstLink && rowRect) {
+        const logoRect = (logo || brand).getBoundingClientRect();
+        const firstLinkRect = firstLink.getBoundingClientRect();
+        const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.01, 4), 8));
+        const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
+        const minLogoTop = Math.round(rowRect.top + 6);
+        const targetTop = Math.max(alignedTop, minLogoTop) - compositionLift;
+        const visualLeftInset = logoRect.width * (115 / 512);
+        const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
+        const shiftY = Math.round(targetTop - logoRect.top);
+
+        setPortraitBrandShift(nav, shiftX, shiftY);
+      }
+    } else {
+      root.style.removeProperty("--mobile-brand-shift-x");
+      root.style.removeProperty("--mobile-brand-shift-y");
+      clearPortraitBrandLock(nav);
+    }
+
+    const wordmark = document.querySelector(".mobile-menu-wordmark");
+    if (!wordmark) return;
+
+    const baseRight = Math.round(Math.min(Math.max(viewportWidth * 0.03, 14), 24));
+    const baseBottom = Math.round(Math.min(Math.max(viewportHeight * 0.12, 76), 108));
+    let fontSize = Math.round(Math.min(Math.max(viewportHeight * 0.108, 88), 124));
+
+    root.style.setProperty("--mobile-wordmark-right", `${baseRight}px`);
+    root.style.setProperty("--mobile-wordmark-bottom", `${baseBottom}px`);
+    root.style.setProperty("--mobile-wordmark-font-size", `${fontSize}px`);
+
+    let wordmarkRect = wordmark.getBoundingClientRect();
+    if (wordmarkRect.height > 0) {
+      const desiredHeight = viewportHeight * 0.72;
+      fontSize = Math.round(
+        Math.min(Math.max(fontSize * (desiredHeight / wordmarkRect.height), 92), 144)
+      );
+      root.style.setProperty("--mobile-wordmark-font-size", `${fontSize}px`);
+
+      wordmarkRect = wordmark.getBoundingClientRect();
+      const overflowBottom = Math.max(0, wordmarkRect.bottom - (viewportBottom - 18));
+      const overflowRight = Math.max(0, wordmarkRect.right - (viewportWidth - 12));
+      const correctedBottom = baseBottom + Math.ceil(overflowBottom) + 4;
+      const correctedRight = baseRight + Math.ceil(overflowRight);
+
+      root.style.setProperty("--mobile-wordmark-bottom", `${correctedBottom}px`);
+      root.style.setProperty("--mobile-wordmark-right", `${correctedRight}px`);
+    }
+  }
+
+  function clearTransientMobileMenuState(nav) {
+    if (isNavMenuOpen(nav)) return;
+    const sheet = nav?.querySelector("#mobile-sheet");
+    nav?.classList.remove("nav--opening");
+    body.classList.remove("nav-menu-open");
+    body.classList.remove("nav-menu-closing");
+    body.classList.remove("no-scroll");
+    if (sheet) {
+      sheet.setAttribute("aria-hidden", "true");
+      sheet.setAttribute("inert", "");
+      sheet.hidden = true;
+    }
+    clearPortraitBrandLock(nav);
+    clearPortraitMenuLayoutVars();
+  }
+
+  function setNavOpenState(nav, open) {
+    const toggle = nav?.querySelector(".nav-toggle");
+    const sheet = nav?.querySelector("#mobile-sheet");
+
+    if (!nav || !toggle) return;
+
+    window.clearTimeout(setNavOpenState._stateTimer);
+
+    if (open) {
+      if (sheet) {
+        sheet.hidden = false;
+        sheet.removeAttribute("inert");
+        sheet.setAttribute("aria-hidden", "false");
+      }
+      nav.classList.add("nav--open");
+      nav.classList.add("nav--opening");
+      body.classList.remove("nav-menu-closing");
+
+      requestAnimationFrame(() => {
+        syncPortraitMobileMenuLayout(nav);
+        body.classList.add("nav-menu-open");
+        body.classList.add("no-scroll");
+        requestAnimationFrame(() => {
+          nav.classList.remove("nav--opening");
+        });
+      });
+    } else {
+      nav.classList.remove("nav--open");
+      nav.classList.remove("nav--opening");
+      body.classList.remove("nav-menu-open");
+      body.classList.add("nav-menu-closing");
+      body.classList.remove("no-scroll");
+      if (sheet) {
+        sheet.setAttribute("aria-hidden", "true");
+        sheet.setAttribute("inert", "");
+      }
+    }
+
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+
+    setNavOpenState._stateTimer = window.setTimeout(
+      () => {
+        if (!open) {
+          clearTransientMobileMenuState(nav);
+        }
+      },
+      open ? 0 : 360
+    );
+  }
+
+  function closeMobileNav() {
+    const nav = document.querySelector(".nav");
+    if (!nav) return;
+    setNavOpenState(nav, false);
+  }
+
+  function syncMobileNavState() {
+    const nav = document.querySelector(".nav");
+    if (!nav) return;
+
+    if (!isPortraitMobile() && isNavMenuOpen(nav)) {
+      setNavOpenState(nav, false);
+      return;
+    }
+
+    if (!isPortraitMenuActive(nav)) {
+      clearTransientMobileMenuState(nav);
+      return;
+    }
+
+    syncPortraitMobileMenuLayout(nav);
+  }
+
+  function initMobileMenuDelays() {
+    const items = Array.from(document.querySelectorAll(".mobile-menu li"));
+    if (!items.length) return;
+
+    const fallbackDelays = [0.0, 0.04, 0.08, 0.12, 0.16, 0.2, 0.25, 0.31];
+
+    items.forEach((item, index) => {
+      const existing = item.style.getPropertyValue("--menu-delay").trim();
+      if (existing) return;
+      const delay = fallbackDelays[index] ?? 0.31 + (index - fallbackDelays.length + 1) * 0.06;
+      item.style.setProperty("--menu-delay", `${delay}s`);
+    });
+  }
+
+  function initNavBackdrop() {
+    if (document.body.dataset.backdropInit === "1") return;
+    document.body.dataset.backdropInit = "1";
+
+    let backdrop = document.querySelector(".nav-backdrop");
+    let last = null;
+    let ticking = false;
+    const isHomeBackdropSuppressed = () => document.body.dataset.homeBackdropSuppressed === "1";
+
+    const getScrolled = () => {
+      return getScrollTop() > 4 && !isHomeBackdropSuppressed();
+    };
+
+    const resetBackdropState = () => {
+      if (!backdrop) backdrop = document.querySelector(".nav-backdrop");
+      backdrop?.classList.remove("is-visible");
+      document.body.classList.remove("nav--scrolled");
+      last = null;
+    };
+
+    const compute = () => {
+      ticking = false;
+      const scrolled = getScrolled();
+
+      if (scrolled !== last) {
+        if (!backdrop) backdrop = document.querySelector(".nav-backdrop");
+        if (backdrop) backdrop.classList.toggle("is-visible", scrolled);
+
+        document.body.classList.toggle("nav--scrolled", scrolled);
+        last = scrolled;
+      }
+    };
+
+    const onChange = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(compute);
+    };
+
+    const settledChange = createSettledScheduler(onChange);
+    const scheduleSettledChange = (baseDelay = 0) => {
+      settledChange.schedule(baseDelay, resetBackdropState);
+    };
+
+    compute();
+    window.addEventListener("scroll", onChange, { passive: true });
+    window.addEventListener("resize", () => scheduleSettledChange(80));
+    window.addEventListener("orientationchange", () => scheduleSettledChange(140));
+    window.addEventListener("pageshow", () => scheduleSettledChange(80));
+  }
+
+  function initMenuThumb() {
+    const menu = document.querySelector("ul.menu");
+    if (!menu) return;
+
+    if (menu.dataset.thumbInit === "1") return;
+    menu.dataset.thumbInit = "1";
+
+    const allLinks = [...menu.querySelectorAll("a")];
+    const links = allLinks.filter((a) => a.matches("[data-nav-link]"));
+    if (!links.length) return;
+
+    const normHash = (h) => {
+      if (!h || h === "#hero") return "";
+      return h;
+    };
+
+    allLinks.forEach((a) => a.classList.remove("is-current"));
+
+    const currentHash = normHash(location.hash);
+    let current = null;
+
+    for (const a of links) {
+      const href = normHash(a.getAttribute("href"));
+      if (href === currentHash) {
+        current = a;
+        break;
+      }
+    }
+
+    if (!current) current = links[0];
+    if (current) current.classList.add("is-current");
+
+    const setThumbTo = (a, show = true) => {
+      if (!a) {
+        menu.style.setProperty("--menu-thumb-o", "0");
+        return;
+      }
+
+      const mr = menu.getBoundingClientRect();
+      const r = a.getBoundingClientRect();
+      const ms = getComputedStyle(menu);
+
+      const padStr = ms.getPropertyValue("--menu-thumb-pad").trim();
+      const padNum = parseFloat(padStr);
+      const pad = Number.isFinite(padNum) ? padNum : 10;
+
+      const borderLeftNum = parseFloat(ms.borderLeftWidth);
+      const borderLeft = Number.isFinite(borderLeftNum) ? borderLeftNum : 0;
+
+      const x = r.left - mr.left - borderLeft - pad;
+      const w = r.width + pad * 2;
+
+      menu.style.setProperty("--menu-thumb-x", `${x}px`);
+      menu.style.setProperty("--menu-thumb-w", `${w}px`);
+      menu.style.setProperty("--menu-thumb-o", show ? "1" : "0");
+    };
+
+    const setTargetClass = (targetEl) => {
+      for (const a of allLinks) a.classList.remove("is-target");
+      if (targetEl) targetEl.classList.add("is-target");
+    };
+
+    const snapToCurrent = () => {
+      const cur = menu.querySelector("a.is-current");
+      if (cur) {
+        setThumbTo(cur, true);
+        setTargetClass(cur);
+      } else {
+        setThumbTo(null, false);
+        setTargetClass(null);
+      }
+    };
+
+    menu.classList.add("thumb-init");
+    snapToCurrent();
+    requestAnimationFrame(() => menu.classList.remove("thumb-init"));
+
+    const realign = () => {
+      if (menu.dataset.thumbHovering) return;
+      snapToCurrent();
+    };
+
+    window.addEventListener("resize", realign);
+    window.addEventListener("orientationchange", realign);
+    window.addEventListener("modelized:navcurrentchange", realign);
+    if (document.fonts?.ready) document.fonts.ready.then(realign);
+
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(realign);
+      ro.observe(menu);
+    }
+
+    let raf = 0;
+    let target = menu.querySelector("a.is-current") || links[0];
+    let leaveTimer = 0;
+
+    const isHoverPointer = (e) => {
+      return e && (e.pointerType === "mouse" || e.pointerType === "pen");
+    };
+
+    const nearestLinkByX = (clientX) => {
+      let best = links[0];
+      let bestD = Infinity;
+      for (const a of links) {
+        const r = a.getBoundingClientRect();
+        const cx = (r.left + r.right) / 2;
+        const d = Math.abs(clientX - cx);
+        if (d < bestD) {
+          bestD = d;
+          best = a;
+        }
+      }
+      return best;
+    };
+
+    const tick = () => {
+      raf = 0;
+      setThumbTo(target, true);
+      setTargetClass(target);
+    };
+
+    const cancelLeave = () => {
+      if (leaveTimer) {
+        clearTimeout(leaveTimer);
+        leaveTimer = 0;
+      }
+    };
+
+    const scheduleLeave = () => {
+      cancelLeave();
+      leaveTimer = setTimeout(() => {
+        delete menu.dataset.thumbHovering;
+        snapToCurrent();
+      }, 180);
+    };
+
+    menu.addEventListener("pointerenter", (e) => {
+      if (!isHoverPointer(e)) return;
+      cancelLeave();
+      menu.dataset.thumbHovering = "1";
+    });
+
+    menu.addEventListener("pointermove", (e) => {
+      if (!isHoverPointer(e)) return;
+      cancelLeave();
+      menu.dataset.thumbHovering = "1";
+
+      const next = nearestLinkByX(e.clientX);
+      if (next !== target) target = next;
+      if (!raf) raf = requestAnimationFrame(tick);
+    });
+
+    menu.addEventListener("pointerleave", (e) => {
+      if (!isHoverPointer(e)) {
+        delete menu.dataset.thumbHovering;
+        snapToCurrent();
+        return;
+      }
+      scheduleLeave();
+    });
+
+    if (!("PointerEvent" in window)) {
+      menu.addEventListener("mousemove", (e) => {
+        menu.dataset.thumbHovering = "1";
+        const next = nearestLinkByX(e.clientX);
+        if (next !== target) target = next;
+        if (!raf) raf = requestAnimationFrame(tick);
+      });
+      menu.addEventListener("mouseleave", () => {
+        delete menu.dataset.thumbHovering;
+        snapToCurrent();
+      });
+    }
+  }
+
+  function scrollToTarget(hash) {
+    if (!hash || hash === "#") {
+      return null;
+    }
+
+    const target = document.querySelector(hash);
+    if (!target) {
+      return null;
+    }
+
+    if (hash === "#hero") {
+      window.scrollTo({
+        top: 0,
+        behavior: prefersReducedMotion ? "auto" : "smooth"
+      });
+      return 0;
+    }
+
+    const destination = Math.max(
+      0,
+      target.getBoundingClientRect().top + window.scrollY - getNavOffset()
+    );
+
+    window.scrollTo({
+      top: destination,
+      behavior: prefersReducedMotion ? "auto" : "smooth"
+    });
+
+    return destination;
+  }
+
+  function initAnchorScroll() {
+    document.addEventListener("click", (event) => {
+      const anchor = event.target.closest('a[href^="#"]');
+      if (!anchor) return;
+
+      const hash = anchor.getAttribute("href");
+      if (!hash || hash === "#") return;
+
+      const target = document.querySelector(hash);
+      if (!target) return;
+
+      event.preventDefault();
+      scrollToTarget(hash);
+
+      const nav = document.querySelector(".nav");
+      if (nav?.classList.contains("nav--open")) {
+        closeMobileNav();
+      }
+    });
+  }
+
+  function initNav() {
+    const nav = document.querySelector(".nav");
+    const toggle = document.querySelector(".nav-toggle");
+    const sheet = document.getElementById("mobile-sheet");
+
+    if (toggle && sheet && nav) {
+      toggle.addEventListener("click", () => {
+        const open = !nav.classList.contains("nav--open");
+        setNavOpenState(nav, open);
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && nav.classList.contains("nav--open")) {
+          setNavOpenState(nav, false);
+        }
+      });
+
+      window.addEventListener("resize", syncMobileNavState);
+      window.addEventListener("orientationchange", syncMobileNavState);
+      window.addEventListener("pageshow", syncMobileNavState);
+    }
+
+    const brand = document.querySelector(".brand");
+    const logo = document.querySelector(".brand-logo");
+
+    function update() {
+      if (brand && logo && logo.naturalWidth > 0) {
+        brand.classList.add("has-logo");
+      }
+    }
+
+    if (logo) {
+      if (logo.complete) update();
+      logo.addEventListener("load", update);
+      logo.addEventListener("error", () => {
+        if (brand) brand.classList.remove("has-logo");
+      });
+    }
+
+    initMenuThumb();
+    initMobileMenuDelays();
+    initNavBackdrop();
+    syncMobileNavState();
+  }
+
+  function initSectionSpy() {
+    const links = Array.from(document.querySelectorAll("[data-nav-link]"));
+    if (!links.length) {
+      return;
+    }
+
+    const map = new Map();
+    links.forEach((link) => {
+      const hash = link.getAttribute("href");
+      if (!hash || !hash.startsWith("#")) {
+        return;
+      }
+      const section = document.querySelector(hash);
+      if (section) {
+        const group = map.get(section) || [];
+        group.push(link);
+        map.set(section, group);
+      }
+    });
+
+    const sectionsInOrder = Array.from(map.keys()).sort((a, b) => {
+      const rectA = a.getBoundingClientRect();
+      const rectB = b.getBoundingClientRect();
+      return rectA.top + window.scrollY - (rectB.top + window.scrollY);
+    });
+
+    const setActive = (targetLinks) => {
+      links.forEach((item) => {
+        item.classList.remove("is-active");
+        item.classList.remove("is-current");
+      });
+      if (!targetLinks) {
+        window.dispatchEvent(new Event("modelized:navcurrentchange"));
+        return;
+      }
+
+      targetLinks.forEach((item) => {
+        item.classList.add("is-active");
+        item.classList.add("is-current");
+      });
+      window.dispatchEvent(new Event("modelized:navcurrentchange"));
+    };
+
+    const firstLinkForHash = (hash) => {
+      if (!hash) {
+        return links[0];
+      }
+      return links.find((item) => item.getAttribute("href") === hash) || links[0];
+    };
+
+    const setActiveByHash = (hash) => {
+      if (!hash) {
+        const homeLinks = links.filter((item) => item.getAttribute("href") === "#hero");
+        setActive(homeLinks.length ? homeLinks : [links[0]]);
+        return;
+      }
+      const matching = links.filter((item) => item.getAttribute("href") === hash);
+      setActive(matching.length ? matching : [firstLinkForHash(hash)]);
+    };
+
+    const homeSection = document.querySelector("#hero");
+    let lockedHash = "";
+    let lockTimer = 0;
+
+    const clearScrollLock = () => {
+      if (lockTimer) {
+        clearTimeout(lockTimer);
+        lockTimer = 0;
+      }
+      lockedHash = "";
+    };
+
+    const releaseScrollLock = () => {
+      clearScrollLock();
+      syncFromViewport();
+    };
+
+    const scheduleScrollLockRelease = (delay = 140) => {
+      if (!lockedHash) return;
+      if (lockTimer) {
+        clearTimeout(lockTimer);
+      }
+      lockTimer = window.setTimeout(releaseScrollLock, delay);
+    };
+
+    setActiveByHash(location.hash);
+
+    if (!("IntersectionObserver" in window)) {
+      return;
+    }
+
+    const syncFromViewport = () => {
+      if (lockedHash) {
+        setActiveByHash(lockedHash);
+        return;
+      }
+
+      const footer = document.querySelector(".site-footer");
+      const lastSection = sectionsInOrder[sectionsInOrder.length - 1] || null;
+
+      if (footer && lastSection) {
+        const footerRect = footer.getBoundingClientRect();
+        const footerVisible = footerRect.top < window.innerHeight && footerRect.bottom > 0;
+
+        if (footerVisible) {
+          const lastHash = lastSection.id ? `#${lastSection.id}` : "";
+          setActiveByHash(lastHash);
+          return;
+        }
+      }
+
+      const focusLine = Math.max(getNavOffset() + 18, Math.round(window.innerHeight * 0.34));
+
+      let currentSection = homeSection || sectionsInOrder[0] || null;
+
+      sectionsInOrder.forEach((section) => {
+        const rect = section.getBoundingClientRect();
+        if (rect.top <= focusLine) {
+          currentSection = section;
+        }
+      });
+
+      if (!currentSection) {
+        return;
+      }
+
+      const currentHash = currentSection.id ? `#${currentSection.id}` : "";
+      setActiveByHash(currentHash);
+    };
+
+    const observer = new IntersectionObserver(
+      () => {
+        syncFromViewport();
+      },
+      {
+        rootMargin: "-18% 0px -58% 0px",
+        threshold: [0, 0.01, 0.1, 0.25, 0.5]
+      }
+    );
+
+    map.forEach((_link, section) => observer.observe(section));
+    requestAnimationFrame(syncFromViewport);
+
+    links.forEach((link) => {
+      link.addEventListener("click", () => {
+        const nextHash = link.getAttribute("href");
+        if (!nextHash || !nextHash.startsWith("#")) return;
+
+        clearScrollLock();
+        lockedHash = nextHash;
+        setActiveByHash(lockedHash);
+        scheduleScrollLockRelease(prefersReducedMotion ? 0 : 180);
+      });
+    });
+
+    let scrollSyncRaf = 0;
+    window.addEventListener(
+      "scroll",
+      () => {
+        scheduleScrollLockRelease(140);
+        if (scrollSyncRaf) {
+          return;
+        }
+        scrollSyncRaf = requestAnimationFrame(() => {
+          scrollSyncRaf = 0;
+          syncFromViewport();
+        });
+      },
+      { passive: true }
+    );
+
+    window.addEventListener("orientationchange", clearScrollLock);
+    window.addEventListener("resize", releaseScrollLock);
+  }
+
+  function applyRevealStagger() {
+    const sections = Array.from(document.querySelectorAll(".section"));
+
+    sections.forEach((section) => {
+      const revealItems = Array.from(section.querySelectorAll("[data-reveal]"));
+
+      revealItems.forEach((element, index) => {
+        const rawDelay = Number(element.getAttribute("data-reveal-delay"));
+        const delay = Number.isFinite(rawDelay) ? rawDelay : Math.min(index * 95, 520);
+
+        element.style.setProperty("--reveal-delay", `${delay}ms`);
+        element.style.setProperty("--reveal-distance", index === 0 ? "16px" : "24px");
+      });
+    });
+  }
+
+  function initReveal() {
+    const revealElements = Array.from(document.querySelectorAll("[data-reveal]"));
+    if (!revealElements.length) {
+      return;
+    }
+
+    applyRevealStagger();
+    revealElements.forEach((element) => element.classList.add("reveal"));
+
+    const heroRevealElements = revealElements.filter((element) => element.closest("#hero"));
+    const shouldPrewarmHero = () => {
+      return getScrollTop() > Math.max(64, window.innerHeight * 0.16);
+    };
+    const settleHeroReveal = (observer) => {
+      if (!shouldPrewarmHero()) {
+        return;
+      }
+
+      heroRevealElements.forEach((element) => {
+        element.classList.add("is-visible");
+        observer?.unobserve?.(element);
+      });
+    };
+
+    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+      revealElements.forEach((element) => element.classList.add("is-visible"));
+      settleHeroReveal();
+      return;
+    }
+
+    const revealElement = (element, observer) => {
+      if (element.classList.contains("is-visible")) {
+        return;
+      }
+      element.classList.add("is-visible");
+      observer?.unobserve?.(element);
+    };
+
+    const inView = (element) => {
+      const rect = element.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const vw = window.innerWidth || document.documentElement.clientWidth;
+      return rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
+    };
+
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+          revealElement(entry.target, obs);
+        });
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px -1% 0px",
+        threshold: 0
+      }
+    );
+
+    revealElements.forEach((element) => observer.observe(element));
+    const revealVisibleNow = () => {
+      revealElements.forEach((element) => {
+        if (!element.classList.contains("is-visible") && inView(element)) {
+          revealElement(element, observer);
+        }
+      });
+    };
+    requestAnimationFrame(revealVisibleNow);
+    settleHeroReveal(observer);
+    requestAnimationFrame(() => settleHeroReveal(observer));
+    window.setTimeout(() => {
+      settleHeroReveal(observer);
+      revealVisibleNow();
+    }, 120);
+    window.addEventListener("resize", revealVisibleNow);
+    window.addEventListener("pageshow", () => {
+      settleHeroReveal(observer);
+      revealVisibleNow();
+    });
+  }
 
   async function initHeroIntro({ waitForFonts = true } = {}) {
     const shouldSkipIntro =
@@ -1366,8 +1381,8 @@
       const descent = verticalMetrics.actualBoundingBoxDescent || 0;
       const fontAscent = verticalMetrics.fontBoundingBoxAscent || ascent;
       const fontDescent = verticalMetrics.fontBoundingBoxDescent || descent;
-      const baseline = ((100 - fontAscent - fontDescent) / 2) + fontAscent;
-      const inkCenter = baseline + ((descent - ascent) / 2);
+      const baseline = (100 - fontAscent - fontDescent) / 2 + fontAscent;
+      const inkCenter = baseline + (descent - ascent) / 2;
 
       return {
         width: Math.max(1, measuredWidth),
@@ -1398,7 +1413,7 @@
 
       let bestWidth = low;
       let bestMetrics = lowMetrics;
-      let bestDelta = Math.abs((bestMetrics.width / bestMetrics.height) - targetRatio);
+      let bestDelta = Math.abs(bestMetrics.width / bestMetrics.height - targetRatio);
 
       for (let index = 0; index < 7; index += 1) {
         const candidate = (low + high) / 2;
@@ -1425,9 +1440,9 @@
     const cubicCoordinate = (time, firstControl, secondControl) => {
       const inverse = 1 - time;
       return (
-        (3 * inverse * inverse * time * firstControl) +
-        (3 * inverse * time * time * secondControl) +
-        (time * time * time)
+        3 * inverse * inverse * time * firstControl +
+        3 * inverse * time * time * secondControl +
+        time * time * time
       );
     };
     const solveBezierParameter = (target, firstControl, secondControl) => {
@@ -1462,33 +1477,21 @@
         scaleMultiplier = 1
       } = {}
     ) => {
-      const metrics = measureGlyph(
-        word,
-        weight,
-        widthAxis,
-        trackingEm
-      );
+      const metrics = measureGlyph(word, weight, widthAxis, trackingEm);
       if (!metrics.width || !metrics.height) return null;
 
       const fontScale = configuration.targetHeight / metrics.height;
-      const scaleX = (
-        configuration.targetInkWidth /
-        (metrics.inkWidth * fontScale)
-      ) * scaleMultiplier;
-      const inkCenterOffset = (
-        metrics.inkLeft +
-        (metrics.inkWidth / 2) -
-        (metrics.width / 2)
-      ) * fontScale;
+      const scaleX =
+        (configuration.targetInkWidth / (metrics.inkWidth * fontScale)) * scaleMultiplier;
+      const inkCenterOffset =
+        (metrics.inkLeft + metrics.inkWidth / 2 - metrics.width / 2) * fontScale;
       return {
         weight,
         width: widthAxis,
         trackingEm,
         fontSize: 100 * fontScale,
         scaleX,
-        shiftX:
-          configuration.targetInkCenterOffset -
-          (inkCenterOffset * scaleX),
+        shiftX: configuration.targetInkCenterOffset - inkCenterOffset * scaleX,
         shiftY: -metrics.centerOffsetY * fontScale
       };
     };
@@ -1509,10 +1512,7 @@
     };
 
     const solveFittedState = (configuration, weight) => {
-      if (
-        configuration.finalState &&
-        Math.abs(weight - configuration.finalWeight) < 0.001
-      ) {
+      if (configuration.finalState && Math.abs(weight - configuration.finalWeight) < 0.001) {
         return configuration.finalState;
       }
 
@@ -1522,9 +1522,7 @@
       }
 
       const clampedWeight = Math.min(900, Math.max(180, weight));
-      let upperIndex = states.findIndex(
-        (state) => state.weight >= clampedWeight
-      );
+      let upperIndex = states.findIndex((state) => state.weight >= clampedWeight);
       if (upperIndex <= 0) return states[Math.max(0, upperIndex)];
       if (upperIndex < 0) return states[states.length - 1];
 
@@ -1532,10 +1530,8 @@
       const upper = states[upperIndex];
       if (upper.weight === clampedWeight) return upper;
 
-      const progress =
-        (clampedWeight - lower.weight) /
-        (upper.weight - lower.weight);
-      const interpolate = (from, to) => from + ((to - from) * progress);
+      const progress = (clampedWeight - lower.weight) / (upper.weight - lower.weight);
+      const interpolate = (from, to) => from + (to - from) * progress;
       return {
         weight: clampedWeight,
         width: configuration.widthAxis,
@@ -1548,7 +1544,7 @@
     };
 
     const interpolateFittedState = (from, to, progress) => {
-      const interpolate = (start, end) => start + ((end - start) * progress);
+      const interpolate = (start, end) => start + (end - start) * progress;
       return {
         weight: interpolate(from.weight, to.weight),
         width: interpolate(from.width, to.width),
@@ -1562,21 +1558,13 @@
 
     const buildTouchStates = (word, configuration) => {
       const desiredWeightGain = 60;
-      const peakWeight = Math.min(
-        900,
-        configuration.finalWeight + desiredWeightGain
-      );
+      const peakWeight = Math.min(900, configuration.finalWeight + desiredWeightGain);
       const missingWeightGain = Math.max(
         0,
         desiredWeightGain - (peakWeight - configuration.finalWeight)
       );
-      const widthCompensation = 0.035 * (
-        missingWeightGain / desiredWeightGain
-      );
-      const peakWidth = Math.max(
-        50,
-        configuration.widthAxis * (1 - widthCompensation)
-      );
+      const widthCompensation = 0.035 * (missingWeightGain / desiredWeightGain);
+      const peakWidth = Math.max(50, configuration.widthAxis * (1 - widthCompensation));
       const states = [];
 
       for (let index = 0; index <= 20; index += 1) {
@@ -1584,15 +1572,11 @@
         const state = measureFittedState(
           word,
           configuration,
-          configuration.finalWeight + (
-            (peakWeight - configuration.finalWeight) * progress
-          ),
+          configuration.finalWeight + (peakWeight - configuration.finalWeight) * progress,
           {
-            widthAxis: configuration.widthAxis + (
-              (peakWidth - configuration.widthAxis) * progress
-            ),
+            widthAxis: configuration.widthAxis + (peakWidth - configuration.widthAxis) * progress,
             trackingEm: configuration.trackingEm,
-            scaleMultiplier: 1 + (0.055 * progress)
+            scaleMultiplier: 1 + 0.055 * progress
           }
         );
         if (state) states.push({ progress, state });
@@ -1630,10 +1614,7 @@
     const fit = (allowDuringGlyphStory = false) => {
       rafId = 0;
 
-      if (
-        body.classList.contains("glyph-story-active") &&
-        !allowDuringGlyphStory
-      ) {
+      if (body.classList.contains("glyph-story-active") && !allowDuringGlyphStory) {
         return;
       }
 
@@ -1648,9 +1629,7 @@
         const targetHeight = cellRect.height;
         const targetRatio = targetWidth / targetHeight;
         const computed = getComputedStyle(word);
-        const baseWeight = Number.parseFloat(
-          computed.getPropertyValue("--word-wght")
-        ) || 850;
+        const baseWeight = Number.parseFloat(computed.getPropertyValue("--word-wght")) || 850;
         const fitSignature = [
           cellRect.width.toFixed(2),
           cellRect.height.toFixed(2),
@@ -1712,19 +1691,13 @@
           shiftX: 0,
           shiftY: -finalMetrics.centerOffsetY * finalFontScale
         };
-        configuration.targetInkWidth =
-          finalMetrics.inkWidth *
+        configuration.targetInkWidth = finalMetrics.inkWidth * finalFontScale * finalState.scaleX;
+        configuration.targetInkCenterOffset =
+          (finalMetrics.inkLeft + finalMetrics.inkWidth / 2 - finalMetrics.width / 2) *
           finalFontScale *
           finalState.scaleX;
-        configuration.targetInkCenterOffset = (
-          finalMetrics.inkLeft +
-          (finalMetrics.inkWidth / 2) -
-          (finalMetrics.width / 2)
-        ) * finalFontScale * finalState.scaleX;
         configuration.finalState = finalState;
-        configuration.states = fontsAreReady
-          ? buildFittedStates(word, configuration)
-          : null;
+        configuration.states = fontsAreReady ? buildFittedStates(word, configuration) : null;
 
         applyFittedState(word, finalState);
         fitConfigurations.set(word, configuration);
@@ -1732,10 +1705,8 @@
       });
     };
 
-    const heroMotionIsActive = () => (
-      body.classList.contains("hero-intro-running") ||
-      body.classList.contains("hero-handoff")
-    );
+    const heroMotionIsActive = () =>
+      body.classList.contains("hero-intro-running") || body.classList.contains("hero-handoff");
 
     const requestFit = (force = false) => {
       if (!force && heroMotionIsActive()) return;
@@ -1819,16 +1790,10 @@
     };
 
     const clearMetalClockAnimations = () => {
-      Array.from(activeMetalClockAnimations.keys()).forEach(
-        cancelMetalClockAnimation
-      );
+      Array.from(activeMetalClockAnimations.keys()).forEach(cancelMetalClockAnimation);
     };
 
-    const playMetalClockArrival = (
-      animationName,
-      duration,
-      delay
-    ) => {
+    const playMetalClockArrival = (animationName, duration, delay) => {
       cancelMetalClockAnimation(animationName);
       const animations = metalClockGroups.get(animationName);
       if (!animations?.size) return;
@@ -1848,10 +1813,7 @@
           if (startedAt === null) startedAt = now;
 
           const progress = Math.min(1, (now - startedAt) / duration);
-          setMetalPlaybackRate(
-            controller.animations,
-            1 + (3.2 * (1 - arrivalEase(progress)))
-          );
+          setMetalPlaybackRate(controller.animations, 1 + 3.2 * (1 - arrivalEase(progress)));
 
           if (progress < 1) {
             controller.rafId = requestAnimationFrame(tick);
@@ -1916,25 +1878,17 @@
           const progress = Math.min(1, (now - startedAt) / duration);
           const state = stateAtProgress
             ? stateAtProgress(progress, configuration)
-            : solveFittedState(
-              configuration,
-              weightAtProgress(progress, configuration)
-            );
+            : solveFittedState(configuration, weightAtProgress(progress, configuration));
           applyFittedState(word, state);
 
-          word.style.opacity = opacityAtProgress
-            ? String(opacityAtProgress(progress))
-            : "1";
+          word.style.opacity = opacityAtProgress ? String(opacityAtProgress(progress)) : "1";
 
           if (progress < 1) {
             controller.rafId = requestAnimationFrame(tick);
             return;
           }
 
-          applyFittedState(
-            word,
-            solveFittedState(configuration, configuration.finalWeight)
-          );
+          applyFittedState(word, solveFittedState(configuration, configuration.finalWeight));
           word.style.opacity = "1";
           activeWeightAnimations.delete(word);
         };
@@ -1943,23 +1897,14 @@
       }, delay);
     };
 
-    const playArrival = (
-      selector,
-      duration,
-      delayForWord,
-      reveal
-    ) => {
+    const playArrival = (selector, duration, delayForWord, reveal) => {
       document.querySelectorAll(selector).forEach((word) => {
         animateFittedWeight(word, {
           duration,
           delay: delayForWord(word),
-          weightAtProgress: (progress, configuration) => (
-            180 +
-            ((configuration.finalWeight - 180) * arrivalEase(progress))
-          ),
-          opacityAtProgress: reveal
-            ? (progress) => Math.min(1, progress / 0.16)
-            : null
+          weightAtProgress: (progress, configuration) =>
+            180 + (configuration.finalWeight - 180) * arrivalEase(progress),
+          opacityAtProgress: reveal ? (progress) => Math.min(1, progress / 0.16) : null
         });
       });
     };
@@ -1981,10 +1926,8 @@
       };
       animateFittedWeight(word, {
         duration: 820,
-        stateAtProgress: (progress) => solveTouchState(
-          configuration.touchStates,
-          pulseIntensity(progress)
-        )
+        stateAtProgress: (progress) =>
+          solveTouchState(configuration.touchStates, pulseIntensity(progress))
       });
     };
 
@@ -2013,34 +1956,32 @@
       const minimumFadeTime = responsiveRefitPending
         ? Math.max(0, 220 - (performance.now() - responsiveRefitStartedAt))
         : 0;
-      settledFitTimer = window.setTimeout(() => {
-        requestAnimationFrame(() => {
+      settledFitTimer = window.setTimeout(
+        () => {
           requestAnimationFrame(() => {
-            const shouldInvalidate = invalidateOnSettledFit;
-            invalidateOnSettledFit = false;
-            if (shouldInvalidate) invalidateFits();
+            requestAnimationFrame(() => {
+              const shouldInvalidate = invalidateOnSettledFit;
+              invalidateOnSettledFit = false;
+              if (shouldInvalidate) invalidateFits();
 
-            if (responsiveRefitPending && body.classList.contains("hero-ready")) {
-              clearArrivalAnimations();
-              fitImmediately();
-              playArrival(
-                ".hero-brand-lockup .hero-fit-word",
-                560,
-                () => 0,
-                false
-              );
-              requestAnimationFrame(() => {
-                body.classList.remove("hero-refitting");
-                responsiveRefitPending = false;
-                responsiveRefitStartedAt = 0;
-              });
-              return;
-            }
+              if (responsiveRefitPending && body.classList.contains("hero-ready")) {
+                clearArrivalAnimations();
+                fitImmediately();
+                playArrival(".hero-brand-lockup .hero-fit-word", 560, () => 0, false);
+                requestAnimationFrame(() => {
+                  body.classList.remove("hero-refitting");
+                  responsiveRefitPending = false;
+                  responsiveRefitStartedAt = 0;
+                });
+                return;
+              }
 
-            requestFit();
+              requestFit();
+            });
           });
-        });
-      }, Math.max(delay, minimumFadeTime));
+        },
+        Math.max(delay, minimumFadeTime)
+      );
     };
 
     const handleViewportResize = () => {
@@ -2098,15 +2039,14 @@
     window.addEventListener("orientationchange", () => {
       scheduleSettledFit(260, true, true);
     });
-    stackedHomeLayout.addEventListener?.(
-      "change",
-      handleHomeLayoutChange
-    );
+    stackedHomeLayout.addEventListener?.("change", handleHomeLayoutChange);
     window.addEventListener("pageshow", () => {
       syncMetalClockGroups();
       scheduleSettledFit(0, true);
     });
-    window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", syncMetalClockGroups);
+    window
+      .matchMedia("(prefers-reduced-motion: reduce)")
+      .addEventListener?.("change", syncMetalClockGroups);
     syncMetalClockGroups();
     document.querySelector(".hero-brand-lockup")?.addEventListener("click", (event) => {
       if (
@@ -2148,9 +2088,11 @@
         640,
         (word) => {
           const cell = word.closest(".hero-fit-cell");
-          if (cell?.classList.contains("hero-home-meta-cell") ||
-              cell?.classList.contains("hero-home-year-cell") ||
-              cell?.classList.contains("hero-home-year-part")) {
+          if (
+            cell?.classList.contains("hero-home-meta-cell") ||
+            cell?.classList.contains("hero-home-year-cell") ||
+            cell?.classList.contains("hero-home-year-part")
+          ) {
             return 650;
           }
           if (cell?.classList.contains("hero-manifesto-cell")) return 900;
@@ -2198,1454 +2140,1506 @@
     }
   }
 
-
-   const rockSaltCanvas = document.createElement("canvas");
-   const rockSaltContext = rockSaltCanvas.getContext("2d");
-
-   function applyRockSaltSafeArea(element, safe) {
-     element.style.setProperty("--script-safe-top", `${safe.top}px`);
-     element.style.setProperty("--script-safe-right", `${safe.right}px`);
-     element.style.setProperty("--script-safe-bottom", `${safe.bottom}px`);
-     element.style.setProperty("--script-safe-left", `${safe.left}px`);
-     element.style.setProperty("--script-safe-top-neg", `${-safe.top}px`);
-     element.style.setProperty("--script-safe-right-neg", `${-safe.right}px`);
-     element.style.setProperty("--script-safe-bottom-neg", `${-safe.bottom}px`);
-     element.style.setProperty("--script-safe-left-neg", `${-safe.left}px`);
-   }
-
-   function measureRockSaltSafeArea(element) {
-     if (!rockSaltContext) {
-       return { top: 0, right: 0, bottom: 0, left: 0 };
-     }
-
-     const computed = getComputedStyle(element);
-     const text = (element.textContent || "").trim().toUpperCase();
-     if (!text) {
-       return { top: 0, right: 0, bottom: 0, left: 0 };
-     }
-
-     const fontSize = parseFloat(computed.fontSize) || 16;
-     const lineHeightValue = parseFloat(computed.lineHeight);
-     const lineHeight = Number.isFinite(lineHeightValue) ? lineHeightValue : fontSize;
-     const strokeWidth = parseFloat(computed.webkitTextStrokeWidth) || 0;
-     const visualShift = Math.abs(parseFloat(computed.top) || 0);
-     const verticalGuard = Math.ceil(visualShift + strokeWidth + 2);
-
-     rockSaltContext.font = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
-
-     const metrics = rockSaltContext.measureText(text);
-     const advanceWidth = metrics.width || 0;
-     const bboxRight = metrics.actualBoundingBoxRight || advanceWidth;
-     const bboxLeft = metrics.actualBoundingBoxLeft || 0;
-     const bboxHeight = (metrics.actualBoundingBoxAscent || fontSize * 0.8) + (metrics.actualBoundingBoxDescent || fontSize * 0.2);
-     const extraHeight = Math.max(0, bboxHeight - lineHeight);
-     const ascentRatio = bboxHeight > 0 ? (metrics.actualBoundingBoxAscent || bboxHeight * 0.8) / bboxHeight : 0.8;
-     return {
-       top: Math.max(verticalGuard, Math.ceil(extraHeight * ascentRatio + verticalGuard)),
-       right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + strokeWidth + 1)),
-       bottom: Math.max(verticalGuard, Math.ceil(extraHeight * (1 - ascentRatio) + verticalGuard)),
-       left: Math.max(1, Math.ceil(bboxLeft + strokeWidth + 1))
-     };
-   }
-
-   function syncRockSaltSafeAreas(scope = document) {
-     const elements = Array.from(scope.querySelectorAll?.(".tagline-script") || []);
-     elements.forEach((element) => {
-       applyRockSaltSafeArea(element, measureRockSaltSafeArea(element));
-     });
-   }
-
-   function initRockSaltSafeAreas() {
-     const syncAll = () => syncRockSaltSafeAreas(document);
-     const settledSync = createSettledScheduler(syncAll);
-
-     syncAll();
-
-     if (document.fonts?.ready) {
-       document.fonts.ready.then(syncAll).catch(syncAll);
-     }
-
-     window.addEventListener("resize", () => {
-       settledSync.schedule(90);
-     });
-     window.addEventListener("orientationchange", () => {
-       settledSync.schedule(140);
-     });
-     window.addEventListener("pageshow", () => {
-       settledSync.schedule(80);
-     });
-   }
-
-   function initAboutDisclosure() {
-     const details = document.getElementById("about-details");
-     const toggle = document.querySelector(".about-copy__toggle");
-     const label = toggle?.querySelector("[data-about-toggle-label]");
-     if (!details || !toggle || !label) {
-       return;
-     }
-
-     const textBlocks = Array.from(details.querySelectorAll(".about-copy__title, p"));
-     const motion = {
-       lineDuration: 1080,
-       lineStagger: 20,
-       lineDistance: 16,
-       heightLead: 100,
-       collapseDuration: 720,
-       easing: "cubic-bezier(0.22, 1, 0.36, 1)"
-     };
-     const revealAnimations = [];
-     const splitBlocks = [];
-     let lineLayout = null;
-     let expanded = false;
-     let heightAnimation = null;
-     let anchorFrame = 0;
-     let anchorTop = null;
-     let viewportWidth = window.innerWidth;
-
-     const measureLines = () => {
-       const bounds = details.getBoundingClientRect();
-       const style = getComputedStyle(details);
-       const key = [
-         bounds.width, style.fontFamily, style.fontSize, style.fontWeight,
-         style.fontStyle, style.fontStretch, style.lineHeight, style.letterSpacing,
-         style.wordSpacing, style.fontFeatureSettings, style.fontVariationSettings
-       ].join("|");
-       if (lineLayout?.key === key) return lineLayout;
-
-       const range = document.createRange();
-       const blocks = textBlocks.flatMap((element) => {
-         const node = element.firstChild;
-         if (element.childNodes.length !== 1 || node?.nodeType !== Node.TEXT_NODE || !node.length) {
-           return [];
-         }
-
-         range.selectNodeContents(node);
-         const rows = [];
-         for (const rect of range.getClientRects()) {
-           if (rect.width && rect.height && (!rows.length || Math.abs(rect.top - rows[rows.length - 1].top) > 0.5)) {
-             rows.push(rect);
-           }
-         }
-
-         const lines = [];
-         let start = 0;
-         rows.forEach((row, index) => {
-           let end = node.length;
-           if (index < rows.length - 1) {
-             let low = start + 1;
-             let high = node.length;
-             range.setStart(node, start);
-             // Find the rendered wrap without splitting words or measuring every character.
-             while (low < high) {
-               const middle = Math.ceil((low + high) / 2);
-               range.setEnd(node, middle);
-               const rects = range.getClientRects();
-               if (rects.length && rects[rects.length - 1].top <= row.top + 0.5) {
-                 low = middle;
-               } else {
-                 high = middle - 1;
-               }
-             }
-             end = low;
-           }
-           lines.push({ text: node.data.slice(start, end), bottom: row.bottom - bounds.top });
-           start = end;
-         });
-         return lines.length ? [{ element, node, lines }] : [];
-       });
-       lineLayout = {
-         key,
-         blocks,
-         lines: blocks.flatMap((block) => block.lines),
-         height: details.scrollHeight
-       };
-       return lineLayout;
-     };
-     const getExpansion = (layout, startHeight) => {
-       if (startHeight === 0 && layout.expansion) return layout.expansion;
-
-       const delays = new Map();
-       layout.lines.forEach((line) => {
-         if (line.bottom <= startHeight) return;
-         const delay = motion.heightLead + delays.size * motion.lineStagger;
-         delays.set(line, delay);
-       });
-       const duration = motion.lineDuration + (delays.size
-         ? motion.heightLead + (delays.size - 1) * motion.lineStagger
-         : 0);
-       const expansion = {
-         delays,
-         duration,
-         keyframes: [{ height: `${startHeight}px` }, { height: `${layout.height}px` }]
-       };
-       if (startHeight === 0) layout.expansion = expansion;
-       return expansion;
-     };
-     const clearLineReveal = () => {
-       revealAnimations.forEach((animation) => animation.cancel());
-       revealAnimations.length = 0;
-       splitBlocks.forEach(({ element, node }) => element.replaceChildren(node));
-       splitBlocks.length = 0;
-       details.style.removeProperty("overflow");
-     };
-     const revealLines = (layout, expansion, startTime) => {
-       // Keep the last line's travel unclipped.
-       details.style.overflow = "visible";
-       layout.blocks.forEach((block) => {
-         if (!block.lines.some((line) => expansion.delays.has(line))) return;
-         const spans = block.lines.map((line) => {
-           const span = document.createElement("span");
-           span.className = "about-copy__line";
-           span.textContent = line.text;
-           return span;
-         });
-         block.element.replaceChildren(...spans);
-         splitBlocks.push(block);
-         block.lines.forEach((line, index) => {
-           const delay = expansion.delays.get(line);
-           if (delay === undefined) return;
-           const animation = spans[index].animate(
-             [
-               { opacity: 0, transform: `translateY(${motion.lineDistance}px)` },
-               { opacity: 1, transform: "translateY(0)" }
-             ],
-             {
-               duration: motion.lineDuration,
-               delay,
-               easing: motion.easing,
-               fill: "backwards"
-             }
-           );
-           if (startTime !== null) animation.startTime = startTime;
-           revealAnimations.push(animation);
-         });
-       });
-     };
-     const releaseScrollAnchor = () => {
-       cancelAnimationFrame(anchorFrame);
-       anchorFrame = 0;
-       anchorTop = null;
-     };
-     const alignToggle = () => {
-       if (anchorTop === null) return;
-       const delta = toggle.getBoundingClientRect().top - anchorTop;
-       if (Math.abs(delta) > 0.5) {
-         window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: "instant" });
-       }
-     };
-     const trackCollapse = () => {
-       anchorFrame = 0;
-       alignToggle();
-       if (heightAnimation && !expanded && anchorTop !== null) {
-         anchorFrame = requestAnimationFrame(trackCollapse);
-       }
-     };
-     const cancelAnimations = () => {
-       releaseScrollAnchor();
-       heightAnimation?.cancel();
-       heightAnimation = null;
-       clearLineReveal();
-     };
-     const invalidateLines = () => {
-       cancelAnimations();
-       lineLayout = null;
-       details.hidden = !expanded;
-     };
-     details.hidden = true;
-     toggle.hidden = false;
-     window.addEventListener("wheel", releaseScrollAnchor, { passive: true });
-     window.addEventListener("touchstart", releaseScrollAnchor, { passive: true });
-     window.addEventListener("resize", () => {
-       if (window.innerWidth === viewportWidth) return;
-       viewportWidth = window.innerWidth;
-       invalidateLines();
-     });
-     document.fonts?.ready.then(invalidateLines);
-     document.fonts?.addEventListener("loadingdone", invalidateLines);
-     document.fonts?.addEventListener("loadingerror", invalidateLines);
-
-     toggle.addEventListener("click", () => {
-       const scrollTop = window.scrollY;
-       const toggleTop = toggle.getBoundingClientRect().top;
-       const startHeight = details.hidden ? 0 : details.getBoundingClientRect().height;
-
-       cancelAnimations();
-       expanded = !expanded;
-       details.hidden = false;
-       details.inert = !expanded;
-       toggle.setAttribute("aria-expanded", String(expanded));
-       label.textContent = expanded ? "Show less" : "Show more";
-       if (!expanded && toggleTop >= 0 && toggleTop < window.innerHeight) {
-         anchorTop = toggleTop;
-       }
-
-       if (prefersReducedMotion || typeof details.animate !== "function") {
-         details.hidden = !expanded;
-         alignToggle();
-         releaseScrollAnchor();
-         return;
-       }
-
-       const layout = expanded ? measureLines() : null;
-       const expansion = expanded ? getExpansion(layout, startHeight) : null;
-       const startTime = document.timeline.currentTime;
-       const animation = details.animate(
-         expanded ? expansion.keyframes : [{ height: `${startHeight}px` }, { height: "0px" }],
-         {
-           duration: expanded ? expansion.duration : motion.collapseDuration,
-           easing: motion.easing,
-           fill: "both"
-         }
-       );
-       if (startTime !== null) animation.startTime = startTime;
-       heightAnimation = animation;
-       animation.onfinish = () => {
-         if (heightAnimation !== animation) return;
-         details.hidden = !expanded;
-         animation.cancel();
-         heightAnimation = null;
-         clearLineReveal();
-         alignToggle();
-         releaseScrollAnchor();
-       };
-
-       if (expanded) {
-         revealLines(layout, expansion, startTime);
-         window.scrollTo({ top: scrollTop, behavior: "instant" });
-       } else {
-         // Follow the shrinking content only until the user starts scrolling.
-         trackCollapse();
-       }
-     });
-   }
-
-   function initAboutCreator() {
-     const title = document.querySelector(".about-creator-title");
-     if (!title) {
-       return;
-     }
-
-     const prefix = title.querySelector(".about-creator-prefix");
-     const suffix = title.querySelector(".about-creator-suffix");
-     const viewport = title.querySelector(".about-creator-viewport");
-     const track = title.querySelector(".about-creator-track");
-     const words = Array.from(title.querySelectorAll(".about-creator-word"));
-     const glyphs = words.map((word) => word.querySelector(".about-creator-glyph"));
-     if (!prefix || !suffix || !viewport || !track || !words.length || glyphs.some((glyph) => !glyph)) {
-       return;
-     }
-
-     const finalIndex = words.length - 1;
-     const transitionDuration = 620;
-     const holdDuration = 400;
-     const initialHold = 280;
-     let activeIndex = 0;
-     let started = false;
-     let metrics = { height: 0, widths: [] };
-     let sequenceFrame = 0;
-     let nextStepAt = 0;
-     let pendingRefresh = false;
-     let lastLayoutWidth = 0;
-     let lastViewportWidth = 0;
-
-     const measureLayoutWidth = () => Math.round(title.offsetWidth || title.clientWidth || title.getBoundingClientRect().width);
-     const measureViewportWidth = () => Math.round(document.documentElement.clientWidth || window.innerWidth || 0);
-
-     const setImmediateTransitions = (enabled) => {
-       const value = enabled ? "none" : "";
-       viewport.style.transition = value;
-       track.style.transition = value;
-     };
-
-     const updateLineBreaks = (longestWidth) => {
-       const availableWidth = Math.round(title.clientWidth || title.getBoundingClientRect().width || 0);
-       if (!availableWidth) {
-         return;
-       }
-
-       const columnGap = parseFloat(getComputedStyle(title).columnGap) || 0;
-       const prefixWidth = Math.ceil(prefix.getBoundingClientRect().width);
-       const suffixWidth = Math.ceil(suffix.getBoundingClientRect().width);
-
-       const breakBeforeWord = prefixWidth + columnGap + longestWidth > availableWidth;
-       const breakBeforeBehind = (breakBeforeWord
-         ? longestWidth + columnGap + suffixWidth
-         : prefixWidth + columnGap + longestWidth + columnGap + suffixWidth) > availableWidth;
-
-       title.classList.toggle("about-creator-break-before-word", breakBeforeWord);
-       title.classList.toggle("about-creator-break-before-behind", breakBeforeBehind);
-     };
-
-     const updateMetrics = () => {
-       syncRockSaltSafeAreas(title);
-
-       const fallbackHeight = Math.ceil((parseFloat(getComputedStyle(title).fontSize) || 16) * 1.18);
-       const widths = glyphs.map((glyph) => Math.ceil(glyph.getBoundingClientRect().width));
-       const height = Math.max(
-         fallbackHeight,
-         ...glyphs.map((glyph) => Math.ceil(glyph.getBoundingClientRect().height))
-       );
-       const longestWidth = Math.max(...widths);
-
-       metrics = { height, widths };
-       title.style.setProperty("--about-creator-height", `${height}px`);
-       updateLineBreaks(longestWidth);
-       return metrics;
-     };
-
-     const captureLayoutWidths = () => {
-       lastLayoutWidth = measureLayoutWidth();
-       lastViewportWidth = measureViewportWidth();
-     };
-
-     const layoutWidthChanged = () => {
-       const currentTitleWidth = measureLayoutWidth();
-       const currentViewportWidth = measureViewportWidth();
-       const titleDelta = Math.abs(currentTitleWidth - lastLayoutWidth);
-       const viewportDelta = Math.abs(currentViewportWidth - lastViewportWidth);
-
-       return titleDelta > 2 || viewportDelta > 2;
-     };
-
-     const applyIndex = (index, { immediate = false } = {}) => {
-       activeIndex = index;
-       words.forEach((word, wordIndex) => {
-         word.classList.toggle("is-active", wordIndex === index);
-       });
-
-       if (!metrics.height || !metrics.widths.length) {
-         updateMetrics();
-       }
-
-       const width = metrics.widths[index] || metrics.widths[0] || 0;
-       const shift = metrics.height * index;
-
-       if (immediate) {
-         setImmediateTransitions(true);
-       }
-
-       title.style.setProperty("--about-creator-width", `${width}px`);
-       title.style.setProperty("--about-creator-shift", `${shift}px`);
-
-       if (immediate) {
-         void title.offsetHeight;
-         requestAnimationFrame(() => {
-           setImmediateTransitions(false);
-         });
-       }
-     };
-
-     const stopSequence = () => {
-       window.cancelAnimationFrame(sequenceFrame);
-       sequenceFrame = 0;
-     };
-
-     const tickSequence = (now) => {
-       if (!started || activeIndex >= finalIndex) {
-         sequenceFrame = 0;
-         return;
-       }
-
-       if (!nextStepAt) {
-         nextStepAt = now + initialHold;
-       }
-
-       if (now >= nextStepAt) {
-         applyIndex(activeIndex + 1);
-         nextStepAt = now + transitionDuration + holdDuration;
-
-         if (activeIndex >= finalIndex) {
-           if (pendingRefresh) {
-             pendingRefresh = false;
-             updateMetrics();
-             applyIndex(finalIndex, { immediate: true });
-             captureLayoutWidths();
-           }
-           sequenceFrame = 0;
-           return;
-         }
-       }
-
-       sequenceFrame = window.requestAnimationFrame(tickSequence);
-     };
-
-     const runSequence = () => {
-       if (started) {
-         return;
-       }
-
-       started = true;
-       pendingRefresh = false;
-
-       if (prefersReducedMotion) {
-         updateMetrics();
-         applyIndex(finalIndex, { immediate: true });
-         captureLayoutWidths();
-         return;
-       }
-
-       updateMetrics();
-       applyIndex(0, { immediate: true });
-       captureLayoutWidths();
-       nextStepAt = 0;
-       stopSequence();
-       sequenceFrame = window.requestAnimationFrame(tickSequence);
-     };
-
-     const refreshLayout = () => {
-       if (!layoutWidthChanged()) {
-         return;
-       }
-
-       if (started && activeIndex < finalIndex) {
-         pendingRefresh = true;
-         return;
-       }
-
-       updateMetrics();
-       applyIndex(started ? activeIndex : 0, { immediate: true });
-       captureLayoutWidths();
-     };
-
-     const settledRefresh = createSettledScheduler(refreshLayout);
-
-     updateMetrics();
-     applyIndex(prefersReducedMotion ? finalIndex : 0, { immediate: true });
-     captureLayoutWidths();
-
-     if ("ResizeObserver" in window) {
-       const resizeTarget = title.parentElement || title;
-       const observer = new ResizeObserver(() => {
-         settledRefresh.schedule(80);
-       });
-       observer.observe(resizeTarget);
-     }
-
-     window.addEventListener("resize", () => {
-       settledRefresh.schedule(120);
-     });
-
-     if (document.fonts?.ready) {
-       document.fonts.ready.then(refreshLayout).catch(refreshLayout);
-     }
-
-     if (prefersReducedMotion || !("IntersectionObserver" in window)) {
-       runSequence();
-       return;
-     }
-
-     const observer = new IntersectionObserver(
-       (entries, obs) => {
-         entries.forEach((entry) => {
-           if (!entry.isIntersecting) {
-             return;
-           }
-
-           runSequence();
-           obs.unobserve(entry.target);
-         });
-       },
-       {
-         rootMargin: "0px 0px -16% 0px",
-         threshold: 0.36
-       }
-     );
-
-     observer.observe(title);
-   }
-
-   function measureDisciplineCard(card) {
-     const surface = card.querySelector(".discipline-stack-card__surface");
-     const header = surface?.querySelector(".discipline-stack-card__header");
-     const body = surface?.querySelector(".discipline-stack-card__body");
-     const arsenal = surface?.querySelector(".discipline-stack-card__arsenal:not([hidden])");
-     const styles = surface ? getComputedStyle(surface) : null;
-     const gap = styles ? parseFloat(styles.rowGap || styles.gap) || 0 : 0;
-     const paddingTop = styles ? parseFloat(styles.paddingTop) || 0 : 0;
-     const paddingBottom = styles ? parseFloat(styles.paddingBottom) || 0 : 0;
-     const parts = [header, body, arsenal].filter(Boolean);
-
-     return Math.ceil(
-       paddingTop +
-       paddingBottom +
-       parts.reduce((sum, part) => sum + (part.scrollHeight || part.getBoundingClientRect().height || 0), 0) +
-       gap * Math.max(0, parts.length - 1)
-     );
-   }
-
-   function measureProjectCard(card, { portrait }) {
-     const surface = card.querySelector(".project-stack-card__surface");
-     const layout = surface?.querySelector(".project-stack-card__layout");
-     const content = surface?.querySelector(".project-stack-card__content");
-     const media = surface?.querySelector(".project-stack-card__media:not([hidden])");
-
-     if (!surface || !layout || !content) {
-       return 0;
-     }
-
-     const surfaceStyles = getComputedStyle(surface);
-     const layoutStyles = getComputedStyle(layout);
-     const paddingTop = parseFloat(surfaceStyles.paddingTop) || 0;
-     const paddingBottom = parseFloat(surfaceStyles.paddingBottom) || 0;
-     const rowGap = parseFloat(layoutStyles.rowGap || layoutStyles.gap) || 0;
-     const contentHeight = content.scrollHeight || content.getBoundingClientRect().height || 0;
-     const imageHeight = media?.offsetHeight || 0;
-
-     if (!media) {
-       return Math.ceil(paddingTop + paddingBottom + contentHeight);
-     }
-
-     if (portrait) {
-       return Math.ceil(paddingTop + paddingBottom + contentHeight + rowGap + imageHeight);
-     }
-
-     return Math.ceil(paddingTop + paddingBottom + Math.max(contentHeight, imageHeight));
-   }
-
-   function initStackDeck({
-     stackId,
-     items,
-     getAriaLabel,
-     getBaseCardHeight,
-     measureCard,
-     mediaSelector,
-     extraBlockSpace = 0
-   }) {
-     const stack = document.getElementById(stackId);
-     const shell = stack?.closest(".discipline-stack-shell");
-     const stage = stack?.closest(".discipline-stack-stage");
-     const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
-
-     if (!stack || !cards.length) {
-       return;
-     }
-
-     const total = cards.length;
-     const portraitQuery = window.matchMedia("(max-width: 980px) and (orientation: portrait)");
-     let activeIndex = 0;
-     let pointerState = null;
-     let metrics = null;
-     const motions = new Map();
-     const cardStates = cards.map((card, index) => ({
-       card,
-       index,
-       layout: null,
-       transform: "",
-       zIndex: ""
-     }));
-     let dragFrame = 0;
-     let queuedDragProgress = 0;
-     let queuedSyncFrame = 0;
-     let lastViewportWidth = window.innerWidth;
-     let lastViewportHeight = window.innerHeight;
-     let lastPortraitState = portraitQuery.matches;
-     let loadingFadeScheduled = false;
-     let loadingFinished = false;
-
-     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
-     const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
-     const dragCurve = {
-       inwardScaleLift: [0, 0.032, 0.026, 0.02, 0.016, 0.014],
-       outwardScaleDrop: [0, 0.022, 0.028, 0.032, 0.036, 0.04],
-       inwardXPull: [0, 0.18, 0.15, 0.13, 0.11, 0.1],
-       outwardXPush: [0, 0.14, 0.18, 0.22, 0.26, 0.3],
-       inwardRotateEase: [0, 0.18, 0.14, 0.12, 0.1, 0.08],
-       outwardRotateBoost: [0, 0.08, 0.1, 0.12, 0.14, 0.16]
-     };
-
-     const setStackLoading = (isLoading) => {
-       shell?.setAttribute("data-stack-loading", isLoading ? "true" : "false");
-       stack.setAttribute("aria-busy", isLoading ? "true" : "false");
-     };
-
-     const finishStackLoading = () => {
-       if (loadingFinished || loadingFadeScheduled) {
-         return;
-       }
-
-       loadingFadeScheduled = true;
-       requestAnimationFrame(() => {
-         requestAnimationFrame(() => {
-           loadingFadeScheduled = false;
-           loadingFinished = true;
-           stack.dataset.stackReady = "true";
-           setStackLoading(false);
-           stack.dispatchEvent(new Event("stack:ready"));
-         });
-       });
-     };
-
-     const buildLayouts = (cardWidth) => {
-       const steps = portraitQuery.matches
-         ? [
-             { x: 0, scale: 1, rotate: 0 },
-             { x: cardWidth * 0.228, scale: 0.866, rotate: 5.1 },
-             { x: cardWidth * 0.366, scale: 0.734, rotate: 8.4 },
-             { x: cardWidth * 0.462, scale: 0.616, rotate: 11.1 },
-             { x: cardWidth * 0.528, scale: 0.522, rotate: 13.5 },
-             { x: cardWidth * 0.586, scale: 0.458, rotate: 15.3 }
-           ]
-         : [
-             { x: 0, scale: 1, rotate: 0 },
-             { x: cardWidth * 0.238, scale: 0.88, rotate: 4.6 },
-             { x: cardWidth * 0.386, scale: 0.752, rotate: 7.2 },
-             { x: cardWidth * 0.486, scale: 0.64, rotate: 9.8 },
-             { x: cardWidth * 0.55, scale: 0.55, rotate: 11.8 },
-             { x: cardWidth * 0.604, scale: 0.486, rotate: 13.6 }
-           ];
-
-       return steps.reduce((layouts, step, depth) => {
-         const base = createLayout(step.x, 0, step.scale, step.rotate);
-         if (depth === 0) {
-           layouts[0] = base;
-           return layouts;
-         }
-
-         layouts[depth] = base;
-         layouts[-depth] = createLayout(-step.x, 0, step.scale, -step.rotate);
-         return layouts;
-       }, {});
-     };
-
-     const formatTransformValues = (x, y, scale, rotate) =>
-       `translate(calc(-50% + ${x.toFixed(2)}px), ${y.toFixed(2)}px) scale(${scale.toFixed(4)}) rotate(${rotate.toFixed(2)}deg)`;
-     const formatTransform = (layout) =>
-       formatTransformValues(layout.x, layout.y, layout.scale, layout.rotate);
-
-     const getZIndex = (offset) => {
-       if (offset === 0) {
-         return 200;
-       }
-
-       return 200 - Math.abs(offset) * 14;
-     };
-
-     const measureMetrics = () => {
-       const firstCard = cards[0];
-       let maxContentHeight = 0;
-
-       cards.forEach((card) => {
-         maxContentHeight = Math.max(
-           maxContentHeight,
-           Math.ceil(measureCard(card, { portrait: portraitQuery.matches }) || 0)
-         );
-       });
-
-       const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
-       const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
-       const baseHeight = Math.ceil(getBaseCardHeight({ portrait: portraitQuery.matches }));
-       const cardHeight = Math.ceil(Math.max(baseHeight, maxContentHeight + breathingRoom) + extraBlockSpace * 2);
-       const pad = Math.ceil(clamp(window.innerHeight * 0.026, 18, 28));
-
-       shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
-       stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
-
-       return {
-         cardWidth,
-         cardHeight,
-         layouts: buildLayouts(cardWidth)
-       };
-     };
-
-     const getMetrics = () => {
-       if (!metrics) {
-         metrics = measureMetrics();
-       }
-       return metrics;
-     };
-
-     const getLayoutForOffset = (offset) => {
-       const currentMetrics = getMetrics();
-       const normalized = offset === 0 ? 0 : clamp(offset, -(total - 1), total - 1);
-       return currentMetrics.layouts[normalized] || currentMetrics.layouts[0];
-     };
-
-     const writeLayout = (state, layout, zIndex = state.zIndex) => {
-       const transform = formatTransform(layout);
-       const nextZIndex = String(zIndex);
-       if (state.zIndex !== nextZIndex) {
-         state.card.style.zIndex = nextZIndex;
-         state.zIndex = nextZIndex;
-       }
-       if (state.transform !== transform) {
-         state.card.style.transform = transform;
-         state.transform = transform;
-       }
-       state.layout = layout;
-     };
-
-     const captureLayouts = () => new Map(cardStates.map(({ card, layout }) => {
-       const motion = motions.get(card);
-       if (!motion || motion.playState === "finished") {
-         return [card, createLayout(layout.x, layout.y, layout.scale, layout.rotate)];
-       }
-
-       // Read only at a motion handoff, never on each drag frame.
-       const matrix = new DOMMatrixReadOnly(getComputedStyle(card).transform);
-       return [card, createLayout(
-         matrix.m41 + getMetrics().cardWidth / 2,
-         matrix.m42,
-         Math.hypot(matrix.m11, matrix.m12),
-         Math.atan2(matrix.m12, matrix.m11) * 180 / Math.PI
-       )];
-     }));
-
-     const cancelMotions = () => {
-       motions.forEach((animation) => animation.cancel());
-       motions.clear();
-     };
-
-     const cancelQueuedDragState = () => {
-       if (dragFrame) {
-         cancelAnimationFrame(dragFrame);
-         dragFrame = 0;
-       }
-
-       queuedDragProgress = 0;
-     };
-
-     const queueDragState = (dragProgress) => {
-       queuedDragProgress = dragProgress;
-       if (dragFrame) {
-         return;
-       }
-
-       dragFrame = requestAnimationFrame(() => {
-         dragFrame = 0;
-         if (pointerState) {
-           if (portraitQuery.matches) {
-             applyDragState(queuedDragProgress);
-           } else {
-             applyState();
-           }
-         }
-       });
-     };
-
-     const queueSyncWithoutAnimation = () => {
-       if (queuedSyncFrame) {
-         cancelAnimationFrame(queuedSyncFrame);
-       }
-
-       queuedSyncFrame = requestAnimationFrame(() => {
-         queuedSyncFrame = 0;
-         syncWithoutAnimation();
-       });
-     };
-
-     const syncLabels = () => {
-       const active = items[activeIndex];
-       stack.setAttribute("aria-label", getAriaLabel(active, activeIndex, total));
-       stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
-       stack.removeAttribute("tabindex");
-     };
-
-     const prepareDrag = () => {
-       const layouts = captureLayouts();
-       cancelMotions();
-       pointerState.cardWidth = getMetrics().cardWidth;
-       pointerState.cards = cardStates.map((state) => {
-         const offset = state.index - activeIndex;
-         const depth = Math.min(Math.abs(offset), total - 1);
-         const base = getLayoutForOffset(offset);
-         const start = layouts.get(state.card);
-         const zIndex = getZIndex(offset);
-         writeLayout(state, start);
-
-         return {
-           state,
-           offset,
-           side: Math.sign(offset),
-           base,
-           zIndex,
-           delta: createLayout(start.x - base.x, start.y - base.y, start.scale - base.scale, start.rotate - base.rotate),
-           layout: createLayout(base.x, base.y, base.scale, base.rotate),
-           inward: {
-             x: dragCurve.inwardXPull[depth] || 0.1,
-             scale: dragCurve.inwardScaleLift[depth] || 0.014,
-             rotate: dragCurve.inwardRotateEase[depth] || 0.08,
-             zIndex: zIndex + 8 - depth
-           },
-           outward: {
-             x: dragCurve.outwardXPush[depth] || 0.3,
-             scale: dragCurve.outwardScaleDrop[depth] || 0.04,
-             rotate: dragCurve.outwardRotateBoost[depth] || 0.16,
-             zIndex: zIndex - 5 - depth
-           }
-         };
-       });
-       stack.classList.add("is-dragging");
-     };
-
-     const applyDragState = (dragProgress) => {
-       const dragSign = dragProgress === 0 ? 0 : Math.sign(dragProgress);
-       const dragMagnitude = Math.abs(dragProgress);
-       const inwardSide = dragSign === 0 ? 0 : -dragSign;
-       const hasTarget =
-         dragSign === 0 ||
-         (dragSign < 0 ? activeIndex < total - 1 : activeIndex > 0);
-
-       pointerState.cards.forEach(({ state, offset, side, base, delta, layout, inward, outward, zIndex: baseZIndex }) => {
-         let visualX = base.x;
-         let visualY = base.y;
-         let visualScale = base.scale;
-         let visualRotate = base.rotate;
-         let zIndex = baseZIndex;
-
-         if (hasTarget && offset === 0 && dragSign !== 0) {
-           visualX = pointerState.cardWidth * 0.58 * dragMagnitude * dragSign;
-           visualY = 0;
-           visualScale = 1 - dragMagnitude * 0.024;
-           visualRotate = dragSign * 9.1 * dragMagnitude;
-         } else if (hasTarget && offset !== 0) {
-           if (side === inwardSide) {
-             visualX *= 1 - inward.x * dragMagnitude;
-             visualY = 0;
-             visualScale += inward.scale * dragMagnitude;
-             visualRotate *= 1 - inward.rotate * dragMagnitude;
-             zIndex = inward.zIndex;
-           } else if (side === dragSign) {
-             visualX *= 1 + outward.x * dragMagnitude;
-             visualY = 0;
-             visualScale -= outward.scale * dragMagnitude;
-             visualRotate *= 1 + outward.rotate * dragMagnitude;
-             zIndex = outward.zIndex;
-           }
-         }
-
-         layout.x = visualX + delta.x;
-         layout.y = visualY + delta.y;
-         layout.scale = visualScale + delta.scale;
-         layout.rotate = visualRotate + delta.rotate;
-         writeLayout(state, layout, zIndex);
-       });
-     };
-
-     const applyState = ({ animate = false, fromLayouts = null, outgoingCard = null, direction = 0 } = {}) => {
-       stack.classList.remove("is-dragging");
-       cardStates.forEach((state) => {
-         const { card, index } = state;
-         const offset = index - activeIndex;
-         const layout = getLayoutForOffset(offset);
-         const startLayout = fromLayouts?.get(card) || state.layout || layout;
-         const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
-
-         card.dataset.stackPos = String(offset);
-         card.dataset.stackDepth = String(Math.abs(offset));
-         card.dataset.stackSide = getSide(offset);
-         card.classList.toggle("is-active", offset === 0);
-         card.classList.toggle("is-neighbor", isNeighbor);
-         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
-         writeLayout(state, layout, getZIndex(offset));
-         if (animate) {
-           animateCard(card, startLayout, layout, card === outgoingCard ? direction : 0);
-         }
-       });
-
-       syncLabels();
-     };
-
-     const animateCard = (card, startLayout, finalLayout, direction = 0) => {
-       if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
-         return;
-       }
-
-       const startTransform = formatTransform(startLayout);
-       const finalTransform = formatTransform(finalLayout);
-       if (startTransform === finalTransform && !direction) {
-         return;
-       }
-
-       const keyframes = [{ transform: startTransform }];
-       if (direction) {
-         const throwSign = direction > 0 ? -1 : 1;
-         const midLayout = createLayout(
-           throwSign * getMetrics().cardWidth * (portraitQuery.matches ? 0.56 : 0.52),
-           0,
-           0.968,
-           throwSign * (portraitQuery.matches ? 12.8 : 10.4)
-         );
-         const tuckLayout = createLayout(
-           finalLayout.x * 1.18,
-           0,
-           Math.min(0.982, finalLayout.scale * 1.012),
-           finalLayout.rotate + throwSign * 1.35
-         );
-         keyframes.push(
-           { transform: formatTransform(midLayout), offset: 0.5 },
-           { transform: formatTransform(tuckLayout), offset: 0.82 }
-         );
-       }
-       keyframes.push({ transform: finalTransform });
-
-       const animation = card.animate(keyframes, {
-         duration: direction ? (portraitQuery.matches ? 920 : 820) : 560,
-         easing: direction
-           ? "cubic-bezier(0.18, 0.86, 0.22, 1)"
-           : "cubic-bezier(0.2, 0.82, 0.22, 1)"
-       });
-       motions.set(card, animation);
-       const finishAnimation = () => {
-         if (motions.get(card) === animation) {
-           motions.delete(card);
-         }
-       };
-       animation.finished.then(finishAnimation, finishAnimation);
-     };
-
-     const settleCards = () => {
-       const fromLayouts = captureLayouts();
-       cancelMotions();
-       applyState({ animate: true, fromLayouts });
-     };
-
-     const rotate = (direction) => {
-       if (!direction) {
-         return false;
-       }
-
-       const targetIndex = clamp(activeIndex + direction, 0, total - 1);
-       if (targetIndex === activeIndex) {
-         settleCards();
-         return false;
-       }
-
-       const outgoingCard = cards[activeIndex];
-       const fromLayouts = captureLayouts();
-       cancelMotions();
-       activeIndex = targetIndex;
-       applyState({ animate: true, fromLayouts, outgoingCard, direction });
-       return true;
-     };
-
-     const syncWithoutAnimation = () => {
-       cancelMotions();
-       cancelQueuedDragState();
-       pointerState = null;
-       metrics = measureMetrics();
-       applyState();
-     };
-
-     const bindMediaSync = () => {
-       if (!mediaSelector) {
-         finishStackLoading();
-         return;
-       }
-
-       const mediaNodes = Array.from(stack.querySelectorAll(mediaSelector));
-       if (!mediaNodes.length) {
-         finishStackLoading();
-         return;
-       }
-
-       let readyCount = 0;
-       mediaNodes.forEach((media) => {
-         const markReady = () => {
-           if (media.dataset.stackMediaReady === "true") {
-             return;
-           }
-
-           media.dataset.stackMediaReady = "true";
-           readyCount += 1;
-           queueSyncWithoutAnimation();
-           if (readyCount >= mediaNodes.length) {
-             finishStackLoading();
-           }
-         };
-
-         if (media.complete && media.naturalWidth) {
-           markReady();
-           return;
-         }
-
-         media.addEventListener("load", markReady, { once: true });
-         media.addEventListener("error", markReady, { once: true });
-
-         if (typeof media.decode === "function") {
-           media.decode().then(markReady).catch(() => {});
-         }
-       });
-     };
-
-     const onPointerDown = (event) => {
-       if (!portraitQuery.matches || !event.isPrimary) {
-         return;
-       }
-
-       getMetrics();
-       const gestureWidth = Math.max(stack.clientWidth, 1);
-       stack.setPointerCapture?.(event.pointerId);
-       pointerState = {
-         id: event.pointerId,
-         x: event.clientX,
-         y: event.clientY,
-         progress: 0,
-         intent: null,
-         width: gestureWidth
-       };
-     };
-
-     const clearPointer = (event, { snap = false } = {}) => {
-       if (!pointerState || (event && pointerState.id !== event.pointerId)) {
-         return;
-       }
-
-       cancelQueuedDragState();
-       const pointerId = pointerState.id;
-       const wasDragging = pointerState.intent === "x";
-       pointerState = null;
-       stack.classList.remove("is-dragging");
-
-       if (snap && wasDragging) {
-         settleCards();
-       }
-
-       if (stack.hasPointerCapture?.(pointerId)) {
-         stack.releasePointerCapture(pointerId);
-       }
-     };
-
-     const onPointerMove = (event) => {
-       if (!portraitQuery.matches || !pointerState || pointerState.id !== event.pointerId) {
-         return;
-       }
-
-       const deltaX = event.clientX - pointerState.x;
-       const deltaY = event.clientY - pointerState.y;
-
-       if (!pointerState.intent) {
-         if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
-           return;
-         }
-
-         pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
-         if (pointerState.intent === "x") {
-           prepareDrag();
-         }
-       }
-
-       if (pointerState.intent !== "x") {
-         return;
-       }
-
-       event.preventDefault();
-       const raw = deltaX / (pointerState.width * 0.46);
-       const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
-       const outOfBounds = (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
-       const limit = outOfBounds ? 0.18 : 0.94;
-       const resistance = outOfBounds ? 1.8 : 0.84;
-       const progress = clamp(Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)), -limit, limit);
-       pointerState.progress = progress;
-       queueDragState(progress);
-     };
-
-     const onPointerUp = (event) => {
-       if (!portraitQuery.matches || !pointerState || pointerState.id !== event.pointerId) {
-         return;
-       }
-
-       const deltaX = event.clientX - pointerState.x;
-       const deltaY = event.clientY - pointerState.y;
-       const progress = pointerState.progress || 0;
-       const intent = pointerState.intent;
-       const gestureWidth = pointerState.width;
-       clearPointer(event);
-
-       if (intent !== "x") {
-         return;
-       }
-
-       const direction = progress < 0 ? 1 : -1;
-       const targetIndex = clamp(activeIndex + direction, 0, total - 1);
-       const hasTarget = targetIndex !== activeIndex;
-       if (
-         hasTarget &&
-         (Math.abs(deltaX) >= Math.max(gestureWidth * 0.11, 42) || Math.abs(progress) >= 0.28) &&
-         Math.abs(deltaX) > Math.abs(deltaY) * 1.04
-       ) {
-         rotate(direction);
-       } else {
-         settleCards();
-       }
-     };
-
-     const onStackClick = (event) => {
-       if (portraitQuery.matches) {
-         return;
-       }
-
-       const card = event.target.closest(".discipline-stack-card");
-       if (!card) {
-         return;
-       }
-
-       const offset = Number(card.dataset.stackPos || 0);
-       if (offset === -1) {
-         rotate(-1);
-       } else if (offset === 1) {
-         rotate(1);
-       }
-     };
-
-     stack.addEventListener("click", onStackClick);
-     stack.addEventListener("pointerdown", onPointerDown);
-     stack.addEventListener("pointermove", onPointerMove);
-     stack.addEventListener("pointerup", onPointerUp);
-     stack.addEventListener("pointercancel", (event) => clearPointer(event, { snap: true }));
-     stack.addEventListener("pointerleave", (event) => {
-       if (!stack.hasPointerCapture?.(event.pointerId)) {
-         clearPointer(event, { snap: true });
-       }
-     });
-     stack.addEventListener("lostpointercapture", (event) => {
-       if (pointerState?.id === event.pointerId) {
-         clearPointer(null, { snap: true });
-       }
-     });
-
-     metrics = measureMetrics();
-     setStackLoading(true);
-     stack.dataset.stackReady = "false";
-     applyState();
-     bindMediaSync();
-
-     window.addEventListener("resize", () => {
-       const nextWidth = window.innerWidth;
-       const nextHeight = window.innerHeight;
-       const nextPortraitState = portraitQuery.matches;
-       const widthChanged = Math.abs(nextWidth - lastViewportWidth) > 2;
-       const portraitStateChanged = nextPortraitState !== lastPortraitState;
-       const heightChanged = Math.abs(nextHeight - lastViewportHeight) > 120;
-
-       lastViewportWidth = nextWidth;
-       lastViewportHeight = nextHeight;
-       lastPortraitState = nextPortraitState;
-
-       if (portraitStateChanged || widthChanged || (!nextPortraitState && heightChanged)) {
-         syncWithoutAnimation();
-       }
-     });
-
-     window.addEventListener("orientationchange", syncWithoutAnimation);
-     window.addEventListener("pageshow", syncWithoutAnimation);
-   }
-
-   function createStackHeightResolver(sizes) {
-     return ({ portrait }) => {
-       const size = portrait
-         ? sizes.portrait
-         : window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches
-           ? sizes.landscape
-           : window.innerWidth <= 980 ? sizes.narrow : sizes.wide;
-       if (!size) return 0;
-       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-       const [viewportRatio, minRem, maxRem] = size;
-       return Math.min(Math.max(window.innerWidth * viewportRatio, minRem * rem), maxRem * rem);
-     };
-   }
-
-   function initDisciplineStack() {
-     initStackDeck({
-       stackId: "discipline-stack",
-       items: disciplines,
-       getAriaLabel: (item) => `Core disciplines cards. ${item.title} is in focus.`,
-       getBaseCardHeight: createStackHeightResolver({
-         portrait: [0.84, 25.8, 30.4],
-         landscape: [0.33, 18.8, 22.8],
-         narrow: [0.4, 20, 24],
-         wide: [0.39, 22, 28]
-       }),
-       measureCard: measureDisciplineCard,
-       extraBlockSpace: 8
-     });
-   }
-
-   function initProjectStack() {
-     initStackDeck({
-       stackId: "project-stack",
-       items: projects,
-       getAriaLabel: (item) => `Current project cards. ${item.title} is in focus.`,
-       getBaseCardHeight: createStackHeightResolver({
-         portrait: null,
-         landscape: [0.365, 21.5, 25.6],
-         narrow: [0.47, 22.8, 27.2],
-         wide: [0.325, 24.2, 29.5]
-       }),
-       measureCard: measureProjectCard,
-       mediaSelector: ".project-stack-card__image"
-     });
-   }
-
-   function createSiteBootGate() {
-     const root = document.documentElement;
-     const loader = document.querySelector("[data-site-loader]");
-     const skipButton = document.querySelector("[data-site-loader-skip]");
-     let released = false;
-     let resolveSkip;
-
-     const skipped = new Promise((resolve) => {
-       resolveSkip = resolve;
-     });
-
-     const revealTimer = window.setTimeout(() => {
-       if (!released) {
-         root.classList.add("site-loader-visible");
-         loader?.setAttribute("aria-hidden", "false");
-       }
-     }, SITE_LOADER_REVEAL_DELAY);
-
-     const skipTimer = window.setTimeout(() => {
-       if (!released) {
-         root.classList.add("site-loader-skippable");
-       }
-     }, SITE_LOADER_SKIP_DELAY);
-
-     const onSkip = () => {
-       if (released) {
-         return;
-       }
-
-       skipButton?.setAttribute("disabled", "");
-       resolveSkip?.();
-     };
-
-     skipButton?.addEventListener("click", onSkip, { once: true });
-
-     return {
-       skipped,
-       async release() {
-         if (released) {
-           return;
-         }
-
-         released = true;
-         window.clearTimeout(revealTimer);
-         window.clearTimeout(skipTimer);
-         skipButton?.removeEventListener("click", onSkip);
-         root.classList.remove("site-loader-skippable");
-
-         const wasVisible = root.classList.contains("site-loader-visible");
-         if (wasVisible && !prefersReducedMotion) {
-           root.classList.add("site-loader-releasing");
-           await new Promise((resolve) => window.setTimeout(resolve, 420));
-         }
-
-         root.classList.remove(
-           "site-boot-pending",
-           "site-loader-visible",
-           "site-loader-releasing"
-         );
-         root.classList.add("site-boot-ready");
-         loader?.setAttribute("aria-hidden", "true");
-       }
-     };
-   }
-
-   function waitForWindowLoad() {
-     if (document.readyState === "complete") {
-       return Promise.resolve();
-     }
-
-     return new Promise((resolve) => {
-       window.addEventListener("load", resolve, { once: true });
-     });
-   }
-
-   function waitForImage(image) {
-     if (!image?.src && !image?.currentSrc) {
-       return Promise.resolve();
-     }
-
-     image.loading = "eager";
-
-     const decode = () => {
-       if (typeof image.decode !== "function" || !image.naturalWidth) {
-         return Promise.resolve();
-       }
-
-       return image.decode().catch(() => {});
-     };
-
-     if (image.complete) {
-       return decode();
-     }
-
-     return new Promise((resolve) => {
-       const settle = () => decode().finally(resolve);
-       image.addEventListener("load", settle, { once: true });
-       image.addEventListener("error", resolve, { once: true });
-     });
-   }
-
-   function waitForStackReady(stackId) {
-     const stack = document.getElementById(stackId);
-     if (!stack || stack.dataset.stackReady === "true") {
-       return Promise.resolve();
-     }
-
-     return new Promise((resolve) => {
-       stack.addEventListener("stack:ready", resolve, { once: true });
-     });
-   }
-
-   async function waitForSiteReadiness() {
-     const imagePromises = Array.from(document.images, waitForImage);
-     const fontsReady = document.fonts?.ready || Promise.resolve();
-
-     await Promise.allSettled([
-       waitForWindowLoad(),
-       fontsReady,
-       ...imagePromises,
-       waitForStackReady("discipline-stack"),
-       waitForStackReady("project-stack")
-     ]);
-
-     await new Promise((resolve) => {
-       requestAnimationFrame(() => requestAnimationFrame(resolve));
-     });
-   }
-
-   async function boot() {
-     let outcome = "ready";
-
-     try {
-       await Promise.all([
-         injectPartial('#nav-slot', 'nav.html'),
-         injectPartial('#footer-slot', 'footer.html')
-       ]);
-
-       renderProjects();
-       renderDisciplines();
-       initYear();
-       initAboutDisclosure();
-       initNav();
-       syncMobileNavState();
-       initAnchorScroll();
-       initSectionSpy();
-       initReveal();
-       initGridFittedTypography();
-       initRockSaltSafeAreas();
-       initAboutCreator();
-       initDisciplineStack();
-       initProjectStack();
-
-       outcome = await Promise.race([
-         waitForSiteReadiness().then(() => "ready"),
-         siteBootGate.skipped.then(() => "skipped")
-       ]);
-     } catch (error) {
-       console.error("Site boot failed", error);
-       outcome = "failed";
-     }
-
-     await siteBootGate.release();
-     initHeroIntro({ waitForFonts: outcome === "ready" });
-   }
-
-   if (document.readyState === "loading") {
-     document.addEventListener("DOMContentLoaded", boot);
-   } else {
-     boot();
-   }
- })();
+  const rockSaltCanvas = document.createElement("canvas");
+  const rockSaltContext = rockSaltCanvas.getContext("2d");
+
+  function applyRockSaltSafeArea(element, safe) {
+    element.style.setProperty("--script-safe-top", `${safe.top}px`);
+    element.style.setProperty("--script-safe-right", `${safe.right}px`);
+    element.style.setProperty("--script-safe-bottom", `${safe.bottom}px`);
+    element.style.setProperty("--script-safe-left", `${safe.left}px`);
+    element.style.setProperty("--script-safe-top-neg", `${-safe.top}px`);
+    element.style.setProperty("--script-safe-right-neg", `${-safe.right}px`);
+    element.style.setProperty("--script-safe-bottom-neg", `${-safe.bottom}px`);
+    element.style.setProperty("--script-safe-left-neg", `${-safe.left}px`);
+  }
+
+  function measureRockSaltSafeArea(element) {
+    if (!rockSaltContext) {
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+
+    const computed = getComputedStyle(element);
+    const text = (element.textContent || "").trim().toUpperCase();
+    if (!text) {
+      return { top: 0, right: 0, bottom: 0, left: 0 };
+    }
+
+    const fontSize = parseFloat(computed.fontSize) || 16;
+    const lineHeightValue = parseFloat(computed.lineHeight);
+    const lineHeight = Number.isFinite(lineHeightValue) ? lineHeightValue : fontSize;
+    const strokeWidth = parseFloat(computed.webkitTextStrokeWidth) || 0;
+    const visualShift = Math.abs(parseFloat(computed.top) || 0);
+    const verticalGuard = Math.ceil(visualShift + strokeWidth + 2);
+
+    rockSaltContext.font = `${computed.fontStyle} ${computed.fontWeight} ${computed.fontSize} ${computed.fontFamily}`;
+
+    const metrics = rockSaltContext.measureText(text);
+    const advanceWidth = metrics.width || 0;
+    const bboxRight = metrics.actualBoundingBoxRight || advanceWidth;
+    const bboxLeft = metrics.actualBoundingBoxLeft || 0;
+    const bboxHeight =
+      (metrics.actualBoundingBoxAscent || fontSize * 0.8) +
+      (metrics.actualBoundingBoxDescent || fontSize * 0.2);
+    const extraHeight = Math.max(0, bboxHeight - lineHeight);
+    const ascentRatio =
+      bboxHeight > 0 ? (metrics.actualBoundingBoxAscent || bboxHeight * 0.8) / bboxHeight : 0.8;
+    return {
+      top: Math.max(verticalGuard, Math.ceil(extraHeight * ascentRatio + verticalGuard)),
+      right: Math.max(1, Math.ceil(Math.max(0, bboxRight - advanceWidth) + strokeWidth + 1)),
+      bottom: Math.max(verticalGuard, Math.ceil(extraHeight * (1 - ascentRatio) + verticalGuard)),
+      left: Math.max(1, Math.ceil(bboxLeft + strokeWidth + 1))
+    };
+  }
+
+  function syncRockSaltSafeAreas(scope = document) {
+    const elements = Array.from(scope.querySelectorAll?.(".tagline-script") || []);
+    elements.forEach((element) => {
+      applyRockSaltSafeArea(element, measureRockSaltSafeArea(element));
+    });
+  }
+
+  function initRockSaltSafeAreas() {
+    const syncAll = () => syncRockSaltSafeAreas(document);
+    const settledSync = createSettledScheduler(syncAll);
+
+    syncAll();
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(syncAll).catch(syncAll);
+    }
+
+    window.addEventListener("resize", () => {
+      settledSync.schedule(90);
+    });
+    window.addEventListener("orientationchange", () => {
+      settledSync.schedule(140);
+    });
+    window.addEventListener("pageshow", () => {
+      settledSync.schedule(80);
+    });
+  }
+
+  function initAboutDisclosure() {
+    const details = document.getElementById("about-details");
+    const toggle = document.querySelector(".about-copy__toggle");
+    const label = toggle?.querySelector("[data-about-toggle-label]");
+    if (!details || !toggle || !label) {
+      return;
+    }
+
+    const textBlocks = Array.from(details.querySelectorAll(".about-copy__title, p"));
+    const motion = {
+      lineDuration: 1080,
+      lineStagger: 20,
+      lineDistance: 16,
+      heightLead: 100,
+      collapseDuration: 720,
+      easing: "cubic-bezier(0.22, 1, 0.36, 1)"
+    };
+    const revealAnimations = [];
+    const splitBlocks = [];
+    let lineLayout = null;
+    let expanded = false;
+    let heightAnimation = null;
+    let anchorFrame = 0;
+    let anchorTop = null;
+    let viewportWidth = window.innerWidth;
+
+    const measureLines = () => {
+      const bounds = details.getBoundingClientRect();
+      const style = getComputedStyle(details);
+      const key = [
+        bounds.width,
+        style.fontFamily,
+        style.fontSize,
+        style.fontWeight,
+        style.fontStyle,
+        style.fontStretch,
+        style.lineHeight,
+        style.letterSpacing,
+        style.wordSpacing,
+        style.fontFeatureSettings,
+        style.fontVariationSettings
+      ].join("|");
+      if (lineLayout?.key === key) return lineLayout;
+
+      const range = document.createRange();
+      const blocks = textBlocks.flatMap((element) => {
+        const node = element.firstChild;
+        if (element.childNodes.length !== 1 || node?.nodeType !== Node.TEXT_NODE || !node.length) {
+          return [];
+        }
+
+        range.selectNodeContents(node);
+        const rows = [];
+        for (const rect of range.getClientRects()) {
+          if (
+            rect.width &&
+            rect.height &&
+            (!rows.length || Math.abs(rect.top - rows[rows.length - 1].top) > 0.5)
+          ) {
+            rows.push(rect);
+          }
+        }
+
+        const lines = [];
+        let start = 0;
+        rows.forEach((row, index) => {
+          let end = node.length;
+          if (index < rows.length - 1) {
+            let low = start + 1;
+            let high = node.length;
+            range.setStart(node, start);
+            // Find the rendered wrap without splitting words or measuring every character.
+            while (low < high) {
+              const middle = Math.ceil((low + high) / 2);
+              range.setEnd(node, middle);
+              const rects = range.getClientRects();
+              if (rects.length && rects[rects.length - 1].top <= row.top + 0.5) {
+                low = middle;
+              } else {
+                high = middle - 1;
+              }
+            }
+            end = low;
+          }
+          lines.push({ text: node.data.slice(start, end), bottom: row.bottom - bounds.top });
+          start = end;
+        });
+        return lines.length ? [{ element, node, lines }] : [];
+      });
+      lineLayout = {
+        key,
+        blocks,
+        lines: blocks.flatMap((block) => block.lines),
+        height: details.scrollHeight
+      };
+      return lineLayout;
+    };
+    const getExpansion = (layout, startHeight) => {
+      if (startHeight === 0 && layout.expansion) return layout.expansion;
+
+      const delays = new Map();
+      layout.lines.forEach((line) => {
+        if (line.bottom <= startHeight) return;
+        const delay = motion.heightLead + delays.size * motion.lineStagger;
+        delays.set(line, delay);
+      });
+      const duration =
+        motion.lineDuration +
+        (delays.size ? motion.heightLead + (delays.size - 1) * motion.lineStagger : 0);
+      const expansion = {
+        delays,
+        duration,
+        keyframes: [{ height: `${startHeight}px` }, { height: `${layout.height}px` }]
+      };
+      if (startHeight === 0) layout.expansion = expansion;
+      return expansion;
+    };
+    const clearLineReveal = () => {
+      revealAnimations.forEach((animation) => animation.cancel());
+      revealAnimations.length = 0;
+      splitBlocks.forEach(({ element, node }) => element.replaceChildren(node));
+      splitBlocks.length = 0;
+      details.style.removeProperty("overflow");
+    };
+    const revealLines = (layout, expansion, startTime) => {
+      // Keep the last line's travel unclipped.
+      details.style.overflow = "visible";
+      layout.blocks.forEach((block) => {
+        if (!block.lines.some((line) => expansion.delays.has(line))) return;
+        const spans = block.lines.map((line) => {
+          const span = document.createElement("span");
+          span.className = "about-copy__line";
+          span.textContent = line.text;
+          return span;
+        });
+        block.element.replaceChildren(...spans);
+        splitBlocks.push(block);
+        block.lines.forEach((line, index) => {
+          const delay = expansion.delays.get(line);
+          if (delay === undefined) return;
+          const animation = spans[index].animate(
+            [
+              { opacity: 0, transform: `translateY(${motion.lineDistance}px)` },
+              { opacity: 1, transform: "translateY(0)" }
+            ],
+            {
+              duration: motion.lineDuration,
+              delay,
+              easing: motion.easing,
+              fill: "backwards"
+            }
+          );
+          if (startTime !== null) animation.startTime = startTime;
+          revealAnimations.push(animation);
+        });
+      });
+    };
+    const releaseScrollAnchor = () => {
+      cancelAnimationFrame(anchorFrame);
+      anchorFrame = 0;
+      anchorTop = null;
+    };
+    const alignToggle = () => {
+      if (anchorTop === null) return;
+      const delta = toggle.getBoundingClientRect().top - anchorTop;
+      if (Math.abs(delta) > 0.5) {
+        window.scrollTo({ top: Math.max(0, window.scrollY + delta), behavior: "instant" });
+      }
+    };
+    const trackCollapse = () => {
+      anchorFrame = 0;
+      alignToggle();
+      if (heightAnimation && !expanded && anchorTop !== null) {
+        anchorFrame = requestAnimationFrame(trackCollapse);
+      }
+    };
+    const cancelAnimations = () => {
+      releaseScrollAnchor();
+      heightAnimation?.cancel();
+      heightAnimation = null;
+      clearLineReveal();
+    };
+    const invalidateLines = () => {
+      cancelAnimations();
+      lineLayout = null;
+      details.hidden = !expanded;
+    };
+    details.hidden = true;
+    toggle.hidden = false;
+    window.addEventListener("wheel", releaseScrollAnchor, { passive: true });
+    window.addEventListener("touchstart", releaseScrollAnchor, { passive: true });
+    window.addEventListener("resize", () => {
+      if (window.innerWidth === viewportWidth) return;
+      viewportWidth = window.innerWidth;
+      invalidateLines();
+    });
+    document.fonts?.ready.then(invalidateLines);
+    document.fonts?.addEventListener("loadingdone", invalidateLines);
+    document.fonts?.addEventListener("loadingerror", invalidateLines);
+
+    toggle.addEventListener("click", () => {
+      const scrollTop = window.scrollY;
+      const toggleTop = toggle.getBoundingClientRect().top;
+      const startHeight = details.hidden ? 0 : details.getBoundingClientRect().height;
+
+      cancelAnimations();
+      expanded = !expanded;
+      details.hidden = false;
+      details.inert = !expanded;
+      toggle.setAttribute("aria-expanded", String(expanded));
+      label.textContent = expanded ? "Show less" : "Show more";
+      if (!expanded && toggleTop >= 0 && toggleTop < window.innerHeight) {
+        anchorTop = toggleTop;
+      }
+
+      if (prefersReducedMotion || typeof details.animate !== "function") {
+        details.hidden = !expanded;
+        alignToggle();
+        releaseScrollAnchor();
+        return;
+      }
+
+      const layout = expanded ? measureLines() : null;
+      const expansion = expanded ? getExpansion(layout, startHeight) : null;
+      const startTime = document.timeline.currentTime;
+      const animation = details.animate(
+        expanded ? expansion.keyframes : [{ height: `${startHeight}px` }, { height: "0px" }],
+        {
+          duration: expanded ? expansion.duration : motion.collapseDuration,
+          easing: motion.easing,
+          fill: "both"
+        }
+      );
+      if (startTime !== null) animation.startTime = startTime;
+      heightAnimation = animation;
+      animation.onfinish = () => {
+        if (heightAnimation !== animation) return;
+        details.hidden = !expanded;
+        animation.cancel();
+        heightAnimation = null;
+        clearLineReveal();
+        alignToggle();
+        releaseScrollAnchor();
+      };
+
+      if (expanded) {
+        revealLines(layout, expansion, startTime);
+        window.scrollTo({ top: scrollTop, behavior: "instant" });
+      } else {
+        // Follow the shrinking content only until the user starts scrolling.
+        trackCollapse();
+      }
+    });
+  }
+
+  function initAboutCreator() {
+    const title = document.querySelector(".about-creator-title");
+    if (!title) {
+      return;
+    }
+
+    const prefix = title.querySelector(".about-creator-prefix");
+    const suffix = title.querySelector(".about-creator-suffix");
+    const viewport = title.querySelector(".about-creator-viewport");
+    const track = title.querySelector(".about-creator-track");
+    const words = Array.from(title.querySelectorAll(".about-creator-word"));
+    const glyphs = words.map((word) => word.querySelector(".about-creator-glyph"));
+    if (
+      !prefix ||
+      !suffix ||
+      !viewport ||
+      !track ||
+      !words.length ||
+      glyphs.some((glyph) => !glyph)
+    ) {
+      return;
+    }
+
+    const finalIndex = words.length - 1;
+    const transitionDuration = 620;
+    const holdDuration = 400;
+    const initialHold = 280;
+    let activeIndex = 0;
+    let started = false;
+    let metrics = { height: 0, widths: [] };
+    let sequenceFrame = 0;
+    let nextStepAt = 0;
+    let pendingRefresh = false;
+    let lastLayoutWidth = 0;
+    let lastViewportWidth = 0;
+
+    const measureLayoutWidth = () =>
+      Math.round(title.offsetWidth || title.clientWidth || title.getBoundingClientRect().width);
+    const measureViewportWidth = () =>
+      Math.round(document.documentElement.clientWidth || window.innerWidth || 0);
+
+    const setImmediateTransitions = (enabled) => {
+      const value = enabled ? "none" : "";
+      viewport.style.transition = value;
+      track.style.transition = value;
+    };
+
+    const updateLineBreaks = (longestWidth) => {
+      const availableWidth = Math.round(
+        title.clientWidth || title.getBoundingClientRect().width || 0
+      );
+      if (!availableWidth) {
+        return;
+      }
+
+      const columnGap = parseFloat(getComputedStyle(title).columnGap) || 0;
+      const prefixWidth = Math.ceil(prefix.getBoundingClientRect().width);
+      const suffixWidth = Math.ceil(suffix.getBoundingClientRect().width);
+
+      const breakBeforeWord = prefixWidth + columnGap + longestWidth > availableWidth;
+      const breakBeforeBehind =
+        (breakBeforeWord
+          ? longestWidth + columnGap + suffixWidth
+          : prefixWidth + columnGap + longestWidth + columnGap + suffixWidth) > availableWidth;
+
+      title.classList.toggle("about-creator-break-before-word", breakBeforeWord);
+      title.classList.toggle("about-creator-break-before-behind", breakBeforeBehind);
+    };
+
+    const updateMetrics = () => {
+      syncRockSaltSafeAreas(title);
+
+      const fallbackHeight = Math.ceil((parseFloat(getComputedStyle(title).fontSize) || 16) * 1.18);
+      const widths = glyphs.map((glyph) => Math.ceil(glyph.getBoundingClientRect().width));
+      const height = Math.max(
+        fallbackHeight,
+        ...glyphs.map((glyph) => Math.ceil(glyph.getBoundingClientRect().height))
+      );
+      const longestWidth = Math.max(...widths);
+
+      metrics = { height, widths };
+      title.style.setProperty("--about-creator-height", `${height}px`);
+      updateLineBreaks(longestWidth);
+      return metrics;
+    };
+
+    const captureLayoutWidths = () => {
+      lastLayoutWidth = measureLayoutWidth();
+      lastViewportWidth = measureViewportWidth();
+    };
+
+    const layoutWidthChanged = () => {
+      const currentTitleWidth = measureLayoutWidth();
+      const currentViewportWidth = measureViewportWidth();
+      const titleDelta = Math.abs(currentTitleWidth - lastLayoutWidth);
+      const viewportDelta = Math.abs(currentViewportWidth - lastViewportWidth);
+
+      return titleDelta > 2 || viewportDelta > 2;
+    };
+
+    const applyIndex = (index, { immediate = false } = {}) => {
+      activeIndex = index;
+      words.forEach((word, wordIndex) => {
+        word.classList.toggle("is-active", wordIndex === index);
+      });
+
+      if (!metrics.height || !metrics.widths.length) {
+        updateMetrics();
+      }
+
+      const width = metrics.widths[index] || metrics.widths[0] || 0;
+      const shift = metrics.height * index;
+
+      if (immediate) {
+        setImmediateTransitions(true);
+      }
+
+      title.style.setProperty("--about-creator-width", `${width}px`);
+      title.style.setProperty("--about-creator-shift", `${shift}px`);
+
+      if (immediate) {
+        void title.offsetHeight;
+        requestAnimationFrame(() => {
+          setImmediateTransitions(false);
+        });
+      }
+    };
+
+    const stopSequence = () => {
+      window.cancelAnimationFrame(sequenceFrame);
+      sequenceFrame = 0;
+    };
+
+    const tickSequence = (now) => {
+      if (!started || activeIndex >= finalIndex) {
+        sequenceFrame = 0;
+        return;
+      }
+
+      if (!nextStepAt) {
+        nextStepAt = now + initialHold;
+      }
+
+      if (now >= nextStepAt) {
+        applyIndex(activeIndex + 1);
+        nextStepAt = now + transitionDuration + holdDuration;
+
+        if (activeIndex >= finalIndex) {
+          if (pendingRefresh) {
+            pendingRefresh = false;
+            updateMetrics();
+            applyIndex(finalIndex, { immediate: true });
+            captureLayoutWidths();
+          }
+          sequenceFrame = 0;
+          return;
+        }
+      }
+
+      sequenceFrame = window.requestAnimationFrame(tickSequence);
+    };
+
+    const runSequence = () => {
+      if (started) {
+        return;
+      }
+
+      started = true;
+      pendingRefresh = false;
+
+      if (prefersReducedMotion) {
+        updateMetrics();
+        applyIndex(finalIndex, { immediate: true });
+        captureLayoutWidths();
+        return;
+      }
+
+      updateMetrics();
+      applyIndex(0, { immediate: true });
+      captureLayoutWidths();
+      nextStepAt = 0;
+      stopSequence();
+      sequenceFrame = window.requestAnimationFrame(tickSequence);
+    };
+
+    const refreshLayout = () => {
+      if (!layoutWidthChanged()) {
+        return;
+      }
+
+      if (started && activeIndex < finalIndex) {
+        pendingRefresh = true;
+        return;
+      }
+
+      updateMetrics();
+      applyIndex(started ? activeIndex : 0, { immediate: true });
+      captureLayoutWidths();
+    };
+
+    const settledRefresh = createSettledScheduler(refreshLayout);
+
+    updateMetrics();
+    applyIndex(prefersReducedMotion ? finalIndex : 0, { immediate: true });
+    captureLayoutWidths();
+
+    if ("ResizeObserver" in window) {
+      const resizeTarget = title.parentElement || title;
+      const observer = new ResizeObserver(() => {
+        settledRefresh.schedule(80);
+      });
+      observer.observe(resizeTarget);
+    }
+
+    window.addEventListener("resize", () => {
+      settledRefresh.schedule(120);
+    });
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(refreshLayout).catch(refreshLayout);
+    }
+
+    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
+      runSequence();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) {
+            return;
+          }
+
+          runSequence();
+          obs.unobserve(entry.target);
+        });
+      },
+      {
+        rootMargin: "0px 0px -16% 0px",
+        threshold: 0.36
+      }
+    );
+
+    observer.observe(title);
+  }
+
+  function measureDisciplineCard(card) {
+    const surface = card.querySelector(".discipline-stack-card__surface");
+    const header = surface?.querySelector(".discipline-stack-card__header");
+    const body = surface?.querySelector(".discipline-stack-card__body");
+    const arsenal = surface?.querySelector(".discipline-stack-card__arsenal:not([hidden])");
+    const styles = surface ? getComputedStyle(surface) : null;
+    const gap = styles ? parseFloat(styles.rowGap || styles.gap) || 0 : 0;
+    const paddingTop = styles ? parseFloat(styles.paddingTop) || 0 : 0;
+    const paddingBottom = styles ? parseFloat(styles.paddingBottom) || 0 : 0;
+    const parts = [header, body, arsenal].filter(Boolean);
+
+    return Math.ceil(
+      paddingTop +
+        paddingBottom +
+        parts.reduce(
+          (sum, part) => sum + (part.scrollHeight || part.getBoundingClientRect().height || 0),
+          0
+        ) +
+        gap * Math.max(0, parts.length - 1)
+    );
+  }
+
+  function measureProjectCard(card, { portrait }) {
+    const surface = card.querySelector(".project-stack-card__surface");
+    const layout = surface?.querySelector(".project-stack-card__layout");
+    const content = surface?.querySelector(".project-stack-card__content");
+    const media = surface?.querySelector(".project-stack-card__media:not([hidden])");
+
+    if (!surface || !layout || !content) {
+      return 0;
+    }
+
+    const surfaceStyles = getComputedStyle(surface);
+    const layoutStyles = getComputedStyle(layout);
+    const paddingTop = parseFloat(surfaceStyles.paddingTop) || 0;
+    const paddingBottom = parseFloat(surfaceStyles.paddingBottom) || 0;
+    const rowGap = parseFloat(layoutStyles.rowGap || layoutStyles.gap) || 0;
+    const contentHeight = content.scrollHeight || content.getBoundingClientRect().height || 0;
+    const imageHeight = media?.offsetHeight || 0;
+
+    if (!media) {
+      return Math.ceil(paddingTop + paddingBottom + contentHeight);
+    }
+
+    if (portrait) {
+      return Math.ceil(paddingTop + paddingBottom + contentHeight + rowGap + imageHeight);
+    }
+
+    return Math.ceil(paddingTop + paddingBottom + Math.max(contentHeight, imageHeight));
+  }
+
+  function initStackDeck({
+    stackId,
+    items,
+    getAriaLabel,
+    getBaseCardHeight,
+    measureCard,
+    mediaSelector,
+    extraBlockSpace = 0
+  }) {
+    const stack = document.getElementById(stackId);
+    const shell = stack?.closest(".discipline-stack-shell");
+    const stage = stack?.closest(".discipline-stack-stage");
+    const cards = Array.from(stack?.querySelectorAll(".discipline-stack-card") || []);
+
+    if (!stack || !cards.length) {
+      return;
+    }
+
+    const total = cards.length;
+    const portraitQuery = window.matchMedia("(max-width: 980px) and (orientation: portrait)");
+    let activeIndex = 0;
+    let pointerState = null;
+    let metrics = null;
+    const motions = new Map();
+    const cardStates = cards.map((card, index) => ({
+      card,
+      index,
+      layout: null,
+      transform: "",
+      zIndex: ""
+    }));
+    let dragFrame = 0;
+    let queuedDragProgress = 0;
+    let queuedSyncFrame = 0;
+    let lastViewportWidth = window.innerWidth;
+    let lastViewportHeight = window.innerHeight;
+    let lastPortraitState = portraitQuery.matches;
+    let loadingFadeScheduled = false;
+    let loadingFinished = false;
+
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
+    const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
+    const dragCurve = {
+      inwardScaleLift: [0, 0.032, 0.026, 0.02, 0.016, 0.014],
+      outwardScaleDrop: [0, 0.022, 0.028, 0.032, 0.036, 0.04],
+      inwardXPull: [0, 0.18, 0.15, 0.13, 0.11, 0.1],
+      outwardXPush: [0, 0.14, 0.18, 0.22, 0.26, 0.3],
+      inwardRotateEase: [0, 0.18, 0.14, 0.12, 0.1, 0.08],
+      outwardRotateBoost: [0, 0.08, 0.1, 0.12, 0.14, 0.16]
+    };
+
+    const setStackLoading = (isLoading) => {
+      shell?.setAttribute("data-stack-loading", isLoading ? "true" : "false");
+      stack.setAttribute("aria-busy", isLoading ? "true" : "false");
+    };
+
+    const finishStackLoading = () => {
+      if (loadingFinished || loadingFadeScheduled) {
+        return;
+      }
+
+      loadingFadeScheduled = true;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          loadingFadeScheduled = false;
+          loadingFinished = true;
+          stack.dataset.stackReady = "true";
+          setStackLoading(false);
+          stack.dispatchEvent(new Event("stack:ready"));
+        });
+      });
+    };
+
+    const buildLayouts = (cardWidth) => {
+      const steps = portraitQuery.matches
+        ? [
+            { x: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.228, scale: 0.866, rotate: 5.1 },
+            { x: cardWidth * 0.366, scale: 0.734, rotate: 8.4 },
+            { x: cardWidth * 0.462, scale: 0.616, rotate: 11.1 },
+            { x: cardWidth * 0.528, scale: 0.522, rotate: 13.5 },
+            { x: cardWidth * 0.586, scale: 0.458, rotate: 15.3 }
+          ]
+        : [
+            { x: 0, scale: 1, rotate: 0 },
+            { x: cardWidth * 0.238, scale: 0.88, rotate: 4.6 },
+            { x: cardWidth * 0.386, scale: 0.752, rotate: 7.2 },
+            { x: cardWidth * 0.486, scale: 0.64, rotate: 9.8 },
+            { x: cardWidth * 0.55, scale: 0.55, rotate: 11.8 },
+            { x: cardWidth * 0.604, scale: 0.486, rotate: 13.6 }
+          ];
+
+      return steps.reduce((layouts, step, depth) => {
+        const base = createLayout(step.x, 0, step.scale, step.rotate);
+        if (depth === 0) {
+          layouts[0] = base;
+          return layouts;
+        }
+
+        layouts[depth] = base;
+        layouts[-depth] = createLayout(-step.x, 0, step.scale, -step.rotate);
+        return layouts;
+      }, {});
+    };
+
+    const formatTransformValues = (x, y, scale, rotate) =>
+      `translate(calc(-50% + ${x.toFixed(2)}px), ${y.toFixed(2)}px) scale(${scale.toFixed(4)}) rotate(${rotate.toFixed(2)}deg)`;
+    const formatTransform = (layout) =>
+      formatTransformValues(layout.x, layout.y, layout.scale, layout.rotate);
+
+    const getZIndex = (offset) => {
+      if (offset === 0) {
+        return 200;
+      }
+
+      return 200 - Math.abs(offset) * 14;
+    };
+
+    const measureMetrics = () => {
+      const firstCard = cards[0];
+      let maxContentHeight = 0;
+
+      cards.forEach((card) => {
+        maxContentHeight = Math.max(
+          maxContentHeight,
+          Math.ceil(measureCard(card, { portrait: portraitQuery.matches }) || 0)
+        );
+      });
+
+      const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
+      const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
+      const baseHeight = Math.ceil(getBaseCardHeight({ portrait: portraitQuery.matches }));
+      const cardHeight = Math.ceil(
+        Math.max(baseHeight, maxContentHeight + breathingRoom) + extraBlockSpace * 2
+      );
+      const pad = Math.ceil(clamp(window.innerHeight * 0.026, 18, 28));
+
+      shell?.style.setProperty("--discipline-card-height", `${cardHeight}px`);
+      stage?.style.setProperty("--discipline-stack-pad-top", `${pad}px`);
+
+      return {
+        cardWidth,
+        cardHeight,
+        layouts: buildLayouts(cardWidth)
+      };
+    };
+
+    const getMetrics = () => {
+      if (!metrics) {
+        metrics = measureMetrics();
+      }
+      return metrics;
+    };
+
+    const getLayoutForOffset = (offset) => {
+      const currentMetrics = getMetrics();
+      const normalized = offset === 0 ? 0 : clamp(offset, -(total - 1), total - 1);
+      return currentMetrics.layouts[normalized] || currentMetrics.layouts[0];
+    };
+
+    const writeLayout = (state, layout, zIndex = state.zIndex) => {
+      const transform = formatTransform(layout);
+      const nextZIndex = String(zIndex);
+      if (state.zIndex !== nextZIndex) {
+        state.card.style.zIndex = nextZIndex;
+        state.zIndex = nextZIndex;
+      }
+      if (state.transform !== transform) {
+        state.card.style.transform = transform;
+        state.transform = transform;
+      }
+      state.layout = layout;
+    };
+
+    const captureLayouts = () =>
+      new Map(
+        cardStates.map(({ card, layout }) => {
+          const motion = motions.get(card);
+          if (!motion || motion.playState === "finished") {
+            return [card, createLayout(layout.x, layout.y, layout.scale, layout.rotate)];
+          }
+
+          // Read only at a motion handoff, never on each drag frame.
+          const matrix = new DOMMatrixReadOnly(getComputedStyle(card).transform);
+          return [
+            card,
+            createLayout(
+              matrix.m41 + getMetrics().cardWidth / 2,
+              matrix.m42,
+              Math.hypot(matrix.m11, matrix.m12),
+              (Math.atan2(matrix.m12, matrix.m11) * 180) / Math.PI
+            )
+          ];
+        })
+      );
+
+    const cancelMotions = () => {
+      motions.forEach((animation) => animation.cancel());
+      motions.clear();
+    };
+
+    const cancelQueuedDragState = () => {
+      if (dragFrame) {
+        cancelAnimationFrame(dragFrame);
+        dragFrame = 0;
+      }
+
+      queuedDragProgress = 0;
+    };
+
+    const queueDragState = (dragProgress) => {
+      queuedDragProgress = dragProgress;
+      if (dragFrame) {
+        return;
+      }
+
+      dragFrame = requestAnimationFrame(() => {
+        dragFrame = 0;
+        if (pointerState) {
+          if (portraitQuery.matches) {
+            applyDragState(queuedDragProgress);
+          } else {
+            applyState();
+          }
+        }
+      });
+    };
+
+    const queueSyncWithoutAnimation = () => {
+      if (queuedSyncFrame) {
+        cancelAnimationFrame(queuedSyncFrame);
+      }
+
+      queuedSyncFrame = requestAnimationFrame(() => {
+        queuedSyncFrame = 0;
+        syncWithoutAnimation();
+      });
+    };
+
+    const syncLabels = () => {
+      const active = items[activeIndex];
+      stack.setAttribute("aria-label", getAriaLabel(active, activeIndex, total));
+      stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
+      stack.removeAttribute("tabindex");
+    };
+
+    const prepareDrag = () => {
+      const layouts = captureLayouts();
+      cancelMotions();
+      pointerState.cardWidth = getMetrics().cardWidth;
+      pointerState.cards = cardStates.map((state) => {
+        const offset = state.index - activeIndex;
+        const depth = Math.min(Math.abs(offset), total - 1);
+        const base = getLayoutForOffset(offset);
+        const start = layouts.get(state.card);
+        const zIndex = getZIndex(offset);
+        writeLayout(state, start);
+
+        return {
+          state,
+          offset,
+          side: Math.sign(offset),
+          base,
+          zIndex,
+          delta: createLayout(
+            start.x - base.x,
+            start.y - base.y,
+            start.scale - base.scale,
+            start.rotate - base.rotate
+          ),
+          layout: createLayout(base.x, base.y, base.scale, base.rotate),
+          inward: {
+            x: dragCurve.inwardXPull[depth] || 0.1,
+            scale: dragCurve.inwardScaleLift[depth] || 0.014,
+            rotate: dragCurve.inwardRotateEase[depth] || 0.08,
+            zIndex: zIndex + 8 - depth
+          },
+          outward: {
+            x: dragCurve.outwardXPush[depth] || 0.3,
+            scale: dragCurve.outwardScaleDrop[depth] || 0.04,
+            rotate: dragCurve.outwardRotateBoost[depth] || 0.16,
+            zIndex: zIndex - 5 - depth
+          }
+        };
+      });
+      stack.classList.add("is-dragging");
+    };
+
+    const applyDragState = (dragProgress) => {
+      const dragSign = dragProgress === 0 ? 0 : Math.sign(dragProgress);
+      const dragMagnitude = Math.abs(dragProgress);
+      const inwardSide = dragSign === 0 ? 0 : -dragSign;
+      const hasTarget =
+        dragSign === 0 || (dragSign < 0 ? activeIndex < total - 1 : activeIndex > 0);
+
+      pointerState.cards.forEach(
+        ({ state, offset, side, base, delta, layout, inward, outward, zIndex: baseZIndex }) => {
+          let visualX = base.x;
+          let visualY = base.y;
+          let visualScale = base.scale;
+          let visualRotate = base.rotate;
+          let zIndex = baseZIndex;
+
+          if (hasTarget && offset === 0 && dragSign !== 0) {
+            visualX = pointerState.cardWidth * 0.58 * dragMagnitude * dragSign;
+            visualY = 0;
+            visualScale = 1 - dragMagnitude * 0.024;
+            visualRotate = dragSign * 9.1 * dragMagnitude;
+          } else if (hasTarget && offset !== 0) {
+            if (side === inwardSide) {
+              visualX *= 1 - inward.x * dragMagnitude;
+              visualY = 0;
+              visualScale += inward.scale * dragMagnitude;
+              visualRotate *= 1 - inward.rotate * dragMagnitude;
+              zIndex = inward.zIndex;
+            } else if (side === dragSign) {
+              visualX *= 1 + outward.x * dragMagnitude;
+              visualY = 0;
+              visualScale -= outward.scale * dragMagnitude;
+              visualRotate *= 1 + outward.rotate * dragMagnitude;
+              zIndex = outward.zIndex;
+            }
+          }
+
+          layout.x = visualX + delta.x;
+          layout.y = visualY + delta.y;
+          layout.scale = visualScale + delta.scale;
+          layout.rotate = visualRotate + delta.rotate;
+          writeLayout(state, layout, zIndex);
+        }
+      );
+    };
+
+    const applyState = ({
+      animate = false,
+      fromLayouts = null,
+      outgoingCard = null,
+      direction = 0
+    } = {}) => {
+      stack.classList.remove("is-dragging");
+      cardStates.forEach((state) => {
+        const { card, index } = state;
+        const offset = index - activeIndex;
+        const layout = getLayoutForOffset(offset);
+        const startLayout = fromLayouts?.get(card) || state.layout || layout;
+        const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
+
+        card.dataset.stackPos = String(offset);
+        card.dataset.stackDepth = String(Math.abs(offset));
+        card.dataset.stackSide = getSide(offset);
+        card.classList.toggle("is-active", offset === 0);
+        card.classList.toggle("is-neighbor", isNeighbor);
+        card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
+        writeLayout(state, layout, getZIndex(offset));
+        if (animate) {
+          animateCard(card, startLayout, layout, card === outgoingCard ? direction : 0);
+        }
+      });
+
+      syncLabels();
+    };
+
+    const animateCard = (card, startLayout, finalLayout, direction = 0) => {
+      if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
+        return;
+      }
+
+      const startTransform = formatTransform(startLayout);
+      const finalTransform = formatTransform(finalLayout);
+      if (startTransform === finalTransform && !direction) {
+        return;
+      }
+
+      const keyframes = [{ transform: startTransform }];
+      if (direction) {
+        const throwSign = direction > 0 ? -1 : 1;
+        const midLayout = createLayout(
+          throwSign * getMetrics().cardWidth * (portraitQuery.matches ? 0.56 : 0.52),
+          0,
+          0.968,
+          throwSign * (portraitQuery.matches ? 12.8 : 10.4)
+        );
+        const tuckLayout = createLayout(
+          finalLayout.x * 1.18,
+          0,
+          Math.min(0.982, finalLayout.scale * 1.012),
+          finalLayout.rotate + throwSign * 1.35
+        );
+        keyframes.push(
+          { transform: formatTransform(midLayout), offset: 0.5 },
+          { transform: formatTransform(tuckLayout), offset: 0.82 }
+        );
+      }
+      keyframes.push({ transform: finalTransform });
+
+      const animation = card.animate(keyframes, {
+        duration: direction ? (portraitQuery.matches ? 920 : 820) : 560,
+        easing: direction ? "cubic-bezier(0.18, 0.86, 0.22, 1)" : "cubic-bezier(0.2, 0.82, 0.22, 1)"
+      });
+      motions.set(card, animation);
+      const finishAnimation = () => {
+        if (motions.get(card) === animation) {
+          motions.delete(card);
+        }
+      };
+      animation.finished.then(finishAnimation, finishAnimation);
+    };
+
+    const settleCards = () => {
+      const fromLayouts = captureLayouts();
+      cancelMotions();
+      applyState({ animate: true, fromLayouts });
+    };
+
+    const rotate = (direction) => {
+      if (!direction) {
+        return false;
+      }
+
+      const targetIndex = clamp(activeIndex + direction, 0, total - 1);
+      if (targetIndex === activeIndex) {
+        settleCards();
+        return false;
+      }
+
+      const outgoingCard = cards[activeIndex];
+      const fromLayouts = captureLayouts();
+      cancelMotions();
+      activeIndex = targetIndex;
+      applyState({ animate: true, fromLayouts, outgoingCard, direction });
+      return true;
+    };
+
+    const syncWithoutAnimation = () => {
+      cancelMotions();
+      cancelQueuedDragState();
+      pointerState = null;
+      metrics = measureMetrics();
+      applyState();
+    };
+
+    const bindMediaSync = () => {
+      if (!mediaSelector) {
+        finishStackLoading();
+        return;
+      }
+
+      const mediaNodes = Array.from(stack.querySelectorAll(mediaSelector));
+      if (!mediaNodes.length) {
+        finishStackLoading();
+        return;
+      }
+
+      let readyCount = 0;
+      mediaNodes.forEach((media) => {
+        const markReady = () => {
+          if (media.dataset.stackMediaReady === "true") {
+            return;
+          }
+
+          media.dataset.stackMediaReady = "true";
+          readyCount += 1;
+          queueSyncWithoutAnimation();
+          if (readyCount >= mediaNodes.length) {
+            finishStackLoading();
+          }
+        };
+
+        if (media.complete && media.naturalWidth) {
+          markReady();
+          return;
+        }
+
+        media.addEventListener("load", markReady, { once: true });
+        media.addEventListener("error", markReady, { once: true });
+
+        if (typeof media.decode === "function") {
+          media
+            .decode()
+            .then(markReady)
+            .catch(() => {});
+        }
+      });
+    };
+
+    const onPointerDown = (event) => {
+      if (!portraitQuery.matches || !event.isPrimary) {
+        return;
+      }
+
+      getMetrics();
+      const gestureWidth = Math.max(stack.clientWidth, 1);
+      stack.setPointerCapture?.(event.pointerId);
+      pointerState = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        progress: 0,
+        intent: null,
+        width: gestureWidth
+      };
+    };
+
+    const clearPointer = (event, { snap = false } = {}) => {
+      if (!pointerState || (event && pointerState.id !== event.pointerId)) {
+        return;
+      }
+
+      cancelQueuedDragState();
+      const pointerId = pointerState.id;
+      const wasDragging = pointerState.intent === "x";
+      pointerState = null;
+      stack.classList.remove("is-dragging");
+
+      if (snap && wasDragging) {
+        settleCards();
+      }
+
+      if (stack.hasPointerCapture?.(pointerId)) {
+        stack.releasePointerCapture(pointerId);
+      }
+    };
+
+    const onPointerMove = (event) => {
+      if (!portraitQuery.matches || !pointerState || pointerState.id !== event.pointerId) {
+        return;
+      }
+
+      const deltaX = event.clientX - pointerState.x;
+      const deltaY = event.clientY - pointerState.y;
+
+      if (!pointerState.intent) {
+        if (Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) {
+          return;
+        }
+
+        pointerState.intent = Math.abs(deltaX) > Math.abs(deltaY) * 1.08 ? "x" : "y";
+        if (pointerState.intent === "x") {
+          prepareDrag();
+        }
+      }
+
+      if (pointerState.intent !== "x") {
+        return;
+      }
+
+      event.preventDefault();
+      const raw = deltaX / (pointerState.width * 0.46);
+      const direction = raw === 0 ? 0 : raw > 0 ? -1 : 1;
+      const outOfBounds =
+        (direction < 0 && activeIndex === 0) || (direction > 0 && activeIndex === total - 1);
+      const limit = outOfBounds ? 0.18 : 0.94;
+      const resistance = outOfBounds ? 1.8 : 0.84;
+      const progress = clamp(
+        Math.sign(raw || 0) * limit * (1 - Math.exp(-Math.abs(raw) * resistance)),
+        -limit,
+        limit
+      );
+      pointerState.progress = progress;
+      queueDragState(progress);
+    };
+
+    const onPointerUp = (event) => {
+      if (!portraitQuery.matches || !pointerState || pointerState.id !== event.pointerId) {
+        return;
+      }
+
+      const deltaX = event.clientX - pointerState.x;
+      const deltaY = event.clientY - pointerState.y;
+      const progress = pointerState.progress || 0;
+      const intent = pointerState.intent;
+      const gestureWidth = pointerState.width;
+      clearPointer(event);
+
+      if (intent !== "x") {
+        return;
+      }
+
+      const direction = progress < 0 ? 1 : -1;
+      const targetIndex = clamp(activeIndex + direction, 0, total - 1);
+      const hasTarget = targetIndex !== activeIndex;
+      if (
+        hasTarget &&
+        (Math.abs(deltaX) >= Math.max(gestureWidth * 0.11, 42) || Math.abs(progress) >= 0.28) &&
+        Math.abs(deltaX) > Math.abs(deltaY) * 1.04
+      ) {
+        rotate(direction);
+      } else {
+        settleCards();
+      }
+    };
+
+    const onStackClick = (event) => {
+      if (portraitQuery.matches) {
+        return;
+      }
+
+      const card = event.target.closest(".discipline-stack-card");
+      if (!card) {
+        return;
+      }
+
+      const offset = Number(card.dataset.stackPos || 0);
+      if (offset === -1) {
+        rotate(-1);
+      } else if (offset === 1) {
+        rotate(1);
+      }
+    };
+
+    stack.addEventListener("click", onStackClick);
+    stack.addEventListener("pointerdown", onPointerDown);
+    stack.addEventListener("pointermove", onPointerMove);
+    stack.addEventListener("pointerup", onPointerUp);
+    stack.addEventListener("pointercancel", (event) => clearPointer(event, { snap: true }));
+    stack.addEventListener("pointerleave", (event) => {
+      if (!stack.hasPointerCapture?.(event.pointerId)) {
+        clearPointer(event, { snap: true });
+      }
+    });
+    stack.addEventListener("lostpointercapture", (event) => {
+      if (pointerState?.id === event.pointerId) {
+        clearPointer(null, { snap: true });
+      }
+    });
+
+    metrics = measureMetrics();
+    setStackLoading(true);
+    stack.dataset.stackReady = "false";
+    applyState();
+    bindMediaSync();
+
+    window.addEventListener("resize", () => {
+      const nextWidth = window.innerWidth;
+      const nextHeight = window.innerHeight;
+      const nextPortraitState = portraitQuery.matches;
+      const widthChanged = Math.abs(nextWidth - lastViewportWidth) > 2;
+      const portraitStateChanged = nextPortraitState !== lastPortraitState;
+      const heightChanged = Math.abs(nextHeight - lastViewportHeight) > 120;
+
+      lastViewportWidth = nextWidth;
+      lastViewportHeight = nextHeight;
+      lastPortraitState = nextPortraitState;
+
+      if (portraitStateChanged || widthChanged || (!nextPortraitState && heightChanged)) {
+        syncWithoutAnimation();
+      }
+    });
+
+    window.addEventListener("orientationchange", syncWithoutAnimation);
+    window.addEventListener("pageshow", syncWithoutAnimation);
+  }
+
+  function createStackHeightResolver(sizes) {
+    return ({ portrait }) => {
+      const size = portrait
+        ? sizes.portrait
+        : window.matchMedia("(max-width: 980px) and (orientation: landscape)").matches
+          ? sizes.landscape
+          : window.innerWidth <= 980
+            ? sizes.narrow
+            : sizes.wide;
+      if (!size) return 0;
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const [viewportRatio, minRem, maxRem] = size;
+      return Math.min(Math.max(window.innerWidth * viewportRatio, minRem * rem), maxRem * rem);
+    };
+  }
+
+  function initDisciplineStack() {
+    initStackDeck({
+      stackId: "discipline-stack",
+      items: disciplines,
+      getAriaLabel: (item) => `Core disciplines cards. ${item.title} is in focus.`,
+      getBaseCardHeight: createStackHeightResolver({
+        portrait: [0.84, 25.8, 30.4],
+        landscape: [0.33, 18.8, 22.8],
+        narrow: [0.4, 20, 24],
+        wide: [0.39, 22, 28]
+      }),
+      measureCard: measureDisciplineCard,
+      extraBlockSpace: 8
+    });
+  }
+
+  function initProjectStack() {
+    initStackDeck({
+      stackId: "project-stack",
+      items: projects,
+      getAriaLabel: (item) => `Current project cards. ${item.title} is in focus.`,
+      getBaseCardHeight: createStackHeightResolver({
+        portrait: null,
+        landscape: [0.365, 21.5, 25.6],
+        narrow: [0.47, 22.8, 27.2],
+        wide: [0.325, 24.2, 29.5]
+      }),
+      measureCard: measureProjectCard,
+      mediaSelector: ".project-stack-card__image"
+    });
+  }
+
+  function createSiteBootGate() {
+    const root = document.documentElement;
+    const loader = document.querySelector("[data-site-loader]");
+    const skipButton = document.querySelector("[data-site-loader-skip]");
+    let released = false;
+    let resolveSkip;
+
+    const skipped = new Promise((resolve) => {
+      resolveSkip = resolve;
+    });
+
+    const revealTimer = window.setTimeout(() => {
+      if (!released) {
+        root.classList.add("site-loader-visible");
+        loader?.setAttribute("aria-hidden", "false");
+      }
+    }, SITE_LOADER_REVEAL_DELAY);
+
+    const skipTimer = window.setTimeout(() => {
+      if (!released) {
+        root.classList.add("site-loader-skippable");
+      }
+    }, SITE_LOADER_SKIP_DELAY);
+
+    const onSkip = () => {
+      if (released) {
+        return;
+      }
+
+      skipButton?.setAttribute("disabled", "");
+      resolveSkip?.();
+    };
+
+    skipButton?.addEventListener("click", onSkip, { once: true });
+
+    return {
+      skipped,
+      async release() {
+        if (released) {
+          return;
+        }
+
+        released = true;
+        window.clearTimeout(revealTimer);
+        window.clearTimeout(skipTimer);
+        skipButton?.removeEventListener("click", onSkip);
+        root.classList.remove("site-loader-skippable");
+
+        const wasVisible = root.classList.contains("site-loader-visible");
+        if (wasVisible && !prefersReducedMotion) {
+          root.classList.add("site-loader-releasing");
+          await new Promise((resolve) => window.setTimeout(resolve, 420));
+        }
+
+        root.classList.remove("site-boot-pending", "site-loader-visible", "site-loader-releasing");
+        root.classList.add("site-boot-ready");
+        loader?.setAttribute("aria-hidden", "true");
+      }
+    };
+  }
+
+  function waitForWindowLoad() {
+    if (document.readyState === "complete") {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      window.addEventListener("load", resolve, { once: true });
+    });
+  }
+
+  function waitForImage(image) {
+    if (!image?.src && !image?.currentSrc) {
+      return Promise.resolve();
+    }
+
+    image.loading = "eager";
+
+    const decode = () => {
+      if (typeof image.decode !== "function" || !image.naturalWidth) {
+        return Promise.resolve();
+      }
+
+      return image.decode().catch(() => {});
+    };
+
+    if (image.complete) {
+      return decode();
+    }
+
+    return new Promise((resolve) => {
+      const settle = () => decode().finally(resolve);
+      image.addEventListener("load", settle, { once: true });
+      image.addEventListener("error", resolve, { once: true });
+    });
+  }
+
+  function waitForStackReady(stackId) {
+    const stack = document.getElementById(stackId);
+    if (!stack || stack.dataset.stackReady === "true") {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+      stack.addEventListener("stack:ready", resolve, { once: true });
+    });
+  }
+
+  async function waitForSiteReadiness() {
+    const imagePromises = Array.from(document.images, waitForImage);
+    const fontsReady = document.fonts?.ready || Promise.resolve();
+
+    await Promise.allSettled([
+      waitForWindowLoad(),
+      fontsReady,
+      ...imagePromises,
+      waitForStackReady("discipline-stack"),
+      waitForStackReady("project-stack")
+    ]);
+
+    await new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
+    });
+  }
+
+  async function boot() {
+    let outcome = "ready";
+
+    try {
+      await Promise.all([
+        injectPartial("#nav-slot", "nav.html"),
+        injectPartial("#footer-slot", "footer.html")
+      ]);
+
+      renderProjects();
+      renderDisciplines();
+      initYear();
+      initAboutDisclosure();
+      initNav();
+      syncMobileNavState();
+      initAnchorScroll();
+      initSectionSpy();
+      initReveal();
+      initGridFittedTypography();
+      initRockSaltSafeAreas();
+      initAboutCreator();
+      initDisciplineStack();
+      initProjectStack();
+
+      outcome = await Promise.race([
+        waitForSiteReadiness().then(() => "ready"),
+        siteBootGate.skipped.then(() => "skipped")
+      ]);
+    } catch (error) {
+      console.error("Site boot failed", error);
+      outcome = "failed";
+    }
+
+    await siteBootGate.release();
+    initHeroIntro({ waitForFonts: outcome === "ready" });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();
