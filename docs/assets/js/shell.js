@@ -1168,74 +1168,23 @@
     const shouldPrewarmHero = () => {
       return getScrollTop() > Math.max(64, window.innerHeight * 0.16);
     };
-    const settleHeroReveal = (observer) => {
+    const controller = createScrollReveal();
+    revealElements.forEach((element) => {
+      controller.observe(element, {
+        reveal: () => element.classList.add("is-visible")
+      });
+    });
+    const settleHeroReveal = () => {
       if (!shouldPrewarmHero()) {
         return;
       }
 
-      heroRevealElements.forEach((element) => {
-        element.classList.add("is-visible");
-        observer?.unobserve?.(element);
-      });
+      heroRevealElements.forEach(controller.reveal);
     };
-
-    if (prefersReducedMotion || !("IntersectionObserver" in window)) {
-      revealElements.forEach((element) => element.classList.add("is-visible"));
-      settleHeroReveal();
-      return;
-    }
-
-    const revealElement = (element, observer) => {
-      if (element.classList.contains("is-visible")) {
-        return;
-      }
-      element.classList.add("is-visible");
-      observer?.unobserve?.(element);
-    };
-
-    const inView = (element) => {
-      const rect = element.getBoundingClientRect();
-      const vh = window.innerHeight || document.documentElement.clientHeight;
-      const vw = window.innerWidth || document.documentElement.clientWidth;
-      return rect.bottom > 0 && rect.right > 0 && rect.top < vh && rect.left < vw;
-    };
-
-    const observer = new IntersectionObserver(
-      (entries, obs) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) {
-            return;
-          }
-          revealElement(entry.target, obs);
-        });
-      },
-      {
-        root: null,
-        rootMargin: "0px 0px -1% 0px",
-        threshold: 0
-      }
-    );
-
-    revealElements.forEach((element) => observer.observe(element));
-    const revealVisibleNow = () => {
-      revealElements.forEach((element) => {
-        if (!element.classList.contains("is-visible") && inView(element)) {
-          revealElement(element, observer);
-        }
-      });
-    };
-    requestAnimationFrame(revealVisibleNow);
-    settleHeroReveal(observer);
-    requestAnimationFrame(() => settleHeroReveal(observer));
-    window.setTimeout(() => {
-      settleHeroReveal(observer);
-      revealVisibleNow();
-    }, 120);
-    window.addEventListener("resize", revealVisibleNow);
-    window.addEventListener("pageshow", () => {
-      settleHeroReveal(observer);
-      revealVisibleNow();
-    });
+    // IntersectionObserver owns viewport entry. Address-bar resizes must not
+    // run a second, competing reveal path while a touch scroll is in progress.
+    settleHeroReveal();
+    window.addEventListener("pageshow", settleHeroReveal);
   }
 
   async function initHeroIntro({ waitForFonts = true } = {}) {
