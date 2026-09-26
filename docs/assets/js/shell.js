@@ -1706,7 +1706,11 @@
           added.forEach((animation) => {
             if (animation === clock || !group.has(animation)) return;
             animation.playbackRate = clock.playbackRate;
-            animation.startTime = clock.startTime;
+            if (animation.playState === "paused") {
+              animation.currentTime = clock.currentTime;
+            } else {
+              animation.startTime = clock.startTime;
+            }
           });
         };
         if (clock.pending) {
@@ -1997,6 +2001,19 @@
       .matchMedia("(prefers-reduced-motion: reduce)")
       .addEventListener?.("change", syncMetalClockGroups);
     syncMetalClockGroups();
+    document.addEventListener("stack:decoration", (event) => {
+      // Rejoin the shared metal clock after a stack resumes, without waking paused effects.
+      metalClockGroups.forEach((group) => {
+        const clock = Array.from(group).find((animation) => animation.effect?.target === metalRoot);
+        if (!clock || clock.startTime === null) return;
+        group.forEach((animation) => {
+          if (!event.target.contains(animation.effect?.target) || animation.playState === "paused")
+            return;
+          animation.playbackRate = clock.playbackRate;
+          animation.startTime = clock.startTime;
+        });
+      });
+    });
     document.querySelector(".hero-brand-lockup")?.addEventListener("click", (event) => {
       if (
         prefersReducedMotion ||
@@ -2179,8 +2196,8 @@
 
     const textBlocks = Array.from(details.querySelectorAll(".about-copy__title, p"));
     const motion = {
-      lineDuration: 1080,
-      lineStagger: 16,
+      lineDuration: 1440,
+      lineStagger: 20,
       lineDistance: 16,
       heightLead: 100,
       collapseDuration: 720,
@@ -2761,6 +2778,27 @@
     let lastPortraitState = portraitQuery.matches;
     let loadingFadeScheduled = false;
     let loadingFinished = false;
+    let stackVisible = !("IntersectionObserver" in window);
+
+    const releaseSettledMotions = () => {
+      motions.forEach((animation, card) => {
+        if (animation.playState !== "finished") return;
+        motions.delete(card);
+        animation.cancel();
+      });
+    };
+    const syncDecorationState = () => {
+      const moving =
+        stack.classList.contains("is-dragging") ||
+        Array.from(motions.values()).some((animation) => animation.playState !== "finished");
+      const decorating = stackVisible && !document.hidden && !moving && !prefersReducedMotion;
+      const value = String(decorating);
+      if (stack.dataset.stackDecorating !== value) {
+        stack.dataset.stackDecorating = value;
+        if (decorating) stack.dispatchEvent(new Event("stack:decoration", { bubbles: true }));
+      }
+      if (!stackVisible || document.hidden) releaseSettledMotions();
+    };
 
     const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
     const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
@@ -2829,7 +2867,7 @@
     };
 
     const formatTransformValues = (x, y, scale, rotate) =>
-      `translate(calc(-50% + ${x.toFixed(2)}px), ${y.toFixed(2)}px) scale(${scale.toFixed(4)}) rotate(${rotate.toFixed(2)}deg)`;
+      `translate3d(${(x - getMetrics().cardWidth / 2).toFixed(3)}px, ${y.toFixed(3)}px, 0) scale(${scale.toFixed(4)}) rotate(${rotate.toFixed(2)}deg)`;
     const formatTransform = (layout) =>
       formatTransformValues(layout.x, layout.y, layout.scale, layout.rotate);
 
@@ -2852,7 +2890,9 @@
         );
       });
 
-      const cardWidth = firstCard?.offsetWidth || stack.clientWidth || window.innerWidth;
+      // Preserve fractional CSS pixels for both centering and interrupted-motion capture.
+      const cardWidth =
+        parseFloat(getComputedStyle(firstCard).width) || stack.clientWidth || window.innerWidth;
       const breathingRoom = Math.ceil(clamp(window.innerHeight * 0.04, 32, 56));
       const baseHeight = Math.ceil(getBaseCardHeight({ portrait: portraitQuery.matches }));
       const cardHeight = Math.ceil(
@@ -3009,6 +3049,7 @@
         };
       });
       stack.classList.add("is-dragging");
+      syncDecorationState();
     };
 
     const applyDragState = (dragProgress) => {
@@ -3083,6 +3124,7 @@
       });
 
       syncLabels();
+      syncDecorationState();
     };
 
     const animateCard = (card, startLayout, finalLayout, direction = 0) => {
@@ -3120,12 +3162,17 @@
 
       const animation = card.animate(keyframes, {
         duration: direction ? (portraitQuery.matches ? 920 : 820) : 560,
-        easing: direction ? "cubic-bezier(0.18, 0.86, 0.22, 1)" : "cubic-bezier(0.2, 0.82, 0.22, 1)"
+        easing: direction
+          ? "cubic-bezier(0.18, 0.86, 0.22, 1)"
+          : "cubic-bezier(0.2, 0.82, 0.22, 1)",
+        fill: "both"
       });
       motions.set(card, animation);
       const finishAnimation = () => {
         if (motions.get(card) === animation) {
-          motions.delete(card);
+          // Keep the final rendered frame while visible; the next gesture cancels it.
+          // This bounds retained effects to one per card instead of accumulating them.
+          syncDecorationState();
         }
       };
       animation.finished.then(finishAnimation, finishAnimation);
@@ -3354,6 +3401,18 @@
     stack.dataset.stackReady = "false";
     applyState();
     bindMediaSync();
+
+    if ("IntersectionObserver" in window) {
+      const visibilityObserver = new IntersectionObserver(
+        ([entry]) => {
+          stackVisible = entry.isIntersecting;
+          syncDecorationState();
+        },
+        { rootMargin: "128px 0px" }
+      );
+      visibilityObserver.observe(stack);
+    }
+    document.addEventListener("visibilitychange", syncDecorationState);
 
     window.addEventListener("resize", () => {
       const nextWidth = window.innerWidth;

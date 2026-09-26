@@ -1804,10 +1804,6 @@ a {
   height: 0.66rem;
 }
 
-.discipline-stack-viewport.is-dragging .discipline-stack-card {
-  will-change: transform;
-}
-
 @media (hover: hover) and (pointer: fine) {
   .discipline-stack-card.is-active:hover .discipline-stack-card__surface {
     transform: scale(var(--card-hover-scale));
@@ -2739,6 +2735,26 @@ a {
 .discipline-stack-card__surface::before,
 .connect-card::before {
   animation: hero-metal-story-stream var(--metal-story-duration) linear infinite;
+}
+
+/* Hidden cards and invisible hover layers do not need a continuously painted metal effect. */
+.discipline-stack-card__surface,
+.discipline-stack-card__surface::before {
+  animation-play-state: paused;
+}
+
+.discipline-stack-viewport[data-stack-decorating="true"]
+  .discipline-stack-card.is-active
+  .discipline-stack-card__surface {
+  animation-play-state: running;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .discipline-stack-viewport[data-stack-decorating="true"]
+    .discipline-stack-card.is-active:hover
+    .discipline-stack-card__surface::before {
+    animation-play-state: running;
+  }
 }
 
 .hero-home-side .hero-metal,
