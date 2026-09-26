@@ -2180,7 +2180,7 @@
     const textBlocks = Array.from(details.querySelectorAll(".about-copy__title, p"));
     const motion = {
       lineDuration: 1080,
-      lineStagger: 20,
+      lineStagger: 16,
       lineDistance: 16,
       heightLead: 100,
       collapseDuration: 720,
