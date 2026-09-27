@@ -748,6 +748,8 @@
     if (current) current.classList.add("is-current");
 
     const setThumbTo = (a, show = true) => {
+      // The desktop menu has no geometry in portrait mode.
+      if (!menu.getClientRects().length) return;
       if (!a) {
         menu.style.setProperty("--menu-thumb-o", "0");
         return;
@@ -808,7 +810,7 @@
     }
 
     let raf = 0;
-    let target = menu.querySelector("a.is-current") || links[0];
+    let pointerX = 0;
     let leaveTimer = 0;
 
     const isHoverPointer = (e) => {
@@ -832,6 +834,8 @@
 
     const tick = () => {
       raf = 0;
+      if (!menu.dataset.thumbHovering || !menu.getClientRects().length) return;
+      const target = nearestLinkByX(pointerX);
       setThumbTo(target, true);
       setTargetClass(target);
     };
@@ -862,8 +866,7 @@
       cancelLeave();
       menu.dataset.thumbHovering = "1";
 
-      const next = nearestLinkByX(e.clientX);
-      if (next !== target) target = next;
+      pointerX = e.clientX;
       if (!raf) raf = requestAnimationFrame(tick);
     });
 
@@ -879,8 +882,7 @@
     if (!("PointerEvent" in window)) {
       menu.addEventListener("mousemove", (e) => {
         menu.dataset.thumbHovering = "1";
-        const next = nearestLinkByX(e.clientX);
-        if (next !== target) target = next;
+        pointerX = e.clientX;
         if (!raf) raf = requestAnimationFrame(tick);
       });
       menu.addEventListener("mouseleave", () => {
@@ -1294,6 +1296,8 @@
     let rafId = 0;
     let fontsAreReady = false;
     const fitConfigurations = new WeakMap();
+    const glyphMeasurements = new Map();
+    const appliedFitStyles = new WeakMap();
     const activeWeightAnimations = new Map();
     const activeMetalClockAnimations = new Map();
     const metalRoot = document.querySelector(".page-wrap");
@@ -1315,6 +1319,13 @@
       }
 
       const text = word.textContent.trim();
+      // Measurements use a fixed 100px font. Reuse identical inputs across
+      // responsive fits, but never reuse metrics across a font load.
+      const cacheable = fontsAreReady && document.fonts?.status === "loaded";
+      const measurementKey = JSON.stringify([text, weight, width, trackingEm]);
+      if (cacheable && glyphMeasurements.has(measurementKey)) {
+        return glyphMeasurements.get(measurementKey);
+      }
       const tracking = `${trackingEm * 100}px`;
 
       measuringSpan.textContent = text;
@@ -1356,13 +1367,20 @@
       const baseline = (100 - fontAscent - fontDescent) / 2 + fontAscent;
       const inkCenter = baseline + (descent - ascent) / 2;
 
-      return {
+      const result = {
         width: Math.max(1, measuredWidth),
         inkLeft,
         inkWidth: Math.max(1, inkWidth),
         height: ascent + descent,
         centerOffsetY: inkCenter - 50
       };
+      if (cacheable) {
+        if (glyphMeasurements.size >= 2048) {
+          glyphMeasurements.delete(glyphMeasurements.keys().next().value);
+        }
+        glyphMeasurements.set(measurementKey, result);
+      }
+      return result;
     };
 
     const findWidthAxis = (
@@ -1574,13 +1592,20 @@
 
     const applyFittedState = (word, state) => {
       if (!state) return;
-      word.style.setProperty("--fit-wdth", state.width.toFixed(3));
-      word.style.setProperty("--fit-wght", state.weight.toFixed(3));
-      word.style.setProperty("--fit-tracking", `${state.trackingEm.toFixed(5)}em`);
-      word.style.setProperty("--fit-font-size", `${state.fontSize.toFixed(3)}px`);
-      word.style.setProperty("--fit-shift-x", `${state.shiftX.toFixed(3)}px`);
-      word.style.setProperty("--fit-shift-y", `${state.shiftY.toFixed(3)}px`);
-      word.style.setProperty("--fit-scale-x", state.scaleX.toFixed(5));
+      const values = {
+        "--fit-wdth": state.width.toFixed(3),
+        "--fit-wght": state.weight.toFixed(3),
+        "--fit-tracking": `${state.trackingEm.toFixed(5)}em`,
+        "--fit-font-size": `${state.fontSize.toFixed(3)}px`,
+        "--fit-shift-x": `${state.shiftX.toFixed(3)}px`,
+        "--fit-shift-y": `${state.shiftY.toFixed(3)}px`,
+        "--fit-scale-x": state.scaleX.toFixed(5)
+      };
+      const previous = appliedFitStyles.get(word);
+      Object.entries(values).forEach(([property, value]) => {
+        if (previous?.[property] !== value) word.style.setProperty(property, value);
+      });
+      appliedFitStyles.set(word, values);
     };
 
     const fit = (allowDuringGlyphStory = false) => {
@@ -2008,9 +2033,13 @@
 
     requestFit();
     document.fonts?.ready.then(() => {
+      glyphMeasurements.clear();
       fontsAreReady = true;
       requestFit();
     });
+    document.fonts?.addEventListener("loading", () => glyphMeasurements.clear());
+    document.fonts?.addEventListener("loadingdone", () => glyphMeasurements.clear());
+    document.fonts?.addEventListener("loadingerror", () => glyphMeasurements.clear());
     window.addEventListener("resize", handleViewportResize);
     window.addEventListener("orientationchange", () => {
       scheduleSettledFit(260, true, true);

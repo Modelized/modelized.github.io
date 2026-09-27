@@ -1619,6 +1619,9 @@ a {
   width: var(--discipline-card-width);
   max-width: 100%;
   height: var(--discipline-card-height);
+  /* Explicit card dimensions isolate internal layout without clipping shadows
+     or changing the shared transform path. Do not use paint/size containment. */
+  contain: layout style;
   overflow: visible;
   transform-origin: center center;
   pointer-events: none;

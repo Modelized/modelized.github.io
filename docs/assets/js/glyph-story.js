@@ -76,6 +76,7 @@
   let finishRevealFrame = 0;
   let reflowFrame = 0;
   let gridDrawFrame = 0;
+  let gridSignature = "";
   let transitionTimeline = null;
   let pendingReflow = false;
   let lastViewportWidth = window.innerWidth;
@@ -85,6 +86,7 @@
   const activeAnimations = new Set();
   const visited = new Set();
   const dashLengths = new WeakMap();
+  const pathLengths = new WeakMap();
 
   const nextFrame = () =>
     new Promise((resolve) => {
@@ -130,10 +132,17 @@
   const outlineEase = cubicBezier(0.18, 0.88, 0.25, 1);
 
   const configureOutlinePaths = () => {
-    outlinePaths.forEach((path) => {
+    // Read all SVG geometry before changing any dash styles.
+    const measurements = outlinePaths.map((path) => {
       let dashLength = 1000;
       try {
-        const measuredLength = path.getTotalLength();
+        let measuredLength = pathLengths.get(path);
+        if (measuredLength === undefined) {
+          measuredLength = path.getTotalLength();
+          if (Number.isFinite(measuredLength) && measuredLength > 0) {
+            pathLengths.set(path, measuredLength);
+          }
+        }
         const svg = path.ownerSVGElement;
         const svgRect = svg?.getBoundingClientRect();
         const viewBox = svg?.viewBox?.baseVal;
@@ -153,6 +162,9 @@
         // The shared fallback still uses the same dash model for every path.
       }
 
+      return [path, dashLength];
+    });
+    measurements.forEach(([path, dashLength]) => {
       dashLengths.set(path, dashLength);
       path.removeAttribute("pathLength");
       path.removeAttribute("stroke-dasharray");
@@ -299,6 +311,7 @@
 
   const drawGlyphGrid = () => {
     gridDrawFrame = 0;
+    if (root.hidden) return;
     const bounds = visual.getBoundingClientRect();
     const width = bounds.width;
     const height = bounds.height;
@@ -307,6 +320,11 @@
     const dpr = clamp(window.devicePixelRatio || 1, 1, 3);
     const pixelWidth = Math.max(1, Math.round(width * dpr));
     const pixelHeight = Math.max(1, Math.round(height * dpr));
+    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const focusGrid = state === "focus";
+    const signature = [width, height, dpr, rootFontSize, focusGrid].join("|");
+    if (signature === gridSignature) return;
+    gridSignature = signature;
     if (grid.width !== pixelWidth || grid.height !== pixelHeight) {
       grid.width = pixelWidth;
       grid.height = pixelHeight;
@@ -316,11 +334,9 @@
     gridContext.clearRect(0, 0, width, height);
     gridContext.lineWidth = 1 / dpr;
 
-    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
     const spacing = clamp(width * 0.032, rootFontSize * 0.9, rootFontSize * 2.1);
     const centerX = width / 2;
     const centerY = height / 2;
-    const focusGrid = state === "focus";
     const snap = (value) => (Math.round(value * dpr) + 0.5) / dpr;
 
     const drawLine = (x1, y1, x2, y2, color) => {
@@ -1019,6 +1035,8 @@
 
   const handleRailScroll = () => {
     if (state !== "focus") return;
+    // The programmatic scroller already updates these values in its own frame.
+    if (programmaticScroll) return;
     if (!railVisualFrame) {
       railVisualFrame = requestAnimationFrame(() => {
         railVisualFrame = 0;
