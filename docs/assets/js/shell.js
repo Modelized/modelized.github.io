@@ -2962,6 +2962,7 @@
       );
 
     const cancelMotions = () => {
+      cards.forEach((card) => card.classList.remove("is-settling"));
       motions.forEach((animation) => animation.cancel());
       motions.clear();
     };
@@ -3106,6 +3107,16 @@
       direction = 0
     } = {}) => {
       stack.classList.remove("is-dragging");
+      const shouldAnimate = animate && !prefersReducedMotion;
+      if (shouldAnimate) {
+        // Freeze every card at the captured frame before enabling CSS transitions.
+        cardStates.forEach((state) => {
+          state.card.classList.remove("is-settling");
+          writeLayout(state, fromLayouts?.get(state.card) || state.layout);
+        });
+        // One batched style/layout flush per handoff, never during drag frames.
+        void stack.offsetWidth;
+      }
       cardStates.forEach((state) => {
         const { card, index } = state;
         const offset = index - activeIndex;
@@ -3118,28 +3129,46 @@
         card.dataset.stackSide = getSide(offset);
         card.classList.toggle("is-active", offset === 0);
         card.classList.toggle("is-neighbor", isNeighbor);
+        card.classList.toggle("is-settling", shouldAnimate && card !== outgoingCard);
         card.setAttribute("aria-hidden", offset === 0 ? "false" : "true");
         writeLayout(state, layout, getZIndex(offset));
-        if (animate) {
-          animateCard(card, startLayout, layout, card === outgoingCard ? direction : 0);
+        if (shouldAnimate && card === outgoingCard) {
+          animateOutgoingCard(card, startLayout, layout, direction);
         }
       });
 
+      if (shouldAnimate) {
+        // Observe browser-created transitions only; do not drive their playback in JS.
+        cards.forEach((card) => {
+          if (card === outgoingCard) return;
+          const transition = card
+            .getAnimations()
+            .find((animation) => animation.transitionProperty === "transform");
+          if (transition) trackMotion(card, transition, false);
+        });
+      }
       syncLabels();
       syncDecorationState();
     };
 
-    const animateCard = (card, startLayout, finalLayout, direction = 0) => {
+    const trackMotion = (card, animation, retainFinalFrame) => {
+      motions.set(card, animation);
+      const finishAnimation = () => {
+        if (motions.get(card) !== animation) return;
+        // CSS transitions settle onto the underlying style without a retained effect.
+        if (!retainFinalFrame) motions.delete(card);
+        syncDecorationState();
+      };
+      animation.finished.then(finishAnimation, finishAnimation);
+    };
+
+    const animateOutgoingCard = (card, startLayout, finalLayout, direction) => {
       if (!card || typeof card.animate !== "function" || prefersReducedMotion) {
         return;
       }
 
       const startTransform = formatTransform(startLayout);
       const finalTransform = formatTransform(finalLayout);
-      if (startTransform === finalTransform && !direction) {
-        return;
-      }
-
       const keyframes = [{ transform: startTransform }];
       if (direction) {
         const throwSign = direction > 0 ? -1 : 1;
@@ -3163,21 +3192,12 @@
       keyframes.push({ transform: finalTransform });
 
       const animation = card.animate(keyframes, {
-        duration: direction ? (portraitQuery.matches ? 920 : 820) : 560,
-        easing: direction
-          ? "cubic-bezier(0.18, 0.86, 0.22, 1)"
-          : "cubic-bezier(0.2, 0.82, 0.22, 1)",
+        duration: portraitQuery.matches ? 920 : 820,
+        easing: "cubic-bezier(0.18, 0.86, 0.22, 1)",
         fill: "both"
       });
-      motions.set(card, animation);
-      const finishAnimation = () => {
-        if (motions.get(card) === animation) {
-          // Keep the final rendered frame while visible; the next gesture cancels it.
-          // This bounds retained effects to one per card instead of accumulating them.
-          syncDecorationState();
-        }
-      };
-      animation.finished.then(finishAnimation, finishAnimation);
+      // Preserve the outgoing card's existing final-frame handoff behavior.
+      trackMotion(card, animation, true);
     };
 
     const settleCards = () => {
