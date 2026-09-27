@@ -491,12 +491,16 @@
       if (brand && firstLink && rowRect) {
         const logoRect = (logo || brand).getBoundingClientRect();
         const firstLinkRect = firstLink.getBoundingClientRect();
+        const firstLinkStyle = window.getComputedStyle(firstLink);
+        const textLeft = firstLinkRect.left +
+          (Number.parseFloat(firstLinkStyle.borderLeftWidth) || 0) +
+          (Number.parseFloat(firstLinkStyle.paddingLeft) || 0);
         const gapAbove = Math.round(Math.min(Math.max(viewportHeight * 0.01, 4), 8));
         const alignedTop = firstLinkRect.top - logoRect.height - gapAbove;
         const minLogoTop = Math.round(rowRect.top + 6);
         const targetTop = Math.max(alignedTop, minLogoTop) - compositionLift;
         const visualLeftInset = logoRect.width * (115 / 512);
-        const shiftX = Math.round(firstLinkRect.left - (logoRect.left + visualLeftInset));
+        const shiftX = Math.round(textLeft - (logoRect.left + visualLeftInset));
         const shiftY = Math.round(targetTop - logoRect.top);
 
         setPortraitBrandShift(nav, shiftX, shiftY);
