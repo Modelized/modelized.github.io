@@ -1634,11 +1634,7 @@ a {
   --card-outline-image: linear-gradient(var(--card-edge), var(--card-edge));
   --card-outline-size: 100% 100%;
   position: relative;
-  display: grid;
-  grid-template-rows: auto auto auto;
-  justify-items: start;
-  align-content: center;
-  gap: clamp(1.08rem, 1.8vw, 1.44rem);
+  display: block;
   height: 100%;
   padding: clamp(1.7rem, 3vw, 2.45rem) clamp(1.72rem, 3.15vw, 2.6rem) clamp(1.74rem, 3.1vw, 2.45rem);
   border: var(--card-outline-width) solid transparent;
@@ -1698,6 +1694,15 @@ a {
   display: grid;
   gap: 0.35rem;
   width: 100%;
+}
+
+.discipline-stack-card__layout {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  justify-items: start;
+  align-content: center;
+  gap: clamp(1.08rem, 1.8vw, 1.44rem);
+  height: 100%;
 }
 
 .discipline-stack-card__title {
@@ -2245,6 +2250,9 @@ a {
 
   .discipline-stack-card__surface {
     padding: 1.32rem 1.22rem 1.28rem;
+  }
+
+  .discipline-stack-card__layout {
     gap: 1rem;
   }
 

@@ -2690,11 +2690,13 @@
 
   function measureDisciplineCard(card) {
     const surface = card.querySelector(".discipline-stack-card__surface");
+    const layout = surface?.querySelector(".discipline-stack-card__layout");
     const header = surface?.querySelector(".discipline-stack-card__header");
     const body = surface?.querySelector(".discipline-stack-card__body");
     const arsenal = surface?.querySelector(".discipline-stack-card__arsenal:not([hidden])");
     const styles = surface ? getComputedStyle(surface) : null;
-    const gap = styles ? parseFloat(styles.rowGap || styles.gap) || 0 : 0;
+    const layoutStyles = layout ? getComputedStyle(layout) : null;
+    const gap = layoutStyles ? parseFloat(layoutStyles.rowGap || layoutStyles.gap) || 0 : 0;
     const paddingTop = styles ? parseFloat(styles.paddingTop) || 0 : 0;
     const paddingBottom = styles ? parseFloat(styles.paddingBottom) || 0 : 0;
     const parts = [header, body, arsenal].filter(Boolean);
