@@ -8,6 +8,8 @@
   const SETTLE_PASS_DELAYS = [0, 140, 320, 560];
   const SITE_LOADER_REVEAL_DELAY = 220;
   const SITE_LOADER_SKIP_DELAY = 4200;
+  const mobileMenuMotion = { revision: 0, frame: 0, closing: false };
+  const portraitBrandShifts = new WeakMap();
   const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
   const siteBootGate = createSiteBootGate();
 
@@ -403,9 +405,7 @@
 
   function clearPortraitBrandLock(nav) {
     if (!nav) return;
-    delete nav.dataset.brandShiftLocked;
-    delete nav.dataset.brandShiftX;
-    delete nav.dataset.brandShiftY;
+    portraitBrandShifts.delete(nav);
   }
 
   function setPortraitBrandShift(nav, shiftX, shiftY) {
@@ -416,9 +416,7 @@
 
     root.style.setProperty("--mobile-brand-shift-x", `${normalizedX}px`);
     root.style.setProperty("--mobile-brand-shift-y", `${normalizedY}px`);
-    nav.dataset.brandShiftLocked = "1";
-    nav.dataset.brandShiftX = String(normalizedX);
-    nav.dataset.brandShiftY = String(normalizedY);
+    portraitBrandShifts.set(nav, { x: normalizedX, y: normalizedY });
   }
 
   function syncPortraitMenuBlurViewport() {
@@ -475,16 +473,13 @@
     const hasBrandShift =
       root.style.getPropertyValue("--mobile-brand-shift-x").trim() !== "" &&
       root.style.getPropertyValue("--mobile-brand-shift-y").trim() !== "";
-    const brandShiftLocked = nav.dataset.brandShiftLocked === "1";
-    const lockedShiftX = Number.parseFloat(nav.dataset.brandShiftX || "");
-    const lockedShiftY = Number.parseFloat(nav.dataset.brandShiftY || "");
-    const hasLockedShift = Number.isFinite(lockedShiftX) && Number.isFinite(lockedShiftY);
+    const lockedShift = portraitBrandShifts.get(nav);
 
-    if (shouldAlignBrand && brandShiftLocked && hasLockedShift) {
+    if (shouldAlignBrand && lockedShift) {
       if (!hasBrandShift) {
-        setPortraitBrandShift(nav, lockedShiftX, lockedShiftY);
+        setPortraitBrandShift(nav, lockedShift.x, lockedShift.y);
       }
-    } else if (shouldAlignBrand && (!brandShiftLocked || !hasBrandShift)) {
+    } else if (shouldAlignBrand) {
       const brand = nav.querySelector(".brand");
       const logo = nav.querySelector(".brand-logo");
       const firstLink = nav.querySelector(".mobile-menu a");
@@ -543,8 +538,9 @@
 
   function clearTransientMobileMenuState(nav) {
     if (isNavMenuOpen(nav)) return;
+    cancelMobileMenuWork();
+    mobileMenuMotion.closing = false;
     const sheet = nav?.querySelector("#mobile-sheet");
-    nav?.classList.remove("nav--opening");
     body.classList.remove("nav-menu-open");
     body.classList.remove("nav-menu-closing");
     body.classList.remove("no-scroll");
@@ -557,13 +553,38 @@
     clearPortraitMenuLayoutVars();
   }
 
+  function cancelMobileMenuWork() {
+    cancelAnimationFrame(mobileMenuMotion.frame);
+    mobileMenuMotion.frame = 0;
+    return ++mobileMenuMotion.revision;
+  }
+
+  function finishMobileMenuClose(nav, revision) {
+    // Observe the existing CSS transitions; do not replace or replay their motion.
+    const elements = [
+      nav.querySelector(".brand"),
+      nav.querySelector(".sheet"),
+      nav.querySelector(".sheet-content"),
+      ...nav.querySelectorAll(".mobile-menu li"),
+      document.querySelector(".mobile-menu-wordmark"),
+      document.querySelector(".nav-menu-blur")
+    ].filter(Boolean);
+    const transitions = elements.flatMap((element) => element.getAnimations());
+    Promise.allSettled(transitions.map((transition) => transition.finished)).then(() => {
+      if (revision !== mobileMenuMotion.revision || isNavMenuOpen(nav)) return;
+      clearTransientMobileMenuState(nav);
+    });
+  }
+
   function setNavOpenState(nav, open) {
     const toggle = nav?.querySelector(".nav-toggle");
     const sheet = nav?.querySelector("#mobile-sheet");
 
     if (!nav || !toggle) return;
 
-    window.clearTimeout(setNavOpenState._stateTimer);
+    if (open === isNavMenuOpen(nav)) return;
+    const revision = cancelMobileMenuWork();
+    mobileMenuMotion.closing = !open;
 
     if (open) {
       if (sheet) {
@@ -572,20 +593,17 @@
         sheet.setAttribute("aria-hidden", "false");
       }
       nav.classList.add("nav--open");
-      nav.classList.add("nav--opening");
       body.classList.remove("nav-menu-closing");
 
-      requestAnimationFrame(() => {
+      mobileMenuMotion.frame = requestAnimationFrame(() => {
+        mobileMenuMotion.frame = 0;
+        if (revision !== mobileMenuMotion.revision || !isNavMenuOpen(nav)) return;
         syncPortraitMobileMenuLayout(nav);
         body.classList.add("nav-menu-open");
         body.classList.add("no-scroll");
-        requestAnimationFrame(() => {
-          nav.classList.remove("nav--opening");
-        });
       });
     } else {
       nav.classList.remove("nav--open");
-      nav.classList.remove("nav--opening");
       body.classList.remove("nav-menu-open");
       body.classList.add("nav-menu-closing");
       body.classList.remove("no-scroll");
@@ -593,19 +611,16 @@
         sheet.setAttribute("aria-hidden", "true");
         sheet.setAttribute("inert", "");
       }
+      mobileMenuMotion.frame = requestAnimationFrame(() => {
+        mobileMenuMotion.frame = 0;
+        if (revision !== mobileMenuMotion.revision) return;
+        finishMobileMenuClose(nav, revision);
+      });
     }
 
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
     toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
 
-    setNavOpenState._stateTimer = window.setTimeout(
-      () => {
-        if (!open) {
-          clearTransientMobileMenuState(nav);
-        }
-      },
-      open ? 0 : 360
-    );
   }
 
   function closeMobileNav() {
@@ -618,10 +633,14 @@
     const nav = document.querySelector(".nav");
     if (!nav) return;
 
-    if (!isPortraitMobile() && isNavMenuOpen(nav)) {
-      setNavOpenState(nav, false);
+    if (!isPortraitMobile()) {
+      if (isNavMenuOpen(nav)) setNavOpenState(nav, false);
+      clearTransientMobileMenuState(nav);
       return;
     }
+
+    // Safari's viewport resize events must not cut a closing transition short.
+    if (mobileMenuMotion.closing) return;
 
     if (!isPortraitMenuActive(nav)) {
       clearTransientMobileMenuState(nav);
