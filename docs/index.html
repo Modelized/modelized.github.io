@@ -39,9 +39,13 @@
         <!-- Build the inner relief and clip the finished material to the text silhouette. -->
         <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="soft-alpha" />
         <feComposite in="soft-alpha" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner-edge" />
-        <feFlood flood-color="#9d9d9d" result="grey" />
-        <feComposite in="grey" in2="SourceAlpha" operator="in" result="grey-body" />
-        <feComposite in="inner-edge" in2="grey-body" operator="atop" result="relief" />
+        <!-- Equivalent to black inner-edge atop #9d9d9d: RGB = (157 / 255) * (1 - edge alpha). -->
+        <feColorMatrix in="inner-edge" type="matrix" values="
+          0 0 0 -0.615686274509804 0.615686274509804
+          0 0 0 -0.615686274509804 0.615686274509804
+          0 0 0 -0.615686274509804 0.615686274509804
+          0 0 0 0 1" result="grey-relief" />
+        <feComposite in="grey-relief" in2="SourceAlpha" operator="in" result="relief" />
         <feBlend in="SourceGraphic" in2="relief" mode="overlay" result="lit-relief" />
         <feComponentTransfer in="lit-relief" result="colored-relief">
           <feFuncR type="table" tableValues="0.14 0.36 1 1 0.87 1 1" />
@@ -53,9 +57,12 @@
       <filter id="text-silver-material" x="-5%" y="-10%" width="110%" height="120%" color-interpolation-filters="sRGB">
         <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="soft-alpha" />
         <feComposite in="soft-alpha" in2="SourceAlpha" operator="arithmetic" k2="-0.7" k3="0.7" result="inner-edge" />
-        <feFlood flood-color="#9d9d9d" result="grey" />
-        <feComposite in="grey" in2="SourceAlpha" operator="in" result="grey-body" />
-        <feComposite in="inner-edge" in2="grey-body" operator="atop" result="relief" />
+        <feColorMatrix in="inner-edge" type="matrix" values="
+          0 0 0 -0.615686274509804 0.615686274509804
+          0 0 0 -0.615686274509804 0.615686274509804
+          0 0 0 -0.615686274509804 0.615686274509804
+          0 0 0 0 1" result="grey-relief" />
+        <feComposite in="grey-relief" in2="SourceAlpha" operator="in" result="relief" />
         <feBlend in="SourceGraphic" in2="relief" mode="overlay" result="lit-relief" />
         <feComponentTransfer in="lit-relief" result="colored-relief">
           <feFuncR type="table" tableValues="0.29 0.385 0.70 0.91 0.57 0.815 0.94" />
