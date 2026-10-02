@@ -1,5 +1,6 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
 import { createSettledScheduler } from "./navigation.js?v=20261002a";
+import { updateHeroMaterial } from "./hero-material.js?v=20261002a";
 function initGridFittedTypography() {
   const cells = Array.from(document.querySelectorAll(".hero-fit-cell"));
   if (!cells.length) return;
@@ -358,6 +359,7 @@ function initGridFittedTypography() {
       if (previous?.[property] !== value) word.style.setProperty(property, value);
     });
     appliedFitStyles.set(word, values);
+    updateHeroMaterial(word, state);
   };
 
   const fit = (allowDuringGlyphStory = false) => {

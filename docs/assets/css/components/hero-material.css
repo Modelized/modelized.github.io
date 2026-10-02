@@ -44,6 +44,24 @@
   filter: url("#text-orange-material");
 }
 
+.hero .hero-fit-word.hero-material-buffered {
+  background: none;
+  filter: none;
+}
+
+.hero-material-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  pointer-events: none;
+}
+
+.hero-material-buffered > .hero-material-canvas {
+  display: block;
+}
+
 .js body.hero-intro-running .hero-intro-grid {
   animation:
     hero-intro-metal-settle 720ms cubic-bezier(0.12, 0.74, 0.18, 1) both,
