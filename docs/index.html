@@ -48,11 +48,7 @@
           <feFuncG type="table" tableValues="0.018 0.06 0.40 0.84 0.19 0.60 0.94" />
           <feFuncB type="table" tableValues="0.004 0.01 0.065 0.56 0.02 0.20 0.82" />
         </feComponentTransfer>
-        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="1" seed="8" stitchTiles="stitch" result="noise" />
-        <feColorMatrix in="noise" type="saturate" values="0" result="grey-noise" />
-        <feBlend in="colored-relief" in2="grey-noise" mode="overlay" result="grained-relief" />
-        <feComposite in="colored-relief" in2="grained-relief" operator="arithmetic" k2="0.88" k3="0.12" result="material" />
-        <feComposite in="material" in2="SourceAlpha" operator="in" />
+        <feComposite in="colored-relief" in2="SourceAlpha" operator="in" />
       </filter>
       <filter id="text-silver-material" x="-5%" y="-10%" width="110%" height="120%" color-interpolation-filters="sRGB">
         <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="soft-alpha" />
@@ -66,11 +62,7 @@
           <feFuncG type="table" tableValues="0.30 0.395 0.71 0.91 0.58 0.815 0.935" />
           <feFuncB type="table" tableValues="0.31 0.41 0.72 0.895 0.595 0.805 0.92" />
         </feComponentTransfer>
-        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="1" seed="8" stitchTiles="stitch" result="noise" />
-        <feColorMatrix in="noise" type="saturate" values="0" result="grey-noise" />
-        <feBlend in="colored-relief" in2="grey-noise" mode="overlay" result="grained-relief" />
-        <feComposite in="colored-relief" in2="grained-relief" operator="arithmetic" k2="0.88" k3="0.12" result="material" />
-        <feComposite in="material" in2="SourceAlpha" operator="in" />
+        <feComposite in="colored-relief" in2="SourceAlpha" operator="in" />
       </filter>
     </defs>
   </svg>
