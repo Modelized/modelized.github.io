@@ -609,8 +609,8 @@ body.page-home #about {
   }
 }
 
-/* Narrow viewports stay stacked; only desktop widths may switch by ratio. */
-@media (max-width: 900px), (width > 900px) and (aspect-ratio <= 9 / 16) {
+/* Narrow portrait and very tall desktop viewports use the stacked layout. */
+@media (max-width: 900px) and (orientation: portrait), (width > 900px) and (aspect-ratio <= 9 / 16) {
   :root {
     --hero-cell-gap: clamp(0.56rem, 2vw, 0.78rem);
     --page-inline-gutter: 3rem;
@@ -782,7 +782,7 @@ body.page-home #about {
   }
 }
 
-@media (width > 900px) and (aspect-ratio > 9 / 16) {
+@media (orientation: landscape), (width > 900px) and (aspect-ratio > 9 / 16) {
   .hero-manifesto-cell--shape {
     --word-wght: 880;
   }

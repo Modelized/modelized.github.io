@@ -208,7 +208,7 @@ function initGridFittedTypography() {
   };
   const arrivalEase = (progress) => {
     if (progress <= 0 || progress >= 1) return progress;
-    const parameter = solveBezierParameter(progress, 0.16, 0.3);
+    const parameter = solveBezierParameter(progress, 0.19, 0.32);
     return cubicCoordinate(parameter, 1, 1);
   };
 
@@ -488,7 +488,7 @@ function initGridFittedTypography() {
 
   let settledFitTimer = 0;
   const stackedHomeLayout = window.matchMedia(
-    "(max-width: 900px), (width > 900px) and (max-aspect-ratio: 9 / 16)"
+    "(max-width: 900px) and (orientation: portrait), (width > 900px) and (max-aspect-ratio: 9 / 16)"
   );
   let lastViewportWidth = window.innerWidth;
   let lastViewportHeight = window.innerHeight;

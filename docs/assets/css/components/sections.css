@@ -303,9 +303,16 @@
   align-items: baseline;
 }
 
-.about-creator-prefix,
-.about-creator-suffix {
+.about-creator-prefix {
   white-space: nowrap;
+}
+
+.about-creator-suffix {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
 }
 
 .about-creator-roller {
