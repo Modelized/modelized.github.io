@@ -1,45 +1,51 @@
-// Only the material buffer is downsampled. The final silhouette uses a device-pixel mask.
+// Keep the original material at display resolution, including its alpha relief.
 const fittedStates = new WeakMap();
-const fittedRenderers = new WeakMap();
 export function updateHeroMaterial(word, state) {
   fittedStates.set(word, state);
-  // Paint in the fitter's frame, not the following material-clock frame.
-  fittedRenderers.get(word)?.();
 }
 
-const BUFFER_EDGE = 1024;
-const WORD_PIXELS = 140000;
 const VERTEX = `
 attribute vec2 position;
+uniform vec4 rectangle;
 varying vec2 uv;
-void main() { uv = position * .5 + .5; gl_Position = vec4(position, 0., 1.); }
+void main() {
+  uv = position * .5 + .5;
+  gl_Position = vec4(rectangle.xy + uv * rectangle.zw, 0., 1.);
+}
 `;
 const BLUR = `
-precision mediump float;
+precision highp float;
 varying vec2 uv;
 uniform sampler2D source;
+uniform vec2 textureScale;
 uniform vec2 stepSize;
-uniform float sigma;
+uniform vec2 taps[48];
+uniform int tapCount;
+uniform float centerWeight;
+float sampleAlpha(vec2 p) {
+  float inside = step(0., p.x) * step(p.x, 1.) * step(0., p.y) * step(p.y, 1.);
+  return texture2D(source, p * textureScale).a * inside;
+}
 void main() {
-  float sum = 0.; float weights = 0.;
-  for (int i = -14; i <= 14; i++) {
-    float x = float(i);
-    float weight = exp(-.5 * x * x / (sigma * sigma));
-    vec2 p = uv + stepSize * x;
-    float inside = step(0., p.x) * step(p.x, 1.) * step(0., p.y) * step(p.y, 1.);
-    sum += texture2D(source, clamp(p, 0., 1.)).a * weight * inside;
-    weights += weight;
+  float sum = sampleAlpha(uv) * centerWeight;
+  for (int i = 0; i < 48; i++) {
+    if (i >= tapCount) break;
+    vec2 delta = stepSize * taps[i].x;
+    sum += (sampleAlpha(uv + delta) + sampleAlpha(uv - delta)) * taps[i].y;
   }
-  gl_FragColor = vec4(0., 0., 0., sum / weights);
+  gl_FragColor = vec4(0., 0., 0., sum);
 }
 `;
 const MATERIAL = `
 precision highp float;
 varying vec2 uv;
 uniform sampler2D softMask;
+uniform sampler2D mask;
+uniform vec2 textureScale;
 uniform vec2 size;
 uniform float offset;
 uniform float orange;
+uniform float opacity;
 float ramp(float d, vec4 positions, vec4 values, float lastPosition) {
   if (d < positions.y) return mix(values.x, values.y, (d - positions.x) / (positions.y - positions.x));
   if (d < positions.z) return mix(values.y, values.z, (d - positions.y) / (positions.z - positions.y));
@@ -76,12 +82,15 @@ void main() {
   d = length((p - vec2(.64,.95)) / vec2(.34,1.25));
   alpha = ramp(d, vec4(0.,.24,.53,.78), vec4(.86,.68,.32,.08), 1.);
   source = mix(source,24./255.,alpha);
-  // The native mask supplies coverage at composition time. Do not let the
-  // reduced mask's pixel coverage reintroduce stair steps into the bright rim.
-  float edge = max(0., 1. - texture2D(softMask, uv).a);
-  float relief = (157./255.) * (1. - edge * mix(.7,1.,orange));
+  float coverage = texture2D(mask, uv * textureScale).a;
+  float edge = max(0., coverage - texture2D(softMask, uv * textureScale).a) * mix(.7,1.,orange);
+  float relief = (157./255.) * (1. - edge);
   float lit = relief <= .5 ? 2. * source * relief : 1. - 2. * (1. - source) * (1. - relief);
-  gl_FragColor = vec4(palette(lit), 1.);
+  // Match feBlend's source-over alpha, then the final SourceAlpha composite.
+  float blendedAlpha = coverage * (2. - coverage);
+  lit = ((1. - coverage) * (source + relief) + coverage * lit) / max(.00001, 2. - coverage);
+  float alphaOut = blendedAlpha * coverage * opacity;
+  gl_FragColor = vec4(palette(lit) * alphaOut, alphaOut);
 }
 `;
 
@@ -99,264 +108,320 @@ function createProgram(gl, fragment) {
     gl.attachShader(program, shader);
     return shader;
   });
+  gl.bindAttribLocation(program, 0, "position");
   gl.linkProgram(program);
   shaders.forEach((shader) => gl.deleteShader(shader));
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
   return { program, uniforms: new Map() };
 }
 
-// Reuse the same font source as the page, with an independent axis instance per word.
-// Canvas fontStretch cannot represent the continuous width percentages used by the fitter.
-async function loadFontSource() {
-  const stylesheet = document.querySelector('link[href*="fonts.googleapis.com"][href*="Anybody"]');
-  if (!stylesheet) throw new Error("Hero font stylesheet is missing");
-  const response = await fetch(stylesheet.href);
-  if (!response.ok) throw new Error("Hero font stylesheet could not be loaded");
-  const css = await response.text();
-  const blocks = Array.from(css.matchAll(/@font-face\s*\{([^}]+)\}/g))
-    .map((match) => match[1]).filter((block) => /font-family:\s*['"]Anybody['"]/.test(block));
-  const latin = blocks.find((block) => /U\+0000-00FF/i.test(block)) || blocks.at(-1);
-  const url = latin?.match(/url\(([^)]+)\)/)?.[1]?.replace(/['"]/g, "");
-  if (!url) throw new Error("Hero font source could not be resolved");
-  const font = await fetch(url);
-  if (!font.ok) throw new Error("Hero font could not be loaded");
-  return font.arrayBuffer();
+// Pair adjacent Gaussian taps with linear texture sampling. This keeps the
+// original 4.5 CSS-pixel relief without calculating Gaussian weights per pixel.
+function gaussianKernel(sigma) {
+  const radius = Math.ceil(sigma * 3);
+  if (radius > 96) throw new Error("Native relief exceeds the supported kernel size");
+  const taps = new Float32Array(96);
+  const weight = (x) => Math.exp(-.5 * x * x / (sigma * sigma));
+  let total = 1;
+  let count = 0;
+  for (let x = 1; x <= radius; x += 2) {
+    const a = weight(x);
+    const b = x + 1 <= radius ? weight(x + 1) : 0;
+    taps[count * 2] = x + b / (a + b);
+    taps[count * 2 + 1] = a + b;
+    total += 2 * (a + b);
+    count++;
+  }
+  for (let i = 0; i < count; i++) taps[i * 2 + 1] /= total;
+  return { taps, count, center: 1 / total };
 }
 
-export async function initHeroMaterial() {
-  const words = Array.from(document.querySelectorAll(".hero .hero-fit-word.hero-metal"));
-  if (!words.length) return;
-  const surface = document.createElement("canvas");
-  surface.width = surface.height = BUFFER_EDGE;
-  const gl = surface.getContext("webgl", { alpha: true, antialias: false, depth: false, stencil: false });
-  if (!gl) return; // The existing SVG treatment is the no-WebGL/no-JS fallback.
+function createMaterialLayer(root) {
+  const canvas = document.createElement("canvas");
+  canvas.className = "hero-material-canvas";
+  canvas.setAttribute("aria-hidden", "true");
+  const gl = canvas.getContext("webgl", {
+    alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false
+  });
+  if (!gl) throw new Error("WebGL is unavailable");
+  // Preserve the original transfer-table palette on wide-gamut displays.
+  if ("drawingBufferColorSpace" in gl) {
+    gl.drawingBufferColorSpace = matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
+  }
   const entries = [];
-  let frame = 0;
+  const programs = [];
+  let quad;
   let stopped = false;
-  let resizeObserver;
-  let visibilityObserver;
-  const motion = matchMedia("(prefers-reduced-motion: reduce)");
-  const fail = (error) => {
-    if (stopped) return;
+  let lastFrame = "";
+  const dispose = () => {
     stopped = true;
-    cancelAnimationFrame(frame);
-    resizeObserver?.disconnect();
-    visibilityObserver?.disconnect();
-    entries.forEach((entry) => {
-      entry.word.classList.remove("hero-material-buffered");
-      fittedRenderers.delete(entry.word);
-      entry.canvas.remove();
-      document.fonts.delete(entry.face);
+    root.classList.remove("hero-material-layer");
+    root.dataset.materialRenderer = "svg";
+    canvas.remove();
+    for (const entry of entries) {
+      entry.word.classList.remove("hero-material-webgl");
+      entry.mask.remove();
       entry.textures.forEach((texture) => gl.deleteTexture(texture));
       entry.targets.forEach((target) => gl.deleteFramebuffer(target));
-      [entry.canvas, entry.mask, entry.smallMask].forEach((canvas) => { canvas.width = canvas.height = 1; });
-    });
-    entries.length = 0;
+      entry.mask.width = entry.mask.height = 1;
+    }
+    programs.forEach((shader) => gl.deleteProgram(shader.program));
+    if (quad) gl.deleteBuffer(quad);
     gl.getExtension("WEBGL_lose_context")?.loseContext();
-    if (error) console.warn("Hero material kept the SVG fallback", error);
   };
-  surface.addEventListener("webglcontextlost", () => fail());
+  const fail = (error) => {
+    if (stopped) return;
+    dispose();
+    console.warn("Hero material kept the SVG fallback", error);
+  };
+  canvas.addEventListener("webglcontextlost", () => fail(new Error("WebGL context lost")));
   try {
     const blur = createProgram(gl, BLUR);
+    programs.push(blur);
     const material = createProgram(gl, MATERIAL);
-    const quad = gl.createBuffer();
+    programs.push(material);
+    const maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    const maxViewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+    quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
-    const use = (shader) => {
-      gl.useProgram(shader.program);
-      const attribute = gl.getAttribLocation(shader.program, "position");
-      gl.enableVertexAttribArray(attribute);
-      gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0);
-    };
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
     const uniform = (shader, name) => {
       if (!shader.uniforms.has(name)) shader.uniforms.set(name, gl.getUniformLocation(shader.program, name));
       return shader.uniforms.get(name);
     };
+    const bind = (texture, unit = 0) => {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+    };
     const texture = () => {
       const result = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, result);
+      bind(result);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       return result;
     };
-    const bind = (value, unit = 0) => {
-      gl.activeTexture(gl.TEXTURE0 + unit);
-      gl.bindTexture(gl.TEXTURE_2D, value);
-    };
-    const fontSource = await loadFontSource();
-    await document.fonts.ready;
-    for (const [index, word] of words.entries()) {
-      const face = new FontFace(`HeroMaterial${index}`, fontSource, { variationSettings: '"wght" 850, "wdth" 100' });
-      await face.load();
-      document.fonts.add(face);
-      const canvas = document.createElement("canvas");
-      canvas.className = "hero-material-canvas";
-      canvas.setAttribute("aria-hidden", "true");
-      const mask = document.createElement("canvas");
-      const smallMask = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      const maskContext = mask.getContext("2d");
-      const smallContext = smallMask.getContext("2d");
-      if (!context || !maskContext || !smallContext || !("letterSpacing" in maskContext)) {
-        document.fonts.delete(face);
-        throw new Error("Exact canvas typography is not supported");
+    const rebuild = (entry, state, width, height, densityX, densityY, key) => {
+      const { mask, context, family } = entry;
+      const w = Math.max(1, Math.ceil(width * densityX));
+      const h = Math.max(1, Math.ceil(height * densityY));
+      if (w > maxTexture || h > maxTexture || w * h > 16000000) {
+        throw new Error("Native material exceeds the safe texture size");
       }
-      const textures = [texture(), texture(), texture()];
-      const targets = [gl.createFramebuffer(), gl.createFramebuffer()];
-      const entry = { word, face, canvas, mask, smallMask, context, maskContext, smallContext,
-        textures, targets, dirty: true, state: null, width: 0, height: 0, visible: false, active: false,
-        intro: !!word.closest(".hero-intro"),
-        orange: !!word.closest(".hero-modelized, .hero-intro-cell--shape"), clock: null };
-      entries.push(entry);
-      word.append(canvas);
-    }
-    const rebuild = (entry, state, width, height, dpr) => {
-      const { mask, maskContext: ctx, smallMask, smallContext, canvas, face } = entry;
-      entry.state = state;
-      entry.width = width;
-      entry.height = height;
-      entry.dpr = dpr;
-      entry.dirty = false;
-      // Native-resolution silhouette; only its blurred relief is reduced below.
-      const pixelScaleX = dpr * Math.max(1, Math.abs(state.scaleX));
-      const pixelWidth = Math.ceil(width * pixelScaleX);
-      const pixelHeight = Math.ceil(height * dpr);
-      // At extreme zoom, retain native text rather than allocate an unsafe bitmap
-      // or silently lower the silhouette resolution.
-      if (pixelWidth > 16384 || pixelHeight > 16384 || pixelWidth * pixelHeight > 16000000) {
-        throw new Error("Native silhouette exceeds the safe canvas size");
-      }
-      if (mask.width !== pixelWidth || mask.height !== pixelHeight) {
-        mask.width = canvas.width = pixelWidth;
-        mask.height = canvas.height = pixelHeight;
+      if (mask.width !== w || mask.height !== h) {
+        mask.width = w;
+        mask.height = h;
       } else {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, pixelWidth, pixelHeight);
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, w, h);
       }
-      face.variationSettings = `"wght" ${state.weight.toFixed(3)}, "wdth" ${state.width.toFixed(3)}`;
-      // Map the full integer bitmap back to the exact fractional CSS box.
-      // Otherwise ceil(width * density) changes the glyph scale on every axis frame.
-      ctx.setTransform(pixelWidth / width, 0, 0, pixelHeight / height, 0, 0);
       const fontSize = Number(state.fontSize.toFixed(3));
-      ctx.font = `100px "${face.family}"`;
-      const fontMetrics = ctx.measureText("Hg");
-      const baseline = ((100 - fontMetrics.fontBoundingBoxAscent - fontMetrics.fontBoundingBoxDescent) / 2
-        + fontMetrics.fontBoundingBoxAscent) * fontSize / 100;
-      ctx.font = `${fontSize}px "${face.family}"`;
-      ctx.fontKerning = "normal";
-      ctx.textRendering = "geometricPrecision";
-      ctx.letterSpacing = `${fontSize * Number(state.trackingEm.toFixed(5))}px`;
+      context.setTransform(w / width, 0, 0, h / height, 0, 0);
+      // A connected canvas inherits the word's CSS variation axes. Unlike the
+      // FontFace variation descriptor, this also works in WebKit.
+      context.font = '100px ' + family;
+      const metrics = context.measureText("Hg");
+      const baseline = (100 + metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) * fontSize / 200;
+      context.font = fontSize + 'px ' + family;
+      context.fontKerning = "normal";
+      context.textRendering = "geometricPrecision";
+      context.letterSpacing = (fontSize * Number(state.trackingEm.toFixed(5))) + "px";
       const text = entry.word.textContent.trim();
-      const metrics = ctx.measureText(text);
-      if (!Number.isFinite(baseline) || Math.abs(metrics.width - width) > Math.max(2, width * .015)) {
-        throw new Error("Canvas and live variable-font metrics differ");
+      const measuredWidth = context.measureText(text).width;
+      if (!Number.isFinite(baseline) ||
+          Math.abs(measuredWidth - width) > Math.max(2, width * .015)) {
+        throw new Error("Canvas and live variable-font metrics differ: " + text + " (" + measuredWidth.toFixed(2) + " / " + width.toFixed(2) + ")");
       }
-      ctx.fillStyle = "white";
-      ctx.fillText(text, 0, baseline);
-      const scale = Math.min(1, dpr * .5, BUFFER_EDGE / Math.max(width, height), Math.sqrt(WORD_PIXELS / (width * height)));
-      const w = smallMask.width = Math.max(1, Math.floor(width * scale));
-      const h = smallMask.height = Math.max(1, Math.floor(height * scale));
-      smallContext.drawImage(mask, 0, 0, w, h);
+      context.fillStyle = "white";
+      context.fillText(text, 0, baseline);
+
+      // Grow storage only when necessary; axis animation updates existing textures.
+      if (w > entry.capacityW || h > entry.capacityH) {
+        entry.capacityW = Math.min(maxTexture, Math.max(entry.capacityW, Math.ceil(w / 128) * 128));
+        entry.capacityH = Math.min(maxTexture, Math.max(entry.capacityH, Math.ceil(h / 128) * 128));
+        entry.textures.forEach((value) => {
+          bind(value);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, entry.capacityW, entry.capacityH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        });
+        entry.targets.forEach((target) => {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, target);
+          if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+            throw new Error("Native material framebuffer is incomplete");
+          }
+        });
+      }
       bind(entry.textures[0]);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, smallMask);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, mask);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-      use(blur);
+      gl.disable(gl.BLEND);
+      gl.useProgram(blur.program);
+      gl.uniform4f(uniform(blur, "rectangle"), -1, -1, 2, 2);
       gl.uniform1i(uniform(blur, "source"), 0);
+      gl.uniform2f(uniform(blur, "textureScale"), w / entry.capacityW, h / entry.capacityH);
       gl.viewport(0, 0, w, h);
       for (let pass = 0; pass < 2; pass++) {
-        bind(entry.textures[pass + 1]);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        const sigma = 4.5 * (pass === 0 ? w / width : h / height);
+        if (entry.sigmas[pass] !== sigma) {
+          entry.kernels[pass] = gaussianKernel(sigma);
+          entry.sigmas[pass] = sigma;
+        }
+        const kernel = entry.kernels[pass];
         gl.bindFramebuffer(gl.FRAMEBUFFER, entry.targets[pass]);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, entry.textures[pass + 1], 0);
-        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error("Material buffer is incomplete");
         bind(entry.textures[pass]);
         gl.uniform2f(uniform(blur, "stepSize"), pass === 0 ? 1 / w : 0, pass === 1 ? 1 / h : 0);
-        gl.uniform1f(uniform(blur, "sigma"), Math.max(.35, 4.5 * (pass === 0 ? w / width : h / height)));
+        gl.uniform2fv(uniform(blur, "taps[0]"), kernel.taps);
+        gl.uniform1i(uniform(blur, "tapCount"), kernel.count);
+        gl.uniform1f(uniform(blur, "centerWeight"), kernel.center);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
+      entry.w = w;
+      entry.h = h;
+      entry.key = key;
     };
-    const renderEntry = (entry) => {
-      if (stopped || document.hidden) return;
-      try {
-        const showIntro = document.body.classList.contains("hero-intro-running") ||
-          document.body.classList.contains("hero-handoff");
-          const state = fittedStates.get(entry.word);
-          if (!state || !entry.visible || (entry.intro && !showIntro)) return;
-          // Pinch zoom does not necessarily change devicePixelRatio. Keep the final
-          // silhouette sharp at that scale without increasing the material buffer.
-          const dpr = Math.max(2, window.devicePixelRatio || 1) * (window.visualViewport?.scale || 1);
-          if (entry.dirty || entry.state !== state || entry.dpr !== dpr) {
+    root.classList.add("hero-material-layer");
+    root.append(canvas);
+    return {
+      root, entries, dispose,
+      get active() { return !stopped; },
+      add(word) {
+        const mask = document.createElement("canvas");
+        const context = mask.getContext("2d");
+        if (!context || !("letterSpacing" in context)) {
+          throw new Error("Exact canvas typography is not supported");
+        }
+        mask.className = "hero-material-mask";
+        mask.setAttribute("aria-hidden", "true");
+        word.append(mask);
+        const family = getComputedStyle(word).fontFamily;
+        const textures = [texture(), texture(), texture()];
+        const targets = [gl.createFramebuffer(), gl.createFramebuffer()];
+        targets.forEach((target, i) => {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, target);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[i + 1], 0);
+        });
+        entries.push({ word, family, mask, context, textures, targets, capacityW: 0, capacityH: 0,
+          key: "", sigmas: [], kernels: [], orange: !!word.closest(".hero-modelized, .hero-intro-cell--shape") });
+      },
+      render() {
+        if (stopped) return;
+        try {
+          const rootBox = root.getBoundingClientRect();
+          if (!rootBox.width || !rootBox.height || rootBox.bottom < 0 || rootBox.top > innerHeight) return;
+          // Canvas is inside the same animated container: parent opacity, transforms,
+          // scrolling and Glyph Story visibility remain controlled by the existing CSS.
+          const box = canvas.getBoundingClientRect();
+          const density = (window.devicePixelRatio || 1) * (window.visualViewport?.scale || 1);
+          const w = Math.max(1, Math.ceil(box.width * density));
+          const h = Math.max(1, Math.ceil(box.height * density));
+          if (w > maxViewport[0] || h > maxViewport[1] || w * h > 24000000) {
+            throw new Error("Native material exceeds the safe drawing buffer size");
+          }
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+            lastFrame = "";
+          }
+          // Read geometry before allocating or drawing; one coherent snapshot per frame.
+          const frames = entries.map((entry) => {
+            const state = fittedStates.get(entry.word);
+            const rect = entry.word.getBoundingClientRect();
+            if (!state || !rect.width || !rect.height) return null;
             const style = getComputedStyle(entry.word);
+            const opacity = Number(style.opacity);
+            if (!opacity || style.visibility === "hidden") return null;
             const width = parseFloat(style.width);
             const height = parseFloat(style.height);
-            if (!width || !height) return;
-            rebuild(entry, state, width, height, dpr);
-          } else if (motion.matches && entry.active) return;
-          if (!entry.clock || entry.clock.playState === "idle" || entry.clock.playState === "finished") {
-            const target = entry.intro ? entry.word.closest(".hero-intro-grid") : entry.word;
-            entry.clock = target.getAnimations().find((animation) => animation.animationName?.endsWith("metal-stream") ||
-              /hero-metal-(model|story)-stream/.test(animation.animationName));
+            const densityX = density * rect.width / width;
+            const densityY = density * rect.height / height;
+            const key = [entry.word.textContent, state.weight.toFixed(3), state.width.toFixed(3),
+              state.fontSize.toFixed(3), state.trackingEm.toFixed(5), width, height,
+              Math.ceil(width * densityX), Math.ceil(height * densityY)].join("|");
+            const property = entry.word.closest(".hero-intro") ? "--hero-metal-intro-position" :
+              entry.orange ? "--hero-metal-model-position" : "--hero-metal-story-position";
+            return { entry, state, rect, width, height, densityX, densityY, key, opacity,
+              offset: -(parseFloat(style.getPropertyValue(property)) || 0) };
+          }).filter(Boolean);
+          const signature = frames.map(({ key, rect, opacity, offset }) =>
+            [key, rect.left - box.left, rect.top - box.top, rect.width, rect.height, opacity, offset].join(":"))
+            .join(";");
+          if (signature === lastFrame) return;
+          for (const item of frames) {
+            if (item.entry.key !== item.key) {
+              rebuild(item.entry, item.state, item.width, item.height, item.densityX, item.densityY, item.key);
+            }
           }
-          const progress = motion.matches ? 0 : (entry.clock?.effect?.getComputedTiming().progress ?? 0);
-          const w = entry.smallMask.width;
-          const h = entry.smallMask.height;
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-          gl.viewport(0, 0, w, h);
-          use(material);
-          bind(entry.textures[2], 0);
-          gl.uniform1i(uniform(material, "softMask"), 0);
-          gl.uniform2f(uniform(material, "size"), entry.width, entry.height);
-          gl.uniform1f(uniform(material, "offset"), progress * 486);
-          gl.uniform1f(uniform(material, "orange"), entry.orange ? 1 : 0);
-          gl.drawArrays(gl.TRIANGLES, 0, 6);
-          const ctx = entry.context;
-          ctx.globalCompositeOperation = "copy";
-          ctx.drawImage(surface, 0, BUFFER_EDGE - h, w, h, 0, 0, entry.canvas.width, entry.canvas.height);
-          ctx.globalCompositeOperation = "destination-in";
-          ctx.drawImage(entry.mask, 0, 0);
-          ctx.globalCompositeOperation = "source-over";
-          if (!entry.active) {
-            entry.word.classList.add("hero-material-buffered");
-            entry.active = true;
+          gl.viewport(0, 0, canvas.width, canvas.height);
+          gl.clearColor(0, 0, 0, 0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+          gl.useProgram(material.program);
+          gl.uniform1i(uniform(material, "mask"), 0);
+          gl.uniform1i(uniform(material, "softMask"), 1);
+          for (const { entry, rect, width, height, opacity, offset } of frames) {
+            bind(entry.textures[0], 0);
+            bind(entry.textures[2], 1);
+            gl.uniform4f(uniform(material, "rectangle"),
+              (rect.left - box.left) / box.width * 2 - 1,
+              1 - (rect.bottom - box.top) / box.height * 2,
+              rect.width / box.width * 2, rect.height / box.height * 2);
+            gl.uniform2f(uniform(material, "textureScale"), entry.w / entry.capacityW, entry.h / entry.capacityH);
+            gl.uniform2f(uniform(material, "size"), width, height);
+            gl.uniform1f(uniform(material, "offset"), offset);
+            gl.uniform1f(uniform(material, "orange"), entry.orange ? 1 : 0);
+            gl.uniform1f(uniform(material, "opacity"), opacity);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            if (!entry.active) {
+              entry.word.classList.add("hero-material-webgl");
+              entry.active = true;
+            }
           }
-      } catch (error) { fail(error); }
+          lastFrame = signature;
+          if (root.dataset.materialRenderer !== "webgl") root.dataset.materialRenderer = "webgl";
+        } catch (error) { fail(error); }
+      }
     };
+  } catch (error) {
+    dispose();
+    throw error;
+  }
+}
+
+export async function initHeroMaterial() {
+  const roots = Array.from(document.querySelectorAll(".hero .hero-intro-grid, .hero .hero-brand-lockup"));
+  if (!roots.length) return;
+  const layers = [];
+  try {
+    await document.fonts.ready;
+    for (const root of roots) {
+      const layer = createMaterialLayer(root);
+      layers.push(layer);
+      for (const word of root.querySelectorAll(".hero-fit-word.hero-metal")) {
+        layer.add(word);
+      }
+    }
+    let frame = 0;
     const tick = () => {
       frame = 0;
-      if (stopped || document.hidden) return;
-      entries.forEach(renderEntry);
-      if (!stopped) frame = requestAnimationFrame(tick);
+      if (document.hidden) return;
+      layers.forEach((layer) => layer.render());
+      if (layers.some((layer) => layer.active)) frame = requestAnimationFrame(tick);
     };
-    const wake = () => { if (!stopped && !frame && !document.hidden) frame = requestAnimationFrame(tick); };
-    // A JS renderer must explicitly preserve the browser's offscreen paint culling.
-    visibilityObserver = new IntersectionObserver((records) => {
-      for (const record of records) {
-        const entry = entries.find((item) => item.word === record.target);
-        if (entry) entry.visible = record.isIntersecting;
-      }
-      wake();
-    });
-    resizeObserver = new ResizeObserver((records) => {
-      for (const record of records) {
-        const entry = entries.find((item) => item.word === record.target);
-        if (entry) entry.dirty = true;
-      }
-      wake();
-    });
-    entries.forEach((entry) => {
-      fittedRenderers.set(entry.word, () => renderEntry(entry));
-      resizeObserver.observe(entry.word);
-      visibilityObserver.observe(entry.word);
-    });
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) { cancelAnimationFrame(frame); frame = 0; } else wake();
-    });
+    const wake = () => {
+      if (!frame && !document.hidden) frame = requestAnimationFrame(tick);
+    };
+    const sleep = () => { cancelAnimationFrame(frame); frame = 0; };
+    document.addEventListener("visibilitychange", () => document.hidden ? sleep() : wake());
+    window.addEventListener("pagehide", sleep);
     window.addEventListener("pageshow", wake);
-    window.addEventListener("pagehide", () => { cancelAnimationFrame(frame); frame = 0; });
-    motion.addEventListener("change", () => { entries.forEach((entry) => { entry.dirty = true; }); wake(); });
     wake();
-  } catch (error) { fail(error); }
+  } catch (error) {
+    layers.forEach((layer) => layer.dispose());
+    console.warn("Hero material kept the SVG fallback", error);
+  }
 }
