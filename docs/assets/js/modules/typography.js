@@ -1,6 +1,6 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
 import { createSettledScheduler } from "./navigation.js?v=20261002a";
-import { updateHeroMaterial } from "./hero-material.js?v=20261003e";
+import { updateHeroMaterial } from "./hero-material.js?v=20261003g";
 // Keep the pulse implementation available independently of arrival/refit motion.
 const HERO_TOUCH_PULSE_ENABLED = true;
 function initGridFittedTypography() {
@@ -234,6 +234,8 @@ function initGridFittedTypography() {
       weight,
       width: widthAxis,
       trackingEm,
+      materialWidth: metrics.width * fontScale * scaleX,
+      materialHeight: 100 * fontScale,
       fontSize: 100 * fontScale,
       scaleX,
       shiftX: configuration.targetInkCenterOffset - inkCenterOffset * scaleX,
@@ -453,6 +455,12 @@ function initGridFittedTypography() {
       configuration.states = fontsAreReady ? buildFittedStates(word, configuration) : null;
 
       applyFittedState(word, finalState);
+      updateHeroMaterial(word, finalState, {
+        width: Math.max(finalMetrics.width * finalFontScale * finalState.scaleX,
+          ...(configuration.states || []).map((state) => state.materialWidth)),
+        height: Math.max(finalState.fontSize,
+          ...(configuration.states || []).map((state) => state.materialHeight))
+      });
       fitConfigurations.set(word, configuration);
       fitSignatures.set(word, fitSignature);
     });
@@ -788,10 +796,10 @@ function initGridFittedTypography() {
   };
 
   requestFit();
-  document.fonts?.ready.then(() => {
+  const typographyReady = Promise.resolve(document.fonts?.ready).then(() => {
     glyphMeasurements.clear();
     fontsAreReady = true;
-    requestFit();
+    fitImmediately();
   });
   document.fonts?.addEventListener("loading", () => glyphMeasurements.clear());
   document.fonts?.addEventListener("loadingdone", () => glyphMeasurements.clear());
@@ -913,6 +921,7 @@ function initGridFittedTypography() {
       observer.observe(element);
     });
   }
+  return typographyReady;
 }
 
 const rockSaltCanvas = document.createElement("canvas");

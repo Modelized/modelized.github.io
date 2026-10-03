@@ -2,8 +2,10 @@
 const REFLECTION_TILE_SIZE = 1024;
 const REFLECTION_PERIOD = 486;
 const fittedStates = new WeakMap();
-export function updateHeroMaterial(word, state) {
+const fittedBounds = new WeakMap();
+export function updateHeroMaterial(word, state, bounds) {
   fittedStates.set(word, state);
+  if (bounds) fittedBounds.set(word, bounds);
 }
 
 const VERTEX = `
@@ -278,9 +280,19 @@ function createMaterialLayer(root, restore) {
       if (w > maxTexture || h > maxTexture || w * h > 16000000) {
         throw new MaterialSizeError("Native material exceeds the safe texture size");
       }
-      if (mask.width < w || mask.height < h) {
-        mask.width = Math.min(maxTexture, Math.max(mask.width, Math.ceil(w / 128) * 128));
-        mask.height = Math.min(maxTexture, Math.max(mask.height, Math.ceil(h / 128) * 128));
+      // Reserve the fitted animation envelope, not just this frame's thin glyph.
+      // Small headroom also covers the existing 5.5% touch expansion. If the
+      // reserve exceeds our limits, retain the normal on-demand allocation.
+      const bounds = fittedBounds.get(entry.word);
+      const rootScaleX = densityX / Math.max(.00001, Math.abs(state.scaleX));
+      let reserveW = Math.max(w, Math.ceil((bounds?.width || 0) * rootScaleX * 1.0625));
+      let reserveH = Math.max(h, Math.ceil((bounds?.height || 0) * densityY * 1.0625));
+      reserveW = Math.min(maxTexture, Math.ceil(reserveW / 128) * 128);
+      reserveH = Math.min(maxTexture, Math.ceil(reserveH / 128) * 128);
+      if (reserveW * reserveH > 16000000) { reserveW = w; reserveH = h; }
+      if (mask.width < reserveW || mask.height < reserveH) {
+        mask.width = Math.max(mask.width, reserveW);
+        mask.height = Math.max(mask.height, reserveH);
       }
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, w, h);
@@ -307,9 +319,9 @@ function createMaterialLayer(root, restore) {
       context.fillText(text, 0, baseline);
 
       // Grow storage only when necessary; axis animation updates existing textures.
-      if (w > entry.capacityW || h > entry.capacityH) {
-        entry.capacityW = Math.min(maxTexture, Math.max(entry.capacityW, Math.ceil(w / 128) * 128));
-        entry.capacityH = Math.min(maxTexture, Math.max(entry.capacityH, Math.ceil(h / 128) * 128));
+      if (reserveW > entry.capacityW || reserveH > entry.capacityH) {
+        entry.capacityW = Math.max(entry.capacityW, reserveW);
+        entry.capacityH = Math.max(entry.capacityH, reserveH);
         entry.textures.forEach((value) => {
           bind(value);
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, entry.capacityW, entry.capacityH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -382,12 +394,13 @@ function createMaterialLayer(root, restore) {
         entries.push({ word, family, mask, context, textures, targets, capacityW: 0, capacityH: 0,
           key: "", sigmas: [], kernels: [], orange: !!word.closest(".hero-modelized, .hero-intro-cell--shape") });
       },
-      render() {
+      render(preparingEntry = null) {
         if (stopped || lost) return;
         let sizeKey = "";
         try {
           const rootBox = root.getBoundingClientRect();
-          if (!rootBox.width || !rootBox.height || rootBox.bottom < 0 || rootBox.top > innerHeight) return;
+          if (!rootBox.width || !rootBox.height ||
+              (!preparingEntry && (rootBox.bottom < 0 || rootBox.top > innerHeight))) return;
           // Canvas is inside the same animated container: parent opacity, transforms,
           // scrolling and Glyph Story visibility remain controlled by the existing CSS.
           const box = canvas.getBoundingClientRect();
@@ -410,12 +423,13 @@ function createMaterialLayer(root, restore) {
           }
           // Read geometry before allocating or drawing; one coherent snapshot per frame.
           const frames = entries.map((entry) => {
+            if (preparingEntry && entry !== preparingEntry) return null;
             const state = fittedStates.get(entry.word);
             const rect = entry.word.getBoundingClientRect();
             if (!state || !rect.width || !rect.height) return null;
             const style = getComputedStyle(entry.word);
-            const opacity = Number(style.opacity);
-            if (!opacity || style.visibility === "hidden") return null;
+            const opacity = preparingEntry ? 1 : Number(style.opacity);
+            if (!preparingEntry && (!opacity || style.visibility === "hidden")) return null;
             const width = parseFloat(style.width);
             const height = parseFloat(style.height);
             const densityX = density * rect.width / width;
@@ -466,10 +480,18 @@ function createMaterialLayer(root, restore) {
             gl.uniform1f(uniform(material, "orange"), entry.orange ? 1 : 0);
             gl.uniform1f(uniform(material, "opacity"), opacity);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
-            if (!entry.active) {
+            if (!preparingEntry && !entry.active) {
               entry.word.classList.add("hero-material-webgl");
               entry.active = true;
             }
+          }
+          if (preparingEntry) {
+            // Exercise the real upload/relief/composite path without exposing a
+            // final-weight frame before the original arrival animation starts.
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.flush();
+            lastFrame = "";
+            return;
           }
           lastFrame = signature;
           canvas.hidden = false;
@@ -491,7 +513,7 @@ function createMaterialLayer(root, restore) {
   }
 }
 
-export async function initHeroMaterial() {
+export async function initHeroMaterial({ typographyReady } = {}) {
   const roots = Array.from(document.querySelectorAll(".hero .hero-intro-grid, .hero .hero-brand-lockup"));
   if (!roots.length) return;
   const layers = [];
@@ -519,8 +541,20 @@ export async function initHeroMaterial() {
     }
   };
   try {
-    await document.fonts.ready;
+    await Promise.all([document.fonts.ready, typographyReady]);
     roots.forEach(mount);
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    // Prepare every word before releasing the boot gate. Yield between words
+    // so the loader remains responsive; a skipped loader never gets re-hidden.
+    for (const layer of layers) {
+      if (!layer?.active) continue;
+      for (const entry of layer.entries) {
+        await nextFrame();
+        if (!document.documentElement.classList.contains("site-boot-pending")) break;
+        layer.render(entry);
+      }
+    }
+    await nextFrame();
     const sleep = () => { cancelAnimationFrame(frame); frame = 0; };
     document.addEventListener("visibilitychange", () => document.hidden ? sleep() : wake());
     window.addEventListener("pagehide", sleep);
