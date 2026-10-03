@@ -1,5 +1,6 @@
-// Only the moving reflection uses a smaller buffer; coverage and relief stay native.
-const REFLECTION_SCALE = .75;
+// One smooth, repeating reflection tile per context; coverage and relief stay native.
+const REFLECTION_TILE_SIZE = 1024;
+const REFLECTION_PERIOD = 486;
 const fittedStates = new WeakMap();
 export function updateHeroMaterial(word, state) {
   fittedStates.set(word, state);
@@ -40,8 +41,6 @@ void main() {
 const REFLECTION = `
 precision highp float;
 varying vec2 uv;
-uniform vec2 size;
-uniform float offset;
 float ramp(float d, vec4 positions, vec4 values, float lastPosition) {
   if (d < positions.y) return mix(values.x, values.y, (d - positions.x) / (positions.y - positions.x));
   if (d < positions.z) return mix(values.y, values.z, (d - positions.y) / (positions.z - positions.y));
@@ -49,7 +48,7 @@ float ramp(float d, vec4 positions, vec4 values, float lastPosition) {
   return mix(values.w, 0., clamp((d - positions.w) / (lastPosition - positions.w), 0., 1.));
 }
 void main() {
-  vec2 p = vec2(fract((uv.x * size.x + offset) / 486.), 1. - uv.y);
+  vec2 p = vec2(uv.x, 1. - uv.y);
   float d = length((p - vec2(.80,-.04)) / vec2(.19,1.32));
   float alpha = ramp(d, vec4(0.,.37,.74,1.), vec4(.72,.46,.12,0.), 1.01);
   float source = mix(119./255.,208./255.,alpha);
@@ -71,8 +70,6 @@ uniform sampler2D softMask;
 uniform sampler2D mask;
 uniform sampler2D reflection;
 uniform vec2 textureScale;
-uniform vec2 reflectionScale;
-uniform vec2 reflectionTexel;
 uniform vec2 reflectionMapping;
 uniform float orange;
 uniform float opacity;
@@ -96,9 +93,7 @@ vec3 palette(float value) {
   return mix(a, b, min(t - min(floor(t), 5.), 1.));
 }
 void main() {
-  vec2 localUV = vec2(uv.x * reflectionMapping.x + reflectionMapping.y, uv.y);
-  vec2 reflectionUV = clamp(localUV * reflectionScale, reflectionTexel * .5,
-    reflectionScale - reflectionTexel * .5);
+  vec2 reflectionUV = vec2(uv.x * reflectionMapping.x + reflectionMapping.y, uv.y);
   vec2 encoded = texture2D(reflection, reflectionUV).rg;
   float source = encoded.r + encoded.g / 255.;
   float coverage = texture2D(mask, uv * textureScale).a;
@@ -173,7 +168,8 @@ function createMaterialLayer(root, restore) {
     gl.drawingBufferColorSpace = matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
   }
   const entries = [];
-  const reflectionGroups = new Map();
+  let reflectionTile;
+  let reflectionTarget;
   const programs = [];
   let quad;
   let stopped = false;
@@ -202,11 +198,8 @@ function createMaterialLayer(root, restore) {
       entry.targets.forEach((target) => gl.deleteFramebuffer(target));
       entry.mask.width = entry.mask.height = 1;
     }
-    for (const group of reflectionGroups.values()) {
-      gl.deleteTexture(group.texture);
-      gl.deleteFramebuffer(group.target);
-    }
-    reflectionGroups.clear();
+    if (reflectionTile) gl.deleteTexture(reflectionTile);
+    if (reflectionTarget) gl.deleteFramebuffer(reflectionTarget);
     programs.forEach((shader) => gl.deleteProgram(shader.program));
     if (quad) gl.deleteBuffer(quad);
     if (releaseContext) gl.getExtension("WEBGL_lose_context")?.loseContext();
@@ -258,6 +251,26 @@ function createMaterialLayer(root, restore) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       return result;
     };
+    // The field only translates; its shape never changes. Bake one full period
+    // once, then move sampling coordinates rather than redraw reflection buffers.
+    // Power-of-two storage allows seamless horizontal REPEAT in WebGL 1.
+    const tileSize = Math.min(REFLECTION_TILE_SIZE, maxTexture);
+    reflectionTile = texture();
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tileSize, tileSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    reflectionTarget = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, reflectionTarget);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, reflectionTile, 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+      throw new Error("Reflection tile framebuffer is incomplete");
+    }
+    gl.viewport(0, 0, tileSize, tileSize);
+    gl.useProgram(reflection.program);
+    gl.uniform4f(uniform(reflection, "rectangle"), -1, -1, 2, 2);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.deleteFramebuffer(reflectionTarget);
+    reflectionTarget = null;
     const rebuild = (entry, state, width, height, densityX, densityY, key) => {
       const { mask, context, family } = entry;
       const w = Math.max(1, Math.ceil(width * densityX));
@@ -360,23 +373,13 @@ function createMaterialLayer(root, restore) {
         mask.setAttribute("aria-hidden", "true");
         word.append(mask);
         const family = getComputedStyle(word).fontFamily;
-        // Share a reflection field within each reveal group, without merging text
-        // geometry. Intro words keep their existing independent fields.
-        const owner = word.closest(".hero-modelized, .hero-home-meta-action, .hero-manifesto") || word;
-        let group = reflectionGroups.get(owner);
-        if (!group) {
-          group = { texture: texture(), target: gl.createFramebuffer(), capacityW: 0, capacityH: 0, key: "" };
-          reflectionGroups.set(owner, group);
-          gl.bindFramebuffer(gl.FRAMEBUFFER, group.target);
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, group.texture, 0);
-        }
         const textures = [texture(), texture(), texture()];
         const targets = [gl.createFramebuffer(), gl.createFramebuffer()];
         targets.forEach((target, i) => {
           gl.bindFramebuffer(gl.FRAMEBUFFER, target);
           gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[i + 1], 0);
         });
-        entries.push({ word, family, mask, context, textures, targets, group, capacityW: 0, capacityH: 0,
+        entries.push({ word, family, mask, context, textures, targets, capacityW: 0, capacityH: 0,
           key: "", sigmas: [], kernels: [], orange: !!word.closest(".hero-modelized, .hero-intro-cell--shape") });
       },
       render() {
@@ -439,49 +442,6 @@ function createMaterialLayer(root, restore) {
           for (const { entry } of frames) {
             if (entry.reliefDirty) renderRelief(entry);
           }
-          // Sample one shared field per group using each word's original local
-          // coordinates. Empty layout gaps, logos and buttons are not rendered into it.
-          const groupFrames = new Map();
-          for (const { entry, width, offset } of frames) {
-            let bounds = groupFrames.get(entry.group);
-            if (!bounds) {
-              bounds = { start: offset, end: offset + width, densityX: 0, height: 0 };
-              groupFrames.set(entry.group, bounds);
-            }
-            bounds.start = Math.min(bounds.start, offset);
-            bounds.end = Math.max(bounds.end, offset + width);
-            bounds.densityX = Math.max(bounds.densityX, entry.w / width);
-            bounds.height = Math.max(bounds.height, entry.h);
-          }
-          gl.disable(gl.BLEND);
-          gl.useProgram(reflection.program);
-          gl.uniform4f(uniform(reflection, "rectangle"), -1, -1, 2, 2);
-          for (const [group, bounds] of groupFrames) {
-            group.width = Math.round((bounds.end - bounds.start) * 1e6) / 1e6;
-            group.offset = bounds.start;
-            group.w = Math.max(1, Math.ceil(group.width * bounds.densityX * REFLECTION_SCALE));
-            group.h = Math.max(1, Math.ceil(bounds.height * REFLECTION_SCALE));
-            if (group.w > maxTexture || group.h > maxTexture || group.w * group.h > 16000000) {
-              throw new MaterialSizeError("Shared reflection exceeds the safe texture size");
-            }
-            const key = [group.width, group.offset, group.w, group.h].join("|");
-            if (group.key === key) continue;
-            gl.bindFramebuffer(gl.FRAMEBUFFER, group.target);
-            if (group.w > group.capacityW || group.h > group.capacityH) {
-              group.capacityW = Math.min(maxTexture, Math.max(group.capacityW, Math.ceil(group.w / 128) * 128));
-              group.capacityH = Math.min(maxTexture, Math.max(group.capacityH, Math.ceil(group.h / 128) * 128));
-              bind(group.texture);
-              gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, group.capacityW, group.capacityH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-              if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-                throw new Error("Shared reflection framebuffer is incomplete");
-              }
-            }
-            gl.viewport(0, 0, group.w, group.h);
-            gl.uniform2f(uniform(reflection, "size"), group.width, 1);
-            gl.uniform1f(uniform(reflection, "offset"), group.offset);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
-            group.key = key;
-          }
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           gl.viewport(0, 0, canvas.width, canvas.height);
           gl.clearColor(0, 0, 0, 0);
@@ -493,18 +453,16 @@ function createMaterialLayer(root, restore) {
           gl.uniform1i(uniform(material, "softMask"), 1);
           gl.uniform1i(uniform(material, "reflection"), 2);
           for (const { entry, rect, width, offset, opacity } of frames) {
-            const group = entry.group;
             bind(entry.textures[0], 0);
             bind(entry.textures[2], 1);
-            bind(group.texture, 2);
+            bind(reflectionTile, 2);
             gl.uniform4f(uniform(material, "rectangle"),
               (rect.left - box.left) / box.width * 2 - 1,
               1 - (rect.bottom - box.top) / box.height * 2,
               rect.width / box.width * 2, rect.height / box.height * 2);
             gl.uniform2f(uniform(material, "textureScale"), entry.w / entry.capacityW, entry.h / entry.capacityH);
-            gl.uniform2f(uniform(material, "reflectionScale"), group.w / group.capacityW, group.h / group.capacityH);
-            gl.uniform2f(uniform(material, "reflectionTexel"), 1 / group.capacityW, 1 / group.capacityH);
-            gl.uniform2f(uniform(material, "reflectionMapping"), width / group.width, (offset - group.offset) / group.width);
+            gl.uniform2f(uniform(material, "reflectionMapping"), width / REFLECTION_PERIOD,
+              ((offset % REFLECTION_PERIOD) + REFLECTION_PERIOD) % REFLECTION_PERIOD / REFLECTION_PERIOD);
             gl.uniform1f(uniform(material, "orange"), entry.orange ? 1 : 0);
             gl.uniform1f(uniform(material, "opacity"), opacity);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
