@@ -1,12 +1,4 @@
 /* Material shading follows the existing live text and shared animation clocks. */
-.material-filter-defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
 .hero {
   --metal-period: 486px;
   --metal-model-duration: 18s;
@@ -14,34 +6,8 @@
 }
 
 .hero .hero-fit-word.hero-metal {
-  background-color: #777;
-  background-image:
-    radial-gradient(ellipse 34% 125% at 64% 95%,
-      rgb(24 24 24 / 0.86) 0%,
-      rgb(24 24 24 / 0.68) 24%,
-      rgb(24 24 24 / 0.32) 53%,
-      rgb(24 24 24 / 0.08) 78%,
-      rgb(24 24 24 / 0) 100%),
-    radial-gradient(ellipse 34% 165% at 35% 8%,
-      rgb(230 230 230 / 0.92) 0%,
-      rgb(230 230 230 / 0.78) 24%,
-      rgb(230 230 230 / 0.4) 54%,
-      rgb(230 230 230 / 0.1) 81%,
-      rgb(230 230 230 / 0) 100%),
-    radial-gradient(ellipse 19% 132% at 80% -4%,
-      rgb(208 208 208 / 0.72) 0%,
-      rgb(208 208 208 / 0.46) 37%,
-      rgb(208 208 208 / 0.12) 74%,
-      rgb(208 208 208 / 0) 100%);
-  /* Each curved reflection fades before the tile edges for a seamless horizontal loop. */
-  background-size: var(--metal-period) 100%;
-  background-repeat: repeat-x;
-  filter: url("#text-silver-material");
-}
-
-.hero-modelized .hero-fit-word.hero-metal,
-.hero-intro-cell--shape .hero-fit-word.hero-metal {
-  filter: url("#text-orange-material");
+  /* The original un-beveled gradients remain available without WebGL. */
+  filter: none;
 }
 
 .hero .hero-fit-word.hero-material-webgl {
@@ -69,6 +35,10 @@
   visibility: hidden;
   font-variation-settings: inherit;
   pointer-events: none;
+}
+
+.hero-material-canvas[hidden] {
+  visibility: hidden;
 }
 
 .js body.hero-intro-running .hero-intro-grid {

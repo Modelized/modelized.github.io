@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="assets/css/components/sections.css?v=20261002a">
   <link rel="stylesheet" href="assets/css/components/typography.css?v=20261002a">
   <link rel="stylesheet" href="assets/css/components/glyph-story.css?v=20261002a">
-  <link rel="stylesheet" href="assets/css/components/hero-material.css?v=20261003a">
+  <link rel="stylesheet" href="assets/css/components/hero-material.css?v=20261003d">
 
   <link rel="icon" type="image/svg+xml" sizes="any" href="favicon.svg?v=20260828a">
   <link rel="icon" sizes="192x192" href="android-chrome-192x192.png">
@@ -33,39 +33,6 @@
   <script>document.documentElement.classList.add('js', 'site-boot-pending');</script>
 </head>
 <body class="page-home" data-base=".">
-  <svg class="material-filter-defs" width="0" height="0" aria-hidden="true" focusable="false">
-    <defs>
-      <filter id="text-orange-material" x="-5%" y="-10%" width="110%" height="120%" color-interpolation-filters="sRGB">
-        <!-- Build the inner relief and clip the finished material to the text silhouette. -->
-        <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="soft-alpha" />
-        <feComposite in="soft-alpha" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner-edge" />
-        <feFlood flood-color="#9d9d9d" result="grey" />
-        <feComposite in="grey" in2="SourceAlpha" operator="in" result="grey-body" />
-        <feComposite in="inner-edge" in2="grey-body" operator="atop" result="relief" />
-        <feBlend in="SourceGraphic" in2="relief" mode="overlay" result="lit-relief" />
-        <feComponentTransfer in="lit-relief" result="colored-relief">
-          <feFuncR type="table" tableValues="0.14 0.36 1 1 0.87 1 1" />
-          <feFuncG type="table" tableValues="0.018 0.06 0.40 0.84 0.19 0.60 0.94" />
-          <feFuncB type="table" tableValues="0.004 0.01 0.065 0.56 0.02 0.20 0.82" />
-        </feComponentTransfer>
-        <feComposite in="colored-relief" in2="SourceAlpha" operator="in" />
-      </filter>
-      <filter id="text-silver-material" x="-5%" y="-10%" width="110%" height="120%" color-interpolation-filters="sRGB">
-        <feGaussianBlur in="SourceAlpha" stdDeviation="4.5" result="soft-alpha" />
-        <feComposite in="soft-alpha" in2="SourceAlpha" operator="arithmetic" k2="-0.7" k3="0.7" result="inner-edge" />
-        <feFlood flood-color="#9d9d9d" result="grey" />
-        <feComposite in="grey" in2="SourceAlpha" operator="in" result="grey-body" />
-        <feComposite in="inner-edge" in2="grey-body" operator="atop" result="relief" />
-        <feBlend in="SourceGraphic" in2="relief" mode="overlay" result="lit-relief" />
-        <feComponentTransfer in="lit-relief" result="colored-relief">
-          <feFuncR type="table" tableValues="0.29 0.385 0.70 0.91 0.57 0.815 0.94" />
-          <feFuncG type="table" tableValues="0.30 0.395 0.71 0.91 0.58 0.815 0.935" />
-          <feFuncB type="table" tableValues="0.31 0.41 0.72 0.895 0.595 0.805 0.92" />
-        </feComponentTransfer>
-        <feComposite in="colored-relief" in2="SourceAlpha" operator="in" />
-      </filter>
-    </defs>
-  </svg>
   <div class="site-loader" data-site-loader aria-hidden="true">
     <div class="site-loader__content" role="status" aria-label="Loading Modelized">
       <svg class="site-loader__logo" viewBox="0 0 512 512" aria-hidden="true" focusable="false">
@@ -470,7 +437,7 @@
 
   <div id="footer-slot"></div>
 
-  <script type="module" src="assets/js/shell.js?v=20261003c"></script>
-  <script type="module" src="assets/js/glyph-story.js?v=20261003c"></script>
+  <script type="module" src="assets/js/shell.js?v=20261003d"></script>
+  <script type="module" src="assets/js/glyph-story.js?v=20261003d"></script>
 </body>
 </html>

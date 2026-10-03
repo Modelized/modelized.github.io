@@ -137,8 +137,11 @@ function createProgram(gl, fragment) {
 // Pair adjacent Gaussian taps with linear texture sampling. This keeps the
 // original 4.5 CSS-pixel relief without calculating Gaussian weights per pixel.
 function gaussianKernel(sigma) {
-  const radius = Math.ceil(sigma * 3);
-  if (radius > 96) throw new Error("Native relief exceeds the supported kernel size");
+  // Large responsive scaleX values are valid (especially in landscape). Keep
+  // the same CSS-space radius with wider sampling, rather than abandoning GL.
+  const spacing = Math.max(1, sigma / 32);
+  sigma /= spacing;
+  const radius = Math.min(96, Math.ceil(sigma * 3));
   const taps = new Float32Array(96);
   const weight = (x) => Math.exp(-.5 * x * x / (sigma * sigma));
   let total = 1;
@@ -146,7 +149,7 @@ function gaussianKernel(sigma) {
   for (let x = 1; x <= radius; x += 2) {
     const a = weight(x);
     const b = x + 1 <= radius ? weight(x + 1) : 0;
-    taps[count * 2] = x + b / (a + b);
+    taps[count * 2] = (x + b / (a + b)) * spacing;
     taps[count * 2 + 1] = a + b;
     total += 2 * (a + b);
     count++;
@@ -155,7 +158,9 @@ function gaussianKernel(sigma) {
   return { taps, count, center: 1 / total };
 }
 
-function createMaterialLayer(root) {
+class MaterialSizeError extends Error {}
+
+function createMaterialLayer(root, restore) {
   const canvas = document.createElement("canvas");
   canvas.className = "hero-material-canvas";
   canvas.setAttribute("aria-hidden", "true");
@@ -172,11 +177,23 @@ function createMaterialLayer(root) {
   const programs = [];
   let quad;
   let stopped = false;
+  let lost = false;
+  let blockedSize = "";
   let lastFrame = "";
-  const dispose = () => {
+  const showPlain = () => {
+    canvas.hidden = true;
+    root.dataset.materialRenderer = "plain";
+    for (const entry of entries) {
+      entry.word.classList.remove("hero-material-webgl");
+      entry.active = false;
+    }
+  };
+  const dispose = (releaseContext = true) => {
     stopped = true;
+    showPlain();
+    canvas.removeEventListener("webglcontextlost", onContextLost);
+    canvas.removeEventListener("webglcontextrestored", onContextRestored);
     root.classList.remove("hero-material-layer");
-    root.dataset.materialRenderer = "svg";
     canvas.remove();
     for (const entry of entries) {
       entry.word.classList.remove("hero-material-webgl");
@@ -192,14 +209,24 @@ function createMaterialLayer(root) {
     reflectionGroups.clear();
     programs.forEach((shader) => gl.deleteProgram(shader.program));
     if (quad) gl.deleteBuffer(quad);
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    if (releaseContext) gl.getExtension("WEBGL_lose_context")?.loseContext();
   };
   const fail = (error) => {
     if (stopped) return;
     dispose();
-    console.warn("Hero material kept the SVG fallback", error);
+    console.warn("Hero material is unavailable; using un-beveled text", error);
   };
-  canvas.addEventListener("webglcontextlost", () => fail(new Error("WebGL context lost")));
+  const onContextLost = (event) => {
+    event.preventDefault();
+    lost = true;
+    showPlain();
+  };
+  const onContextRestored = () => {
+    dispose(false);
+    restore();
+  };
+  canvas.addEventListener("webglcontextlost", onContextLost);
+  canvas.addEventListener("webglcontextrestored", onContextRestored);
   try {
     const blur = createProgram(gl, BLUR);
     programs.push(blur);
@@ -236,17 +263,18 @@ function createMaterialLayer(root) {
       const w = Math.max(1, Math.ceil(width * densityX));
       const h = Math.max(1, Math.ceil(height * densityY));
       if (w > maxTexture || h > maxTexture || w * h > 16000000) {
-        throw new Error("Native material exceeds the safe texture size");
+        throw new MaterialSizeError("Native material exceeds the safe texture size");
       }
-      if (mask.width !== w || mask.height !== h) {
-        mask.width = w;
-        mask.height = h;
-      } else {
-        context.setTransform(1, 0, 0, 1, 0, 0);
-        context.clearRect(0, 0, w, h);
+      if (mask.width < w || mask.height < h) {
+        mask.width = Math.min(maxTexture, Math.max(mask.width, Math.ceil(w / 128) * 128));
+        mask.height = Math.min(maxTexture, Math.max(mask.height, Math.ceil(h / 128) * 128));
       }
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.clearRect(0, 0, w, h);
       const fontSize = Number(state.fontSize.toFixed(3));
-      context.setTransform(w / width, 0, 0, h / height, 0, 0);
+      // Draw bottom-up so the typed-pixel upload needs no browser-side flip or
+      // Canvas-to-WebGL conversion. Glyph coverage is still native resolution.
+      context.setTransform(w / width, 0, 0, -h / height, 0, h);
       // A connected canvas inherits the word's CSS variation axes. Unlike the
       // FontFace variation descriptor, this also works in WebKit.
       context.font = '100px ' + family;
@@ -281,9 +309,17 @@ function createMaterialLayer(root) {
         });
       }
       bind(entry.textures[0]);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, mask);
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE,
+        context.getImageData(0, 0, w, h).data);
+      entry.w = w;
+      entry.h = h;
+      entry.width = width;
+      entry.height = height;
+      entry.key = key;
+      entry.reliefDirty = true;
+    };
+    const renderRelief = (entry) => {
+      const { w, h, width, height } = entry;
       gl.disable(gl.BLEND);
       gl.useProgram(blur.program);
       gl.uniform4f(uniform(blur, "rectangle"), -1, -1, 2, 2);
@@ -305,18 +341,18 @@ function createMaterialLayer(root) {
         gl.uniform1f(uniform(blur, "centerWeight"), kernel.center);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
       }
-      entry.w = w;
-      entry.h = h;
-      entry.key = key;
+      entry.reliefDirty = false;
     };
     root.classList.add("hero-material-layer");
     root.append(canvas);
     return {
       root, entries, dispose,
-      get active() { return !stopped; },
+      get active() { return !stopped && !lost; },
       add(word) {
         const mask = document.createElement("canvas");
-        const context = mask.getContext("2d");
+        // This surface is read after every shape change; keep its backing store
+        // CPU-readable instead of forcing GPU readback during texture upload.
+        const context = mask.getContext("2d", { willReadFrequently: true });
         if (!context || !("letterSpacing" in context)) {
           throw new Error("Exact canvas typography is not supported");
         }
@@ -344,7 +380,8 @@ function createMaterialLayer(root) {
           key: "", sigmas: [], kernels: [], orange: !!word.closest(".hero-modelized, .hero-intro-cell--shape") });
       },
       render() {
-        if (stopped) return;
+        if (stopped || lost) return;
+        let sizeKey = "";
         try {
           const rootBox = root.getBoundingClientRect();
           if (!rootBox.width || !rootBox.height || rootBox.bottom < 0 || rootBox.top > innerHeight) return;
@@ -352,10 +389,16 @@ function createMaterialLayer(root) {
           // scrolling and Glyph Story visibility remain controlled by the existing CSS.
           const box = canvas.getBoundingClientRect();
           const density = (window.devicePixelRatio || 1) * (window.visualViewport?.scale || 1);
+          sizeKey = [box.width, box.height, density, ...entries.map(({ word }) => {
+            const state = fittedStates.get(word);
+            return state ? [state.fontSize, state.scaleX, state.width].join(":") : "";
+          })].join("|");
+          if (blockedSize === sizeKey) return;
+          blockedSize = "";
           const w = Math.max(1, Math.ceil(box.width * density));
           const h = Math.max(1, Math.ceil(box.height * density));
           if (w > maxViewport[0] || h > maxViewport[1] || w * h > 24000000) {
-            throw new Error("Native material exceeds the safe drawing buffer size");
+            throw new MaterialSizeError("Native material exceeds the safe drawing buffer size");
           }
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
@@ -391,6 +434,11 @@ function createMaterialLayer(root) {
               rebuild(item.entry, item.state, item.width, item.height, item.densityX, item.densityY, item.key);
             }
           }
+          // Submit uploads together, before GPU passes consume their textures.
+          // Interleaving CPU uploads with each word's blur can serialize the pipeline.
+          for (const { entry } of frames) {
+            if (entry.reliefDirty) renderRelief(entry);
+          }
           // Sample one shared field per group using each word's original local
           // coordinates. Empty layout gaps, logos and buttons are not rendered into it.
           const groupFrames = new Map();
@@ -414,7 +462,7 @@ function createMaterialLayer(root) {
             group.w = Math.max(1, Math.ceil(group.width * bounds.densityX * REFLECTION_SCALE));
             group.h = Math.max(1, Math.ceil(bounds.height * REFLECTION_SCALE));
             if (group.w > maxTexture || group.h > maxTexture || group.w * group.h > 16000000) {
-              throw new Error("Shared reflection exceeds the safe texture size");
+              throw new MaterialSizeError("Shared reflection exceeds the safe texture size");
             }
             const key = [group.width, group.offset, group.w, group.h].join("|");
             if (group.key === key) continue;
@@ -466,8 +514,17 @@ function createMaterialLayer(root) {
             }
           }
           lastFrame = signature;
+          canvas.hidden = false;
           if (root.dataset.materialRenderer !== "webgl") root.dataset.materialRenderer = "webgl";
-        } catch (error) { fail(error); }
+        } catch (error) {
+          if (error instanceof MaterialSizeError) {
+            // A zoom/rotation can temporarily exceed the available GPU limits.
+            // Retry after geometry changes, never switch to a live SVG filter.
+            blockedSize = sizeKey;
+            lastFrame = "";
+            showPlain();
+          } else fail(error);
+        }
       }
     };
   } catch (error) {
@@ -480,32 +537,39 @@ export async function initHeroMaterial() {
   const roots = Array.from(document.querySelectorAll(".hero .hero-intro-grid, .hero .hero-brand-lockup"));
   if (!roots.length) return;
   const layers = [];
+  let frame = 0;
+  const tick = () => {
+    frame = 0;
+    if (document.hidden) return;
+    layers.forEach((layer) => layer?.render());
+    if (layers.some((layer) => layer?.active)) frame = requestAnimationFrame(tick);
+  };
+  const wake = () => {
+    if (!frame && !document.hidden) frame = requestAnimationFrame(tick);
+  };
+  const mount = (root, index) => {
+    root.dataset.materialRenderer = "plain";
+    let layer;
+    try {
+      layer = createMaterialLayer(root, () => { mount(root, index); wake(); });
+      for (const word of root.querySelectorAll(".hero-fit-word.hero-metal")) layer.add(word);
+      layers[index] = layer;
+    } catch (error) {
+      layer?.dispose();
+      layers[index] = null;
+      console.warn("Hero material is unavailable; using un-beveled text", error);
+    }
+  };
   try {
     await document.fonts.ready;
-    for (const root of roots) {
-      const layer = createMaterialLayer(root);
-      layers.push(layer);
-      for (const word of root.querySelectorAll(".hero-fit-word.hero-metal")) {
-        layer.add(word);
-      }
-    }
-    let frame = 0;
-    const tick = () => {
-      frame = 0;
-      if (document.hidden) return;
-      layers.forEach((layer) => layer.render());
-      if (layers.some((layer) => layer.active)) frame = requestAnimationFrame(tick);
-    };
-    const wake = () => {
-      if (!frame && !document.hidden) frame = requestAnimationFrame(tick);
-    };
+    roots.forEach(mount);
     const sleep = () => { cancelAnimationFrame(frame); frame = 0; };
     document.addEventListener("visibilitychange", () => document.hidden ? sleep() : wake());
     window.addEventListener("pagehide", sleep);
     window.addEventListener("pageshow", wake);
     wake();
   } catch (error) {
-    layers.forEach((layer) => layer.dispose());
-    console.warn("Hero material kept the SVG fallback", error);
+    layers.forEach((layer) => layer?.dispose());
+    console.warn("Hero material is unavailable; using un-beveled text", error);
   }
 }

@@ -1,6 +1,6 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
 import { createSettledScheduler } from "./navigation.js?v=20261002a";
-import { updateHeroMaterial } from "./hero-material.js?v=20261003c";
+import { updateHeroMaterial } from "./hero-material.js?v=20261003d";
 // Keep the pulse implementation available independently of arrival/refit motion.
 const HERO_TOUCH_PULSE_ENABLED = false;
 function initGridFittedTypography() {
