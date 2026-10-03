@@ -32,7 +32,14 @@ function initReveal() {
   };
   const controller = createScrollReveal();
   revealElements.forEach((element) => {
+    const stack = element.querySelector(".discipline-stack-viewport");
     controller.observe(element, {
+      // Loading prepares the deck; the shared observer still owns its first
+      // viewport entry. Neither loading alone nor later visits restart reveal.
+      prepare: () => {
+        if (!stack || stack.dataset.stackReady === "true") return;
+        return new Promise((resolve) => stack.addEventListener("stack:ready", resolve, { once: true }));
+      },
       reveal: () => element.classList.add("is-visible")
     });
   });

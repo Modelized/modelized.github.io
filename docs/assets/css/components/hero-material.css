@@ -28,6 +28,15 @@
   pointer-events: none;
 }
 
+.hero-brand-lockup > .hero-material-canvas {
+  /* Match the live text's visible overflow: a pulse may cross the centered
+     content gutter, and is clipped only at the viewport edge. Keep this surface
+     stable during pulses rather than resize its drawing buffer every frame. */
+  left: calc(50% - 50vw);
+  right: auto;
+  width: 100vw;
+}
+
 .hero-material-mask {
   position: absolute;
   width: 0;

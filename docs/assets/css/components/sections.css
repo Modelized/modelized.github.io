@@ -501,9 +501,7 @@
   z-index: 1;
   outline: none;
   -webkit-tap-highlight-color: transparent;
-  transition:
-    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 420ms;
+  /* The shell owns the one-shot, viewport-triggered reveal. */
 }
 
 .discipline-stack-shell[data-stack-loading="true"] .discipline-stack-viewport {
@@ -517,7 +515,6 @@
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transition-delay: 120ms, 0s;
 }
 
 .discipline-stack-shell,
@@ -1163,14 +1160,6 @@
     --discipline-card-height: clamp(32.4rem, 104vw, 39.5rem);
     --discipline-stack-pad-top: 0.28rem;
     --discipline-stack-pad-inline: 0.15rem;
-  }
-
-  .js .discipline-stack-shell.reveal,
-  .js .discipline-stack-shell.reveal.is-visible {
-    opacity: 1;
-    transform: none;
-    animation: none;
-    transition: none;
   }
 
   .discipline-stack-bleed {
