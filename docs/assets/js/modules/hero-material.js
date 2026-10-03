@@ -1,4 +1,5 @@
-// Keep the original material at display resolution, including its alpha relief.
+// Only the moving reflection uses a smaller buffer; coverage and relief stay native.
+const REFLECTION_SCALE = .75;
 const fittedStates = new WeakMap();
 export function updateHeroMaterial(word, state) {
   fittedStates.set(word, state);
@@ -36,22 +37,44 @@ void main() {
   gl_FragColor = vec4(0., 0., 0., sum);
 }
 `;
-const MATERIAL = `
+const REFLECTION = `
 precision highp float;
 varying vec2 uv;
-uniform sampler2D softMask;
-uniform sampler2D mask;
-uniform vec2 textureScale;
 uniform vec2 size;
 uniform float offset;
-uniform float orange;
-uniform float opacity;
 float ramp(float d, vec4 positions, vec4 values, float lastPosition) {
   if (d < positions.y) return mix(values.x, values.y, (d - positions.x) / (positions.y - positions.x));
   if (d < positions.z) return mix(values.y, values.z, (d - positions.y) / (positions.z - positions.y));
   if (d < positions.w) return mix(values.z, values.w, (d - positions.z) / (positions.w - positions.z));
   return mix(values.w, 0., clamp((d - positions.w) / (lastPosition - positions.w), 0., 1.));
 }
+void main() {
+  vec2 p = vec2(fract((uv.x * size.x + offset) / 486.), 1. - uv.y);
+  float d = length((p - vec2(.80,-.04)) / vec2(.19,1.32));
+  float alpha = ramp(d, vec4(0.,.37,.74,1.), vec4(.72,.46,.12,0.), 1.01);
+  float source = mix(119./255.,208./255.,alpha);
+  d = length((p - vec2(.35,.08)) / vec2(.34,1.65));
+  alpha = ramp(d, vec4(0.,.24,.54,.81), vec4(.92,.78,.40,.10), 1.);
+  source = mix(source,230./255.,alpha);
+  d = length((p - vec2(.64,.95)) / vec2(.34,1.25));
+  alpha = ramp(d, vec4(0.,.24,.53,.78), vec4(.86,.68,.32,.08), 1.);
+  source = mix(source,24./255.,alpha);
+  // Preserve smooth tonal precision in RGBA8; both channels interpolate linearly.
+  float encodedValue = source * 255.;
+  gl_FragColor = vec4(floor(encodedValue) / 255., fract(encodedValue), 0., 1.);
+}
+`;
+const MATERIAL = `
+precision highp float;
+varying vec2 uv;
+uniform sampler2D softMask;
+uniform sampler2D mask;
+uniform sampler2D reflection;
+uniform vec2 textureScale;
+uniform vec2 reflectionScale;
+uniform vec2 reflectionTexel;
+uniform float orange;
+uniform float opacity;
 vec3 palette(float value) {
   vec3 a; vec3 b; float t = clamp(value, 0., 1.) * 6.;
   if (orange > .5) {
@@ -72,16 +95,10 @@ vec3 palette(float value) {
   return mix(a, b, min(t - min(floor(t), 5.), 1.));
 }
 void main() {
-  vec2 p = vec2(fract((uv.x * size.x + offset) / 486.), 1. - uv.y);
-  float d = length((p - vec2(.80,-.04)) / vec2(.19,1.32));
-  float alpha = ramp(d, vec4(0.,.37,.74,1.), vec4(.72,.46,.12,0.), 1.01);
-  float source = mix(119./255.,208./255.,alpha);
-  d = length((p - vec2(.35,.08)) / vec2(.34,1.65));
-  alpha = ramp(d, vec4(0.,.24,.54,.81), vec4(.92,.78,.40,.10), 1.);
-  source = mix(source,230./255.,alpha);
-  d = length((p - vec2(.64,.95)) / vec2(.34,1.25));
-  alpha = ramp(d, vec4(0.,.24,.53,.78), vec4(.86,.68,.32,.08), 1.);
-  source = mix(source,24./255.,alpha);
+  vec2 reflectionUV = clamp(uv * reflectionScale, reflectionTexel * .5,
+    reflectionScale - reflectionTexel * .5);
+  vec2 encoded = texture2D(reflection, reflectionUV).rg;
+  float source = encoded.r + encoded.g / 255.;
   float coverage = texture2D(mask, uv * textureScale).a;
   float edge = max(0., coverage - texture2D(softMask, uv * textureScale).a) * mix(.7,1.,orange);
   float relief = (157./255.) * (1. - edge);
@@ -180,6 +197,8 @@ function createMaterialLayer(root) {
     programs.push(blur);
     const material = createProgram(gl, MATERIAL);
     programs.push(material);
+    const reflection = createProgram(gl, REFLECTION);
+    programs.push(reflection);
     const maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     const maxViewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
     quad = gl.createBuffer();
@@ -242,16 +261,28 @@ function createMaterialLayer(root) {
       if (w > entry.capacityW || h > entry.capacityH) {
         entry.capacityW = Math.min(maxTexture, Math.max(entry.capacityW, Math.ceil(w / 128) * 128));
         entry.capacityH = Math.min(maxTexture, Math.max(entry.capacityH, Math.ceil(h / 128) * 128));
-        entry.textures.forEach((value) => {
+        entry.textures.slice(0, 3).forEach((value) => {
           bind(value);
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, entry.capacityW, entry.capacityH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         });
-        entry.targets.forEach((target) => {
+        entry.targets.slice(0, 2).forEach((target) => {
           gl.bindFramebuffer(gl.FRAMEBUFFER, target);
           if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
             throw new Error("Native material framebuffer is incomplete");
           }
         });
+      }
+      entry.reflectionW = Math.max(1, Math.ceil(w * REFLECTION_SCALE));
+      entry.reflectionH = Math.max(1, Math.ceil(h * REFLECTION_SCALE));
+      if (entry.reflectionW > entry.reflectionCapacityW || entry.reflectionH > entry.reflectionCapacityH) {
+        entry.reflectionCapacityW = Math.min(maxTexture, Math.max(entry.reflectionCapacityW, Math.ceil(entry.reflectionW / 128) * 128));
+        entry.reflectionCapacityH = Math.min(maxTexture, Math.max(entry.reflectionCapacityH, Math.ceil(entry.reflectionH / 128) * 128));
+        bind(entry.textures[3]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, entry.reflectionCapacityW, entry.reflectionCapacityH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, entry.targets[2]);
+        if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+          throw new Error("Reflection framebuffer is incomplete");
+        }
       }
       bind(entry.textures[0]);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -297,13 +328,14 @@ function createMaterialLayer(root) {
         mask.setAttribute("aria-hidden", "true");
         word.append(mask);
         const family = getComputedStyle(word).fontFamily;
-        const textures = [texture(), texture(), texture()];
-        const targets = [gl.createFramebuffer(), gl.createFramebuffer()];
+        const textures = [texture(), texture(), texture(), texture()];
+        const targets = [gl.createFramebuffer(), gl.createFramebuffer(), gl.createFramebuffer()];
         targets.forEach((target, i) => {
           gl.bindFramebuffer(gl.FRAMEBUFFER, target);
           gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[i + 1], 0);
         });
         entries.push({ word, family, mask, context, textures, targets, capacityW: 0, capacityH: 0,
+          reflectionCapacityW: 0, reflectionCapacityH: 0,
           key: "", sigmas: [], kernels: [], orange: !!word.closest(".hero-modelized, .hero-intro-cell--shape") });
       },
       render() {
@@ -354,6 +386,18 @@ function createMaterialLayer(root) {
               rebuild(item.entry, item.state, item.width, item.height, item.densityX, item.densityY, item.key);
             }
           }
+          // Keep the reflection pass and its upsampling on the GPU. The native
+          // mask is applied only below, so internal resolution cannot pixelate glyph edges.
+          gl.disable(gl.BLEND);
+          gl.useProgram(reflection.program);
+          gl.uniform4f(uniform(reflection, "rectangle"), -1, -1, 2, 2);
+          for (const { entry, width, height, offset } of frames) {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, entry.targets[2]);
+            gl.viewport(0, 0, entry.reflectionW, entry.reflectionH);
+            gl.uniform2f(uniform(reflection, "size"), width, height);
+            gl.uniform1f(uniform(reflection, "offset"), offset);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           gl.viewport(0, 0, canvas.width, canvas.height);
           gl.clearColor(0, 0, 0, 0);
@@ -363,16 +407,18 @@ function createMaterialLayer(root) {
           gl.useProgram(material.program);
           gl.uniform1i(uniform(material, "mask"), 0);
           gl.uniform1i(uniform(material, "softMask"), 1);
-          for (const { entry, rect, width, height, opacity, offset } of frames) {
+          gl.uniform1i(uniform(material, "reflection"), 2);
+          for (const { entry, rect, opacity } of frames) {
             bind(entry.textures[0], 0);
             bind(entry.textures[2], 1);
+            bind(entry.textures[3], 2);
             gl.uniform4f(uniform(material, "rectangle"),
               (rect.left - box.left) / box.width * 2 - 1,
               1 - (rect.bottom - box.top) / box.height * 2,
               rect.width / box.width * 2, rect.height / box.height * 2);
             gl.uniform2f(uniform(material, "textureScale"), entry.w / entry.capacityW, entry.h / entry.capacityH);
-            gl.uniform2f(uniform(material, "size"), width, height);
-            gl.uniform1f(uniform(material, "offset"), offset);
+            gl.uniform2f(uniform(material, "reflectionScale"), entry.reflectionW / entry.reflectionCapacityW, entry.reflectionH / entry.reflectionCapacityH);
+            gl.uniform2f(uniform(material, "reflectionTexel"), 1 / entry.reflectionCapacityW, 1 / entry.reflectionCapacityH);
             gl.uniform1f(uniform(material, "orange"), entry.orange ? 1 : 0);
             gl.uniform1f(uniform(material, "opacity"), opacity);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
