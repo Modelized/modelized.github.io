@@ -3,6 +3,30 @@ const REFLECTION_TILE_SIZE = 1024;
 const REFLECTION_PERIOD = 486;
 const fittedStates = new WeakMap();
 const fittedBounds = new WeakMap();
+// Pinch zoom only magnifies the existing canvas. For page zoom, DPR and CSS
+// viewport width change inversely while the physical viewport stays the same.
+// Track that separately from real display / preview-density changes, rather
+// than freezing the first DPR (which may belong to a temporary preview setup).
+function viewportSample() {
+  return { dpr: window.devicePixelRatio || 1, width: window.innerWidth,
+    outerWidth: window.outerWidth,
+    screen: [screen.width, screen.height].sort((a, b) => a - b).join(":") };
+}
+let previousViewport = viewportSample();
+let renderDensity = previousViewport.dpr;
+function renderingDensity() {
+  const next = viewportSample();
+  if (next.dpr !== previousViewport.dpr) {
+    const physicalWidth = next.width * next.dpr;
+    const previousPhysicalWidth = previousViewport.width * previousViewport.dpr;
+    const pageZoom = next.screen === previousViewport.screen &&
+      Math.abs(next.outerWidth - previousViewport.outerWidth) <= 2 &&
+      Math.abs(physicalWidth - previousPhysicalWidth) <= Math.max(4, physicalWidth * .01);
+    if (!pageZoom) renderDensity *= next.dpr / previousViewport.dpr;
+  }
+  previousViewport = next;
+  return renderDensity;
+}
 export function updateHeroMaterial(word, state, bounds) {
   fittedStates.set(word, state);
   if (bounds) fittedBounds.set(word, bounds);
@@ -155,8 +179,6 @@ function gaussianKernel(sigma) {
   return { taps, count, center: 1 / total };
 }
 
-class MaterialSizeError extends Error {}
-
 function createMaterialLayer(root, restore) {
   const canvas = document.createElement("canvas");
   canvas.className = "hero-material-canvas";
@@ -176,7 +198,6 @@ function createMaterialLayer(root, restore) {
   let quad;
   let stopped = false;
   let lost = false;
-  let blockedSize = "";
   let lastFrame = "";
   const showPlain = () => {
     canvas.hidden = true;
@@ -231,6 +252,7 @@ function createMaterialLayer(root, restore) {
     programs.push(reflection);
     const maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE);
     const maxViewport = gl.getParameter(gl.MAX_VIEWPORT_DIMS);
+    const maxRenderbuffer = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE);
     quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, quad);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, -1,1, 1,-1, 1,1]), gl.STATIC_DRAW);
@@ -275,21 +297,17 @@ function createMaterialLayer(root, restore) {
     reflectionTarget = null;
     const rebuild = (entry, state, width, height, densityX, densityY, key) => {
       const { mask, context, family } = entry;
-      const w = Math.max(1, Math.ceil(width * densityX));
-      const h = Math.max(1, Math.ceil(height * densityY));
-      if (w > maxTexture || h > maxTexture || w * h > 16000000) {
-        throw new MaterialSizeError("Native material exceeds the safe texture size");
-      }
+      const w = Math.min(maxTexture, Math.max(1, Math.ceil(width * densityX)));
+      const h = Math.min(maxTexture, Math.max(1, Math.ceil(height * densityY)));
       // Reserve the fitted animation envelope, not just this frame's thin glyph.
-      // Small headroom also covers the existing 5.5% touch expansion. If the
-      // reserve exceeds our limits, retain the normal on-demand allocation.
+      // Small headroom also covers the existing 5.5% touch expansion. Reserve
+      // dimensions stay within the GPU's actual texture-size limit.
       const bounds = fittedBounds.get(entry.word);
       const rootScaleX = densityX / Math.max(.00001, Math.abs(state.scaleX));
       let reserveW = Math.max(w, Math.ceil((bounds?.width || 0) * rootScaleX * 1.0625));
       let reserveH = Math.max(h, Math.ceil((bounds?.height || 0) * densityY * 1.0625));
       reserveW = Math.min(maxTexture, Math.ceil(reserveW / 128) * 128);
       reserveH = Math.min(maxTexture, Math.ceil(reserveH / 128) * 128);
-      if (reserveW * reserveH > 16000000) { reserveW = w; reserveH = h; }
       if (mask.width < reserveW || mask.height < reserveH) {
         mask.width = Math.max(mask.width, reserveW);
         mask.height = Math.max(mask.height, reserveH);
@@ -311,10 +329,12 @@ function createMaterialLayer(root, restore) {
       context.letterSpacing = (fontSize * Number(state.trackingEm.toFixed(5))) + "px";
       const text = entry.word.textContent.trim();
       const measuredWidth = context.measureText(text).width;
-      if (!Number.isFinite(baseline) ||
-          Math.abs(measuredWidth - width) > Math.max(2, width * .015)) {
-        throw new Error("Canvas and live variable-font metrics differ: " + text + " (" + measuredWidth.toFixed(2) + " / " + width.toFixed(2) + ")");
+      if (!Number.isFinite(baseline) || !Number.isFinite(measuredWidth) || measuredWidth <= 0) {
+        throw new Error("Canvas returned invalid glyph metrics: " + text);
       }
+      // Browser metric differences should not switch the whole layer to plain.
+      // Keep the existing positioning; only fit discrepancies beyond its tolerance.
+      if (Math.abs(measuredWidth - width) > Math.max(2, width * .015)) context.scale(width / measuredWidth, 1);
       context.fillStyle = "white";
       context.fillText(text, 0, baseline);
 
@@ -326,6 +346,7 @@ function createMaterialLayer(root, restore) {
           bind(value);
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, entry.capacityW, entry.capacityH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         });
+        if (gl.getError() !== gl.NO_ERROR) throw new Error("GPU could not allocate glyph textures");
         entry.targets.forEach((target) => {
           gl.bindFramebuffer(gl.FRAMEBUFFER, target);
           if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
@@ -396,7 +417,6 @@ function createMaterialLayer(root, restore) {
       },
       render(preparingEntry = null) {
         if (stopped || lost) return;
-        let sizeKey = "";
         try {
           const rootBox = root.getBoundingClientRect();
           if (!rootBox.width || !rootBox.height ||
@@ -404,28 +424,29 @@ function createMaterialLayer(root, restore) {
           // Canvas is inside the same animated container: parent opacity, transforms,
           // scrolling and Glyph Story visibility remain controlled by the existing CSS.
           const box = canvas.getBoundingClientRect();
-          const density = (window.devicePixelRatio || 1) * (window.visualViewport?.scale || 1);
-          sizeKey = [box.width, box.height, density, ...entries.map(({ word }) => {
-            const state = fittedStates.get(word);
-            return state ? [state.fontSize, state.scaleX, state.width].join(":") : "";
-          })].join("|");
-          if (blockedSize === sizeKey) return;
-          blockedSize = "";
-          const w = Math.max(1, Math.ceil(box.width * density));
-          const h = Math.max(1, Math.ceil(box.height * density));
-          if (w > maxViewport[0] || h > maxViewport[1] || w * h > 24000000) {
-            throw new MaterialSizeError("Native material exceeds the safe drawing buffer size");
+          const geometry = entries.map((entry) => ({ entry, rect: entry.word.getBoundingClientRect() }));
+          // Hardware dimensions are actual constraints, not a reason to abandon
+          // the material at an arbitrary pixel count. Fit only when necessary.
+          let density = Math.min(renderingDensity(),
+            Math.min(maxViewport[0], maxRenderbuffer) / box.width,
+            Math.min(maxViewport[1], maxRenderbuffer) / box.height);
+          for (const { rect } of geometry) {
+            if (rect.width && rect.height) density = Math.min(density, maxTexture / rect.width, maxTexture / rect.height);
           }
+          const w = Math.min(maxViewport[0], maxRenderbuffer, Math.max(1, Math.ceil(box.width * density)));
+          const h = Math.min(maxViewport[1], maxRenderbuffer, Math.max(1, Math.ceil(box.height * density)));
           if (canvas.width !== w || canvas.height !== h) {
             canvas.width = w;
             canvas.height = h;
+            if (!gl.isContextLost() && (gl.drawingBufferWidth !== w || gl.drawingBufferHeight !== h)) {
+              throw new Error("GPU could not allocate the drawing buffer");
+            }
             lastFrame = "";
           }
           // Read geometry before allocating or drawing; one coherent snapshot per frame.
-          const frames = entries.map((entry) => {
+          const frames = geometry.map(({ entry, rect }) => {
             if (preparingEntry && entry !== preparingEntry) return null;
             const state = fittedStates.get(entry.word);
-            const rect = entry.word.getBoundingClientRect();
             if (!state || !rect.width || !rect.height) return null;
             const style = getComputedStyle(entry.word);
             const opacity = preparingEntry ? 1 : Number(style.opacity);
@@ -497,13 +518,8 @@ function createMaterialLayer(root, restore) {
           canvas.hidden = false;
           if (root.dataset.materialRenderer !== "webgl") root.dataset.materialRenderer = "webgl";
         } catch (error) {
-          if (error instanceof MaterialSizeError) {
-            // A zoom/rotation can temporarily exceed the available GPU limits.
-            // Retry after geometry changes, never switch to a live SVG filter.
-            blockedSize = sizeKey;
-            lastFrame = "";
-            showPlain();
-          } else fail(error);
+          // Keep the restoration listener alive when the driver loses context.
+          if (!gl.isContextLost()) fail(error);
         }
       }
     };
