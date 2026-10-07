@@ -1,5 +1,5 @@
 import { prefersReducedMotion } from "./context.js?v=20261002a";
-import { syncRockSaltSafeAreas } from "./typography.js?v=20261007e";
+import { syncRockSaltSafeAreas } from "./typography.js?v=20261007f";
 import { createSettledScheduler } from "./navigation.js?v=20261002a";
 function initAboutDisclosure() {
   const details = document.getElementById("about-details");

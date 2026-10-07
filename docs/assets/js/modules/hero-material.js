@@ -7,6 +7,7 @@ const REFLECTION_REPEATS = 1.2;
 const fittedStates = new WeakMap();
 const fittedBounds = new WeakMap();
 const reflectionPeriods = new WeakMap();
+const pendingPreparations = new WeakSet();
 // Pinch zoom only magnifies the existing canvas. For page zoom, DPR and CSS
 // viewport width change inversely while the physical viewport stays the same.
 // Track that separately from real display / preview-density changes, rather
@@ -32,12 +33,18 @@ function renderingDensity() {
   return renderDensity;
 }
 export function updateHeroMaterial(word, state, bounds) {
+  // A new animation frame, refit or cancellation supersedes queued preparation.
+  pendingPreparations.delete(word);
   fittedStates.set(word, state);
   if (bounds) {
     fittedBounds.set(word, bounds);
     // Use the settled, untransformed width, not a changing reveal/touch frame.
     reflectionPeriods.set(word, Math.max(REFLECTION_PERIOD, bounds.reflectionWidth / REFLECTION_REPEATS));
   }
+}
+
+export function prepareHeroMaterial(word) {
+  pendingPreparations.add(word);
 }
 
 const VERTEX = `
@@ -452,13 +459,22 @@ function createMaterialLayer(root, restore) {
             lastFrame = "";
           }
           // Read geometry before allocating or drawing; one coherent snapshot per frame.
+          let hiddenPreparation = null;
           const frames = geometry.map(({ entry, rect }) => {
             if (preparingEntry && entry !== preparingEntry) return null;
             const state = fittedStates.get(entry.word);
             if (!state || !rect.width || !rect.height) return null;
             const style = getComputedStyle(entry.word);
             const opacity = preparingEntry ? 1 : Number(style.opacity);
-            if (!preparingEntry && (!opacity || style.visibility === "hidden")) return null;
+            if (!preparingEntry) {
+              if (style.visibility === "hidden") return null;
+              if (!opacity) {
+                // Use the existing render loop and storage. Spread hidden first
+                // frames over separate ticks instead of batching them at reveal.
+                if (hiddenPreparation || !pendingPreparations.has(entry.word)) return null;
+                hiddenPreparation = entry;
+              }
+            }
             const width = parseFloat(style.width);
             const height = parseFloat(style.height);
             const densityX = density * rect.width / width;
@@ -475,7 +491,7 @@ function createMaterialLayer(root, restore) {
           const signature = frames.map(({ key, rect, opacity, offset, reflectionPeriod }) =>
             [key, rect.left - box.left, rect.top - box.top, rect.width, rect.height, opacity, offset, reflectionPeriod].join(":"))
             .join(";");
-          if (signature === lastFrame) return;
+          if (signature === lastFrame && !hiddenPreparation) return;
           for (const item of frames) {
             if (item.entry.key !== item.key) {
               rebuild(item.entry, item.state, item.width, item.height, item.densityX, item.densityY, item.key);
@@ -485,6 +501,7 @@ function createMaterialLayer(root, restore) {
           // Interleaving CPU uploads with each word's blur can serialize the pipeline.
           for (const { entry } of frames) {
             if (entry.reliefDirty) renderRelief(entry);
+            pendingPreparations.delete(entry.word);
           }
           gl.bindFramebuffer(gl.FRAMEBUFFER, null);
           gl.viewport(0, 0, canvas.width, canvas.height);

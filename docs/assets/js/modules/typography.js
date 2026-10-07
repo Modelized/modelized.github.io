@@ -1,6 +1,6 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
 import { createSettledScheduler } from "./navigation.js?v=20261002a";
-import { updateHeroMaterial } from "./hero-material.js?v=20261007d";
+import { updateHeroMaterial, prepareHeroMaterial } from "./hero-material.js?v=20261007f";
 // Keep the pulse implementation available independently of arrival/refit motion.
 const HERO_TOUCH_PULSE_ENABLED = true;
 const METAL_ARRIVAL_DURATION = 900;
@@ -634,7 +634,8 @@ function initGridFittedTypography() {
       delay = 0,
       weightAtProgress = null,
       stateAtProgress = null,
-      opacityAtProgress = null
+      opacityAtProgress = null,
+      prepare = false
     }
   ) => {
     const configuration = fitConfigurations.get(word);
@@ -656,6 +657,17 @@ function initGridFittedTypography() {
     };
     activeWeightAnimations.set(word, controller);
 
+    const stateForProgress = (progress) => stateAtProgress
+      ? stateAtProgress(progress, configuration)
+      : solveFittedState(configuration, weightAtProgress(progress, configuration));
+    if (prepare && delay > 0) {
+      // Stage the actual first axes while still invisible. The renderer prepares
+      // one queued word per frame during the existing delay, without delaying reveal.
+      applyFittedState(word, stateForProgress(0));
+      word.style.opacity = "0";
+      prepareHeroMaterial(word);
+    }
+
     controller.timerId = window.setTimeout(() => {
       let startedAt = null;
       const tick = (now) => {
@@ -663,10 +675,7 @@ function initGridFittedTypography() {
         if (startedAt === null) startedAt = now;
 
         const progress = Math.min(1, (now - startedAt) / duration);
-        const state = stateAtProgress
-          ? stateAtProgress(progress, configuration)
-          : solveFittedState(configuration, weightAtProgress(progress, configuration));
-        applyFittedState(word, state);
+        applyFittedState(word, stateForProgress(progress));
 
         word.style.opacity = opacityAtProgress ? String(opacityAtProgress(progress)) : "1";
 
@@ -687,6 +696,7 @@ function initGridFittedTypography() {
       animateFittedWeight(word, {
         duration,
         delay: delayForWord(word),
+        prepare: true,
         weightAtProgress: (progress, configuration) =>
           180 + (configuration.finalWeight - 180) * arrivalEase(progress),
         opacityAtProgress: reveal ? (progress) => Math.min(1, progress / 0.16) : null
