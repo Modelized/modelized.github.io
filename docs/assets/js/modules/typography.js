@@ -1,6 +1,6 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
 import { createSettledScheduler } from "./navigation.js?v=20261002a";
-import { updateHeroMaterial } from "./hero-material.js?v=20261007b";
+import { updateHeroMaterial } from "./hero-material.js?v=20261007d";
 // Keep the pulse implementation available independently of arrival/refit motion.
 const HERO_TOUCH_PULSE_ENABLED = true;
 function initGridFittedTypography() {
@@ -456,6 +456,7 @@ function initGridFittedTypography() {
 
       applyFittedState(word, finalState);
       updateHeroMaterial(word, finalState, {
+        reflectionWidth: finalMetrics.width * finalFontScale,
         width: Math.max(finalMetrics.width * finalFontScale * finalState.scaleX,
           ...(configuration.states || []).map((state) => state.materialWidth)),
         height: Math.max(finalState.fontSize,

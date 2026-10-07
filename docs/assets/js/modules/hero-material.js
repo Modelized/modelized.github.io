@@ -1,8 +1,12 @@
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
 const REFLECTION_TILE_SIZE = 1024;
 const REFLECTION_PERIOD = 486;
+// Keep the familiar phone-scale density on larger fitted words. This changes
+// texture coordinates only, not the cached reflection or glyph resolution.
+const REFLECTION_REPEATS = 1.2;
 const fittedStates = new WeakMap();
 const fittedBounds = new WeakMap();
+const reflectionPeriods = new WeakMap();
 // Pinch zoom only magnifies the existing canvas. For page zoom, DPR and CSS
 // viewport width change inversely while the physical viewport stays the same.
 // Track that separately from real display / preview-density changes, rather
@@ -29,7 +33,11 @@ function renderingDensity() {
 }
 export function updateHeroMaterial(word, state, bounds) {
   fittedStates.set(word, state);
-  if (bounds) fittedBounds.set(word, bounds);
+  if (bounds) {
+    fittedBounds.set(word, bounds);
+    // Use the settled, untransformed width, not a changing reveal/touch frame.
+    reflectionPeriods.set(word, Math.max(REFLECTION_PERIOD, bounds.reflectionWidth / REFLECTION_REPEATS));
+  }
 }
 
 const VERTEX = `
@@ -461,10 +469,11 @@ function createMaterialLayer(root, restore) {
             const property = entry.word.closest(".hero-intro") ? "--hero-metal-intro-position" :
               entry.orange ? "--hero-metal-model-position" : "--hero-metal-story-position";
             return { entry, state, rect, width, height, densityX, densityY, key, opacity,
+              reflectionPeriod: reflectionPeriods.get(entry.word) || REFLECTION_PERIOD,
               offset: -(parseFloat(style.getPropertyValue(property)) || 0) };
           }).filter(Boolean);
-          const signature = frames.map(({ key, rect, opacity, offset }) =>
-            [key, rect.left - box.left, rect.top - box.top, rect.width, rect.height, opacity, offset].join(":"))
+          const signature = frames.map(({ key, rect, opacity, offset, reflectionPeriod }) =>
+            [key, rect.left - box.left, rect.top - box.top, rect.width, rect.height, opacity, offset, reflectionPeriod].join(":"))
             .join(";");
           if (signature === lastFrame) return;
           for (const item of frames) {
@@ -487,7 +496,7 @@ function createMaterialLayer(root, restore) {
           gl.uniform1i(uniform(material, "mask"), 0);
           gl.uniform1i(uniform(material, "softMask"), 1);
           gl.uniform1i(uniform(material, "reflection"), 2);
-          for (const { entry, rect, width, offset, opacity } of frames) {
+          for (const { entry, rect, width, offset, opacity, reflectionPeriod } of frames) {
             bind(entry.textures[0], 0);
             bind(entry.textures[2], 1);
             bind(reflectionTile, 2);
@@ -496,7 +505,9 @@ function createMaterialLayer(root, restore) {
               1 - (rect.bottom - box.top) / box.height * 2,
               rect.width / box.width * 2, rect.height / box.height * 2);
             gl.uniform2f(uniform(material, "textureScale"), entry.w / entry.capacityW, entry.h / entry.capacityH);
-            gl.uniform2f(uniform(material, "reflectionMapping"), width / REFLECTION_PERIOD,
+            // Keep phase in the original clock's units: a wider pattern travels
+            // farther per cycle without slowing down or jumping at clock wrap.
+            gl.uniform2f(uniform(material, "reflectionMapping"), width / reflectionPeriod,
               ((offset % REFLECTION_PERIOD) + REFLECTION_PERIOD) % REFLECTION_PERIOD / REFLECTION_PERIOD);
             gl.uniform1f(uniform(material, "orange"), entry.orange ? 1 : 0);
             gl.uniform1f(uniform(material, "opacity"), opacity);
