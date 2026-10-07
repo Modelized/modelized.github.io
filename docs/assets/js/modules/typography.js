@@ -699,7 +699,7 @@ function initGridFittedTypography() {
         prepare: true,
         weightAtProgress: (progress, configuration) =>
           180 + (configuration.finalWeight - 180) * arrivalEase(progress),
-        opacityAtProgress: reveal ? (progress) => Math.min(1, progress / 0.16) : null
+        opacityAtProgress: reveal ? (progress) => Math.min(1, progress / 0.125) : null
       });
     });
   };
