@@ -290,8 +290,8 @@ a {
   position: relative;
   z-index: 1;
   animation:
-    hero-metal-model-stream var(--metal-model-duration) linear infinite,
-    hero-metal-story-stream var(--metal-story-duration) linear infinite;
+    hero-metal-model-stream var(--metal-duration) linear infinite,
+    hero-metal-story-stream var(--metal-duration) linear infinite;
 }
 
 .container {

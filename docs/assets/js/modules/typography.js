@@ -3,6 +3,8 @@ import { createSettledScheduler } from "./navigation.js?v=20261002a";
 import { updateHeroMaterial } from "./hero-material.js?v=20261007d";
 // Keep the pulse implementation available independently of arrival/refit motion.
 const HERO_TOUCH_PULSE_ENABLED = true;
+const METAL_ARRIVAL_DURATION = 900;
+const METAL_ARRIVAL_RATE = 3.8;
 function initGridFittedTypography() {
   const cells = Array.from(document.querySelectorAll(".hero-fit-cell"));
   if (!cells.length) return;
@@ -56,7 +58,9 @@ function initGridFittedTypography() {
   const activeWeightAnimations = new Map();
   const activeMetalClockAnimations = new Map();
   const metalRoot = document.querySelector(".page-wrap");
+  const introMetalRoot = document.querySelector(".hero-intro-grid");
   const metalClockGroups = new Map([
+    ["hero-intro-metal-stream", new Set()],
     ["hero-metal-model-stream", new Set()],
     ["hero-metal-story-stream", new Set()]
   ]);
@@ -506,7 +510,8 @@ function initGridFittedTypography() {
     const animations = metalRoot.getAnimations({ subtree: true });
     metalClockGroups.forEach((group, animationName) => {
       const members = animations.filter((animation) => animation.animationName === animationName);
-      const clock = members.find((animation) => animation.effect?.target === metalRoot);
+      const clockRoot = animationName === "hero-intro-metal-stream" ? introMetalRoot : metalRoot;
+      const clock = members.find((animation) => animation.effect?.target === clockRoot);
       const added = group.has(clock)
         ? members.filter((animation) => !group.has(animation))
         : members;
@@ -559,8 +564,10 @@ function initGridFittedTypography() {
     Array.from(activeMetalClockAnimations.keys()).forEach(cancelMetalClockAnimation);
   };
 
-  const playMetalClockArrival = (animationName, duration, delay) => {
+  // Intro and main arrivals share one rate envelope; only their start cues differ.
+  const playMetalClockArrival = (animationName, delay = 0) => {
     cancelMetalClockAnimation(animationName);
+    if (document.hidden || prefersReducedMotion) return;
     const animations = metalClockGroups.get(animationName);
     if (!animations?.size) return;
 
@@ -578,8 +585,8 @@ function initGridFittedTypography() {
         if (controller.cancelled) return;
         if (startedAt === null) startedAt = now;
 
-        const progress = Math.min(1, (now - startedAt) / duration);
-        setMetalPlaybackRate(controller.animations, 1 + 3.2 * (1 - arrivalEase(progress)));
+        const progress = Math.min(1, (now - startedAt) / METAL_ARRIVAL_DURATION);
+        setMetalPlaybackRate(controller.animations, 1 + (METAL_ARRIVAL_RATE - 1) * (1 - arrivalEase(progress)));
 
         if (progress < 1) {
           controller.rafId = requestAnimationFrame(tick);
@@ -596,8 +603,8 @@ function initGridFittedTypography() {
 
   const playSharedMetalArrival = () => {
     syncMetalClockGroups();
-    playMetalClockArrival("hero-metal-model-stream", 640, 400);
-    playMetalClockArrival("hero-metal-story-stream", 900, 650);
+    playMetalClockArrival("hero-metal-model-stream", 400);
+    playMetalClockArrival("hero-metal-story-stream", 650);
   };
 
   const cancelWeightAnimation = (word) => {
@@ -881,6 +888,8 @@ function initGridFittedTypography() {
   });
   window.addEventListener("hero:intro", () => {
     fitImmediately();
+    syncMetalClockGroups();
+    playMetalClockArrival("hero-intro-metal-stream");
     playArrival(
       ".hero-intro-cell .hero-fit-word",
       640,

@@ -26,8 +26,7 @@
 :root {
   --papaya: #ff9f55;
   --metal-period: 2200px;
-  --metal-model-duration: 21s;
-  --metal-story-duration: 24s;
+  --metal-duration: 30s;
   --papaya-metal-gradient: linear-gradient(
     90deg,
     #f27432 0%,
@@ -355,14 +354,14 @@
 .section-metal--papaya,
 .discipline-stack-card__surface,
 .connect-card {
-  animation: hero-metal-model-stream var(--metal-model-duration) linear infinite;
+  animation: hero-metal-model-stream var(--metal-duration) linear infinite;
 }
 
 .hero-home-side .hero-metal,
 .section-metal--silver,
 .discipline-stack-card__surface::before,
 .connect-card::before {
-  animation: hero-metal-story-stream var(--metal-story-duration) linear infinite;
+  animation: hero-metal-story-stream var(--metal-duration) linear infinite;
 }
 
 /* Hidden cards and invisible hover layers do not need a continuously painted metal effect. */
@@ -466,9 +465,7 @@
 }
 
 .js body.hero-intro-running .hero-intro-grid {
-  animation:
-    hero-intro-metal-settle 720ms cubic-bezier(0.12, 0.74, 0.18, 1) both,
-    hero-intro-metal-stream 24s linear 720ms infinite;
+  animation: hero-intro-metal-stream var(--metal-duration) linear infinite;
 }
 
 .js body.hero-handoff .hero-intro {
@@ -586,16 +583,6 @@ body.page-home #about {
 
   to {
     --hero-metal-story-position: calc(-1 * var(--metal-period));
-  }
-}
-
-@keyframes hero-intro-metal-settle {
-  from {
-    --hero-metal-intro-position: 0px;
-  }
-
-  to {
-    --hero-metal-intro-position: calc(-1 * var(--metal-period));
   }
 }
 
