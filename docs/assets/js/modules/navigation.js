@@ -1,11 +1,12 @@
 import { base, assetVersion, SETTLE_PASS_DELAYS, portraitBrandShifts, mobileMenuMotion, body, prefersReducedMotion } from "./context.js?v=20261002a";
 function getPartialUrl(file) {
+  const version = file === "nav.html" ? "20261008c" : assetVersion;
   if (!base || base === ".") {
-    return `assets/partials/${file}?v=${assetVersion}`;
+    return `assets/partials/${file}?v=${version}`;
   }
 
   const normalized = base.endsWith("/") ? base.slice(0, -1) : base;
-  return `${normalized}/assets/partials/${file}?v=${assetVersion}`;
+  return `${normalized}/assets/partials/${file}?v=${version}`;
 }
 
 async function injectPartial(selector, file) {

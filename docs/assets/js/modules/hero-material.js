@@ -1,3 +1,7 @@
+import { getTexturePreference } from "./texture-state.js?v=20261008c";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261008c";
+import { captureTextureSurface } from "./texture-surfaces.js?v=20261008c";
+
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
 const REFLECTION_TILE_SIZE = 1024;
 const REFLECTION_PERIOD = 486;
@@ -114,6 +118,13 @@ uniform vec2 textureScale;
 uniform vec2 reflectionMapping;
 uniform float orange;
 uniform float opacity;
+#ifdef TEXTURE_TRANSITION
+${TEXTURE_WAVE}
+uniform vec4 textureGlyph;
+uniform vec2 textureFlatMapping;
+uniform sampler2D textureFlatPalette;
+uniform float textureToLiquid;
+#endif
 vec3 palette(float value) {
   vec3 a; vec3 b; float t = clamp(value, 0., 1.) * 6.;
   if (orange > .5) {
@@ -133,41 +144,76 @@ vec3 palette(float value) {
   }
   return mix(a, b, min(t - min(floor(t), 5.), 1.));
 }
-void main() {
-  vec2 reflectionUV = vec2(uv.x * reflectionMapping.x + reflectionMapping.y, uv.y);
+vec4 materialSample(vec2 sampleUV, float liquid) {
+  vec2 reflectionUV = vec2(sampleUV.x * reflectionMapping.x + reflectionMapping.y, sampleUV.y);
   vec2 encoded = texture2D(reflection, reflectionUV).rg;
   float source = encoded.r + encoded.g / 255.;
-  float coverage = texture2D(mask, uv * textureScale).a;
-  float edge = max(0., coverage - texture2D(softMask, uv * textureScale).a) * mix(.7,1.,orange);
+  float coverage = texture2D(mask, sampleUV * textureScale).a;
+#ifdef TEXTURE_TRANSITION
+  coverage *= step(0., sampleUV.x) * step(sampleUV.x, 1.) * step(0., sampleUV.y) * step(sampleUV.y, 1.);
+#endif
+  float edge = max(0., coverage - texture2D(softMask, sampleUV * textureScale).a) * mix(.7,1.,orange);
   float relief = (157./255.) * (1. - edge);
   float lit = relief <= .5 ? 2. * source * relief : 1. - 2. * (1. - source) * (1. - relief);
   // Match feBlend's source-over alpha, then the final SourceAlpha composite.
   float blendedAlpha = coverage * (2. - coverage);
   lit = ((1. - coverage) * (source + relief) + coverage * lit) / max(.00001, 2. - coverage);
   float alphaOut = blendedAlpha * coverage * opacity;
-  gl_FragColor = vec4(palette(lit) * alphaOut, alphaOut);
+  vec4 color = vec4(palette(lit) * alphaOut, alphaOut);
+#ifdef TEXTURE_TRANSITION
+  float flatX = fract(sampleUV.x * textureFlatMapping.x + textureFlatMapping.y);
+  vec3 flatColor = texture2D(textureFlatPalette, vec2(flatX, orange > .5 ? .25 : .75)).rgb;
+  vec4 flatSample = vec4(flatColor * coverage * opacity, coverage * opacity);
+  color = mix(flatSample, color, liquid);
+#endif
+  return color;
+}
+void main() {
+#ifdef TEXTURE_TRANSITION
+  vec2 point = texturePoint();
+  vec2 displaced = point + textureDisplacement(point);
+  vec2 sampleUV = vec2((displaced.x - textureGlyph.x) / textureGlyph.z,
+    1. - (displaced.y - textureGlyph.y) / textureGlyph.w);
+  float front = textureStage < .5 ? 0. : 1. - smoothstep(-.45, .45, textureWave(point).x);
+  float liquid = mix(1. - textureToLiquid, textureToLiquid, front);
+  // Transient, radial three-tap defocus. No full-screen blur surface, and the
+  // normal material shader still uses exactly one sample path.
+  vec2 ray = point - textureOrigin;
+  vec2 defocus = ray / max(1., length(ray)) * textureDefocus(point);
+  vec2 delta = vec2(defocus.x / textureGlyph.z, -defocus.y / textureGlyph.w);
+  gl_FragColor = materialSample(sampleUV, liquid) * .5
+    + materialSample(sampleUV - delta, liquid) * .25
+    + materialSample(sampleUV + delta, liquid) * .25;
+#else
+  gl_FragColor = materialSample(uv, 1.);
+#endif
 }
 `;
 
 function createProgram(gl, fragment) {
   const program = gl.createProgram();
-  const shaders = [[gl.VERTEX_SHADER, VERTEX], [gl.FRAGMENT_SHADER, fragment]].map(([type, code]) => {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, code);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      const message = gl.getShaderInfoLog(shader);
-      gl.deleteShader(shader);
-      throw new Error(message);
+  const shaders = [];
+  try {
+    if (!program) throw new Error("WebGL program allocation failed");
+    for (const [type, code] of [[gl.VERTEX_SHADER, VERTEX], [gl.FRAGMENT_SHADER, fragment]]) {
+      const shader = gl.createShader(type);
+      if (!shader) throw new Error("WebGL shader allocation failed");
+      shaders.push(shader);
+      gl.shaderSource(shader, code);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader));
+      gl.attachShader(program, shader);
     }
-    gl.attachShader(program, shader);
-    return shader;
-  });
-  gl.bindAttribLocation(program, 0, "position");
-  gl.linkProgram(program);
-  shaders.forEach((shader) => gl.deleteShader(shader));
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
-  return { program, uniforms: new Map() };
+    gl.bindAttribLocation(program, 0, "position");
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program));
+    return { program, uniforms: new Map() };
+  } catch (error) {
+    if (program) gl.deleteProgram(program);
+    throw error;
+  } finally {
+    shaders.forEach((shader) => gl.deleteShader(shader));
+  }
 }
 
 // Pair adjacent Gaussian taps with linear texture sampling. This keeps the
@@ -194,7 +240,7 @@ function gaussianKernel(sigma) {
   return { taps, count, center: 1 / total };
 }
 
-function createMaterialLayer(root, restore) {
+function createMaterialLayer(root, restore, unavailable) {
   const canvas = document.createElement("canvas");
   canvas.className = "hero-material-canvas";
   canvas.setAttribute("aria-hidden", "true");
@@ -214,7 +260,21 @@ function createMaterialLayer(root, restore) {
   let stopped = false;
   let lost = false;
   let lastFrame = "";
+  let textureFrame = null;
+  let textureMaterial = null;
+  let textureLight = null;
+  let textureFlatPalette = null;
+  let textureSurfaceProgram = null;
+  const textureSurfaces = [];
+  const clearTextureSurfaces = () => {
+    for (const surface of textureSurfaces) {
+      surface.element.classList.remove("texture-surface-active");
+      gl.deleteTexture(surface.texture);
+    }
+    textureSurfaces.length = 0;
+  };
   const showPlain = () => {
+    textureSurfaces.forEach(({ element }) => element.classList.remove("texture-surface-active"));
     canvas.hidden = true;
     root.dataset.materialRenderer = "plain";
     for (const entry of entries) {
@@ -225,6 +285,7 @@ function createMaterialLayer(root, restore) {
   const dispose = (releaseContext = true) => {
     stopped = true;
     showPlain();
+    clearTextureSurfaces();
     canvas.removeEventListener("webglcontextlost", onContextLost);
     canvas.removeEventListener("webglcontextrestored", onContextRestored);
     root.classList.remove("hero-material-layer");
@@ -238,6 +299,7 @@ function createMaterialLayer(root, restore) {
     }
     if (reflectionTile) gl.deleteTexture(reflectionTile);
     if (reflectionTarget) gl.deleteFramebuffer(reflectionTarget);
+    if (textureFlatPalette) gl.deleteTexture(textureFlatPalette);
     programs.forEach((shader) => gl.deleteProgram(shader.program));
     if (quad) gl.deleteBuffer(quad);
     if (releaseContext) gl.getExtension("WEBGL_lose_context")?.loseContext();
@@ -245,12 +307,14 @@ function createMaterialLayer(root, restore) {
   const fail = (error) => {
     if (stopped) return;
     dispose();
+    unavailable();
     console.warn("Hero material is unavailable; using un-beveled text", error);
   };
   const onContextLost = (event) => {
     event.preventDefault();
     lost = true;
     showPlain();
+    unavailable();
   };
   const onContextRestored = () => {
     dispose(false);
@@ -289,6 +353,57 @@ function createMaterialLayer(root, restore) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       return result;
+    };
+    const prepareTexturePrograms = () => {
+      if (textureMaterial && textureLight && textureFlatPalette && textureSurfaceProgram) return;
+      // Keep individually completed resources reusable after a failed attempt.
+      if (!textureMaterial) {
+        textureMaterial = createProgram(gl, "#define TEXTURE_TRANSITION\n" + MATERIAL);
+        programs.push(textureMaterial);
+      }
+      if (!textureLight) {
+        textureLight = createProgram(gl, TEXTURE_LIGHT);
+        programs.push(textureLight);
+      }
+      if (!textureSurfaceProgram) {
+        textureSurfaceProgram = createProgram(gl, TEXTURE_SURFACE);
+        programs.push(textureSurfaceProgram);
+      }
+      // Bake the existing CSS gradients, including their actual color space.
+      // A texture switch must not replace the old flat design with a new palette.
+      const paletteCanvas = document.createElement("canvas");
+      paletteCanvas.width = 512;
+      paletteCanvas.height = 2;
+      const ctx = paletteCanvas.getContext("2d", { colorSpace: gl.drawingBufferColorSpace || "srgb" });
+      if (!ctx) throw new Error("Texture palette canvas is unavailable");
+      const style = getComputedStyle(root);
+      ["--papaya-metal-gradient", "--silver-metal-gradient"].forEach((name, row) => {
+        const gradient = ctx.createLinearGradient(0, 0, 512, 0);
+        const stops = [...style.getPropertyValue(name).matchAll(/(#[\da-f]+)\s+([\d.]+)%/gi)];
+        if (!stops.length) throw new Error("Texture palette is unavailable");
+        stops.forEach(([, color, offset]) => gradient.addColorStop(Number(offset) / 100, color));
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, row, 512, 1);
+      });
+      const pixels = ctx.getImageData(0, 0, 512, 2).data;
+      const palette = texture();
+      try {
+        if (!palette) throw new Error("Texture palette allocation failed");
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 2, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+        if (gl.getError() !== gl.NO_ERROR) throw new Error("Texture palette upload failed");
+        textureFlatPalette = palette;
+      } catch (error) {
+        if (palette) gl.deleteTexture(palette);
+        throw error;
+      }
+    };
+    const textureUniforms = (shader, box) => {
+      gl.uniform2f(uniform(shader, "textureOrigin"), textureFrame.origin.x, textureFrame.origin.y);
+      gl.uniform2f(uniform(shader, "textureViewport"), box.width, box.height);
+      gl.uniform2f(uniform(shader, "texturePixels"), canvas.width, canvas.height);
+      gl.uniform1f(uniform(shader, "textureProgress"), textureFrame.progress);
+      gl.uniform1f(uniform(shader, "textureStage"), textureFrame.stage);
+      gl.uniform1f(uniform(shader, "textureStrength"), textureFrame.strength ?? 1);
     };
     // The field only translates; its shape never changes. Bake one full period
     // once, then move sampling coordinates rather than redraw reflection buffers.
@@ -409,6 +524,47 @@ function createMaterialLayer(root, restore) {
     return {
       root, entries, dispose,
       get active() { return !stopped && !lost; },
+      get textureActive() { return !!textureFrame; },
+      prepareTexturePrograms,
+      async prepareTextureSurfaces(signal) {
+        clearTextureSurfaces();
+        const elements = document.querySelectorAll(".hero-project-logo-frame, .hero-project-link, .brand-logo");
+        for (const element of elements) {
+          await new Promise(requestAnimationFrame);
+          if (signal.aborted || stopped || lost) throw new DOMException("Texture preparation cancelled", "AbortError");
+          const box = element.getBoundingClientRect();
+          const density = Math.min(renderingDensity(), maxTexture / Math.max(1, box.width), maxTexture / Math.max(1, box.height));
+          const surface = captureTextureSurface(element, density, gl.drawingBufferColorSpace || "srgb");
+          if (!surface) continue;
+          const uploaded = texture();
+          if (!uploaded) throw new Error("Texture surface allocation failed");
+          textureSurfaces.push({ ...surface, texture: uploaded });
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, surface.width, surface.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, surface.pixels);
+          if (gl.getError() !== gl.NO_ERROR) throw new Error("Texture surface upload failed");
+        }
+      },
+      setTextureFrame(value) {
+        if (stopped || lost) return;
+        if (!textureFrame) {
+          // Absolute document coordinates, never a fixed body/viewport: retain
+          // Glyph Story's scroll-lock strategy and Safari's page background.
+          canvas.classList.add("texture-transition-canvas");
+          canvas.style.height = `${window.innerHeight}px`;
+          document.body.append(canvas);
+        }
+        textureFrame = value;
+        lastFrame = "";
+      },
+      finishTexture() {
+        textureFrame = null;
+        clearTextureSurfaces();
+        canvas.classList.remove("texture-transition-canvas");
+        canvas.style.removeProperty("height");
+        if (!stopped) root.append(canvas);
+        lastFrame = "";
+        if (getTexturePreference() === "flat") showPlain();
+      },
+      showPlain,
       add(word) {
         const mask = document.createElement("canvas");
         // This surface is read after every shape change; keep its backing store
@@ -432,6 +588,10 @@ function createMaterialLayer(root, restore) {
       },
       render(preparingEntry = null) {
         if (stopped || lost) return;
+        if (!preparingEntry && !textureFrame && getTexturePreference() === "flat") {
+          if (!canvas.hidden) showPlain();
+          return;
+        }
         try {
           const rootBox = root.getBoundingClientRect();
           if (!rootBox.width || !rootBox.height ||
@@ -509,30 +669,63 @@ function createMaterialLayer(root, restore) {
           gl.clear(gl.COLOR_BUFFER_BIT);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-          gl.useProgram(material.program);
-          gl.uniform1i(uniform(material, "mask"), 0);
-          gl.uniform1i(uniform(material, "softMask"), 1);
-          gl.uniform1i(uniform(material, "reflection"), 2);
+          const shader = textureFrame ? textureMaterial : material;
+          gl.useProgram(shader.program);
+          gl.uniform1i(uniform(shader, "mask"), 0);
+          gl.uniform1i(uniform(shader, "softMask"), 1);
+          gl.uniform1i(uniform(shader, "reflection"), 2);
+          if (textureFrame) {
+            textureUniforms(shader, box);
+            bind(textureFlatPalette, 3);
+            gl.uniform1i(uniform(shader, "textureFlatPalette"), 3);
+            gl.uniform1f(uniform(shader, "textureToLiquid"), textureFrame.target === "liquid" ? 1 : 0);
+          }
           for (const { entry, rect, width, offset, opacity, reflectionPeriod } of frames) {
             bind(entry.textures[0], 0);
             bind(entry.textures[2], 1);
             bind(reflectionTile, 2);
-            gl.uniform4f(uniform(material, "rectangle"),
-              (rect.left - box.left) / box.width * 2 - 1,
-              1 - (rect.bottom - box.top) / box.height * 2,
-              rect.width / box.width * 2, rect.height / box.height * 2);
-            gl.uniform2f(uniform(material, "textureScale"), entry.w / entry.capacityW, entry.h / entry.capacityH);
+            const padding = textureFrame ? 128 : 0;
+            gl.uniform4f(uniform(shader, "rectangle"),
+              (rect.left - box.left - padding) / box.width * 2 - 1,
+              1 - (rect.bottom - box.top + padding) / box.height * 2,
+              (rect.width + padding * 2) / box.width * 2, (rect.height + padding * 2) / box.height * 2);
+            gl.uniform2f(uniform(shader, "textureScale"), entry.w / entry.capacityW, entry.h / entry.capacityH);
             // Keep phase in the original clock's units: a wider pattern travels
             // farther per cycle without slowing down or jumping at clock wrap.
-            gl.uniform2f(uniform(material, "reflectionMapping"), width / reflectionPeriod,
+            gl.uniform2f(uniform(shader, "reflectionMapping"), width / reflectionPeriod,
               ((offset % REFLECTION_PERIOD) + REFLECTION_PERIOD) % REFLECTION_PERIOD / REFLECTION_PERIOD);
-            gl.uniform1f(uniform(material, "orange"), entry.orange ? 1 : 0);
-            gl.uniform1f(uniform(material, "opacity"), opacity);
+            gl.uniform1f(uniform(shader, "orange"), entry.orange ? 1 : 0);
+            gl.uniform1f(uniform(shader, "opacity"), opacity);
+            if (textureFrame) {
+              gl.uniform4f(uniform(shader, "textureGlyph"), rect.left - box.left, rect.top - box.top, rect.width, rect.height);
+              gl.uniform2f(uniform(shader, "textureFlatMapping"), width / REFLECTION_PERIOD,
+                ((offset % REFLECTION_PERIOD) + REFLECTION_PERIOD) % REFLECTION_PERIOD / REFLECTION_PERIOD);
+            }
             gl.drawArrays(gl.TRIANGLES, 0, 6);
             if (!preparingEntry && !entry.active) {
               entry.word.classList.add("hero-material-webgl");
               entry.active = true;
             }
+          }
+          if (textureFrame) {
+            gl.useProgram(textureSurfaceProgram.program);
+            textureUniforms(textureSurfaceProgram, box);
+            gl.uniform1i(uniform(textureSurfaceProgram, "surface"), 0);
+            for (const surface of textureSurfaces) {
+              const rect = surface.rect;
+              bind(surface.texture);
+              gl.uniform4f(uniform(textureSurfaceProgram, "surfaceBox"), rect.left - box.left, rect.top - box.top, rect.width, rect.height);
+              gl.uniform4f(uniform(textureSurfaceProgram, "rectangle"),
+                (rect.left - box.left - 128) / box.width * 2 - 1,
+                1 - (rect.bottom - box.top + 128) / box.height * 2,
+                (rect.width + 256) / box.width * 2, (rect.height + 256) / box.height * 2);
+              gl.drawArrays(gl.TRIANGLES, 0, 6);
+              surface.element.classList.add("texture-surface-active");
+            }
+            gl.useProgram(textureLight.program);
+            textureUniforms(textureLight, box);
+            gl.uniform4f(uniform(textureLight, "rectangle"), -1, -1, 2, 2);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
           }
           if (preparingEntry) {
             // Exercise the real upload/relief/composite path without exposing a
@@ -562,11 +755,12 @@ export async function initHeroMaterial({ typographyReady } = {}) {
   if (!roots.length) return;
   const layers = [];
   let frame = 0;
+  const shouldRun = () => getTexturePreference() === "liquid" || layers.some((layer) => layer?.textureActive);
   const tick = () => {
     frame = 0;
     if (document.hidden) return;
     layers.forEach((layer) => layer?.render());
-    if (layers.some((layer) => layer?.active)) frame = requestAnimationFrame(tick);
+    if (shouldRun() && layers.some((layer) => layer?.active)) frame = requestAnimationFrame(tick);
   };
   const wake = () => {
     if (!frame && !document.hidden) frame = requestAnimationFrame(tick);
@@ -575,7 +769,8 @@ export async function initHeroMaterial({ typographyReady } = {}) {
     root.dataset.materialRenderer = "plain";
     let layer;
     try {
-      layer = createMaterialLayer(root, () => { mount(root, index); wake(); });
+      const notify = () => window.dispatchEvent(new Event("texture:availability"));
+      layer = createMaterialLayer(root, () => { mount(root, index); wake(); notify(); }, notify);
       for (const word of root.querySelectorAll(".hero-fit-word.hero-metal")) layer.add(word);
       layers[index] = layer;
     } catch (error) {
@@ -591,7 +786,7 @@ export async function initHeroMaterial({ typographyReady } = {}) {
     // Prepare every word before releasing the boot gate. Yield between words
     // so the loader remains responsive; a skipped loader never gets re-hidden.
     for (const layer of layers) {
-      if (!layer?.active) continue;
+      if (!layer?.active || getTexturePreference() === "flat") continue;
       for (const entry of layer.entries) {
         await nextFrame();
         if (!document.documentElement.classList.contains("site-boot-pending")) break;
@@ -604,6 +799,40 @@ export async function initHeroMaterial({ typographyReady } = {}) {
     window.addEventListener("pagehide", sleep);
     window.addEventListener("pageshow", wake);
     wake();
+    const main = () => layers.find((layer) => layer?.root.matches(".hero-brand-lockup"));
+    return {
+      get available() { return !!main()?.active; },
+      async prepareTexture(signal) {
+        const layer = main();
+        const check = () => {
+          if (signal.aborted) throw new DOMException("Texture preparation cancelled", "AbortError");
+          if (!layer?.active || main() !== layer) throw new Error("Texture renderer is unavailable");
+        };
+        check();
+        await nextFrame();
+        check();
+        layer.prepareTexturePrograms();
+        await layer.prepareTextureSurfaces(signal);
+        check();
+        // Preparation renders must not clear the visible liquid canvas. Only
+        // flat mode needs the paused glyph data brought up to date here.
+        if (getTexturePreference() === "flat") {
+          for (const entry of layer.entries) {
+            await nextFrame();
+            check();
+            layer.render(entry);
+          }
+        }
+        await nextFrame();
+        check();
+      },
+      updateTexture(frameState) { main()?.setTextureFrame(frameState); wake(); },
+      finishTexture() {
+        layers.forEach((layer) => layer?.finishTexture());
+        if (getTexturePreference() === "liquid") main()?.render();
+        wake();
+      }
+    };
   } catch (error) {
     layers.forEach((layer) => layer?.dispose());
     console.warn("Hero material is unavailable; using un-beveled text", error);

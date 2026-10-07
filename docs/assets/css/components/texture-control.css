@@ -1,0 +1,116 @@
+/* Texture interaction: preserve the existing navigation button shell. */
+.nav-texture-control {
+  --texture-charge: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: opacity 160ms linear, transform 160ms ease;
+}
+.nav-texture-control * {
+  pointer-events: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.nav-texture-control[aria-disabled="true"]:not([data-phase]) {
+  opacity: .42;
+  cursor: default;
+}
+.nav-texture-control:focus-visible {
+  outline: 2px solid #fff0df;
+  outline-offset: 4px;
+}
+.texture-control__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  transition: opacity 90ms linear;
+}
+.texture-control__icon svg {
+  grid-area: 1 / 1;
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.texture-control__top,
+[data-icon="top"] .texture-control__texture { visibility: hidden; }
+[data-icon="top"] .texture-control__top { visibility: visible; }
+.texture-control__icon .texture-control__top {
+  width: 26px;
+  height: 26px;
+  stroke-width: 2.46;
+}
+.texture-surface-active { opacity: 0 !important; }
+.texture-control__charge {
+  position: absolute;
+  inset: -4px;
+  border: 0;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+}
+/* No second charging ring. Only an actual preparation delay turns the
+   gathered warm light into a rotating, softly feathered loading arc. */
+[data-preparing][data-phase="charge"] .texture-control__charge {
+  opacity: var(--texture-charge);
+  background: radial-gradient(circle, #fff9ed99, #ffd3a133 45%, transparent 72%);
+  transform: scale(calc(3 - var(--texture-charge) * 1.6));
+}
+[data-phase="waiting"] .texture-control__charge {
+  opacity: 1;
+  background: conic-gradient(from 0deg, transparent, #ffd3a166 180deg, #fff5e6 310deg, transparent);
+  -webkit-mask-image: radial-gradient(circle, transparent 48%, #000 59%, #000 65%, transparent 74%);
+  mask-image: radial-gradient(circle, transparent 48%, #000 59%, #000 65%, transparent 74%);
+  animation: texture-loading 900ms linear infinite;
+}
+.nav-texture-control[data-phase="charge"],
+.nav-texture-control[data-phase="armed"] {
+  transform: scale(calc(1 - var(--texture-charge) * .12));
+}
+.nav-texture-control[data-phase="spread"] {
+  opacity: 0;
+  transform: scale(.8);
+}
+@keyframes texture-loading { to { transform: rotate(360deg); } }
+
+/* Match Glyph Story's lock; do not pin body with position:fixed. */
+html.texture-scroll-lock,
+body.texture-scroll-lock {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+body.texture-transition-active .page-wrap,
+body.texture-transition-active .site-nav .brand,
+body.texture-transition-active .site-nav .menu,
+body.texture-transition-active .nav-toggle { pointer-events: none; }
+
+/* The existing context moves here only for the transient, viewport-space wave. */
+body > .texture-transition-canvas {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  z-index: 1100;
+  pointer-events: none;
+}
+.texture-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-texture-control,
+  .texture-control__icon { transition: none; }
+  .texture-control__charge { display: none; }
+}

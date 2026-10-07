@@ -482,7 +482,7 @@ a {
   gap: 10px;
 }
 
-.nav-search,
+.nav-texture-control,
 .nav-toggle {
   width: var(--nav-icon-size);
   height: var(--nav-icon-size);
@@ -495,48 +495,13 @@ a {
   color: var(--nav-text);
 }
 
-.nav-search {
+.nav-texture-control {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
 }
-
-/* CSS-only search icon */
-.nav-search::before,
-.nav-search::after {
-  content: "";
-  position: absolute;
-  display: block;
-  pointer-events: none;
-}
-
-.nav-search::before {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  box-sizing: border-box;
-  top: 50%;
-  left: 50%;
-  margin-top: -9px;
-  margin-left: -9px;
-}
-
-.nav-search::after {
-  width: 9px;
-  height: 2px;
-  border-radius: 999px;
-  background: currentColor;
-  top: 50%;
-  left: 50%;
-  margin-top: 1px;
-  margin-left: 1px;
-  transform-origin: left center;
-  transform: rotate(45deg);
-}
-
 .menu a {
   color: var(--nav-text-dim);
   font-weight: 500;
@@ -632,7 +597,7 @@ a {
   display: none;
 }
 
-.nav-search:active {
+.nav-texture-control:active {
   background: var(--nav-press-bg);
 }
 
@@ -843,7 +808,7 @@ a {
       scale(1.26);
   }
 
-  .nav-search,
+  .nav-texture-control,
   .nav-toggle {
     width: 40px;
     height: 40px;
@@ -1037,7 +1002,7 @@ a {
     background: var(--nav-press-bg);
   }
 
-  .nav-search:hover {
+  .nav-texture-control:hover {
     background: var(--nav-press-bg);
   }
 }
