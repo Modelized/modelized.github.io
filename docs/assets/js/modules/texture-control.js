@@ -1,4 +1,4 @@
-import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008c";
+import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008d";
 
 const TEXTURE_HOLD_MS = 900;
 const TEXTURE_SPREAD_MS = 1050;
@@ -26,21 +26,24 @@ export function initTextureControl({ materialReady }) {
   const inertBeforeLock = new Map();
 
   const scrollTop = () => Math.max(0, window.scrollY || 0, document.scrollingElement?.scrollTop || 0);
+  const zoomed = () => Math.abs((window.visualViewport?.scale || 1) - 1) > .01;
   const blocked = () => !body.classList.contains("hero-ready") ||
     body.classList.contains("glyph-story-lock") || body.classList.contains("nav-menu-open") ||
     body.classList.contains("nav-menu-closing") || body.classList.contains("hero-refitting");
   const canTexture = () => action === "texture" && scrollTop() === 0 &&
-    !!material?.available && !blocked() && !session;
+    !!material?.available && !zoomed() && !blocked() && !session;
   const announce = (message) => { if (status) status.textContent = message; };
   const updateButton = () => {
-    const disabled = !!session || (action === "texture" && (!material?.available || blocked()));
+    const disabled = !!session || (action === "texture" && (zoomed() || !material?.available || blocked()));
     button.setAttribute("aria-disabled", String(disabled));
     button.dataset.action = action;
     button.dataset.texture = getTexturePreference();
+    button.dataset.zoomed = String(zoomed());
     const label = action === "top" ? "Back to top" :
       `Hold, then release to switch to ${getTexturePreference() === "liquid" ? "flat" : "liquid metal"} texture`;
     button.setAttribute("aria-label", label);
-    button.title = action === "texture" && !material?.available ? "Texture switching is unavailable" : label;
+    button.title = action === "texture" && zoomed() ? "Reset page zoom to switch texture" :
+      action === "texture" && !material?.available ? "Texture switching is unavailable" : label;
   };
   const syncScroll = () => {
     if (session) {
@@ -120,7 +123,7 @@ export function initTextureControl({ materialReady }) {
     frame = 0;
     const current = session;
     if (!current) return;
-    if (!material?.available || document.hidden) {
+    if (!material?.available || document.hidden || zoomed()) {
       finish(false, "Texture transition cancelled", true);
       return;
     }
@@ -174,7 +177,8 @@ export function initTextureControl({ materialReady }) {
   const start = (autoRelease = false) => {
     if (!canTexture()) return;
     ++unlockRevision;
-    window.scrollTo({ top: 0, behavior: "instant" });
+    // canTexture already requires scrollTop === 0. Reissuing scrollTo here can
+    // disturb Safari's visual viewport while its browser chrome is settling.
     setLocked(true);
     const rect = button.getBoundingClientRect();
     const current = {
@@ -291,6 +295,12 @@ export function initTextureControl({ materialReady }) {
     suppressClick = false;
     finish(false, "", true);
   };
+  window.visualViewport?.addEventListener("resize", () => {
+    // Pinch changes the visual viewport without necessarily resizing the page.
+    // Cancel before further drawing/scroll locking, and gate every input too.
+    if (zoomed()) interrupt();
+    updateButton();
+  }, { passive: true });
   document.addEventListener("visibilitychange", () => { if (document.hidden) interrupt(); });
   window.addEventListener("pagehide", interrupt);
   window.addEventListener("pageshow", syncScroll);

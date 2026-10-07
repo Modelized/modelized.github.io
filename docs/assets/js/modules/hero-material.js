@@ -1,6 +1,6 @@
-import { getTexturePreference } from "./texture-state.js?v=20261008c";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261008c";
-import { captureTextureSurface } from "./texture-surfaces.js?v=20261008c";
+import { getTexturePreference } from "./texture-state.js?v=20261008d";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261008d";
+import { captureTextureSurface } from "./texture-surfaces.js?v=20261008d";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
 const REFLECTION_TILE_SIZE = 1024;
@@ -265,6 +265,7 @@ function createMaterialLayer(root, restore, unavailable) {
   let textureLight = null;
   let textureFlatPalette = null;
   let textureSurfaceProgram = null;
+  let textureLightLimit = 0;
   const textureSurfaces = [];
   const clearTextureSurfaces = () => {
     for (const surface of textureSurfaces) {
@@ -404,6 +405,7 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform1f(uniform(shader, "textureProgress"), textureFrame.progress);
       gl.uniform1f(uniform(shader, "textureStage"), textureFrame.stage);
       gl.uniform1f(uniform(shader, "textureStrength"), textureFrame.strength ?? 1);
+      gl.uniform1f(uniform(shader, "textureLightLimit"), textureLightLimit);
     };
     // The field only translates; its shape never changes. Bake one full period
     // once, then move sampling coordinates rather than redraw reflection buffers.
@@ -545,15 +547,26 @@ function createMaterialLayer(root, restore, unavailable) {
       },
       setTextureFrame(value) {
         if (stopped || lost) return;
-        if (!textureFrame) {
+        const entering = !textureFrame;
+        textureFrame = value;
+        if (entering) {
+          // Measure once per gesture. Short viewports constrained by the hero's
+          // CSS minimum retain the full light pass, as well as the full warp.
+          const viewportHeight = Math.min(window.innerHeight, window.visualViewport?.height || window.innerHeight);
+          const stage = root.closest(".hero-stage");
+          const minimumHeight = stage ? parseFloat(getComputedStyle(stage).minHeight) || 0 : 0;
+          const availableHeight = viewportHeight - (stage?.getBoundingClientRect().top || 0);
+          textureLightLimit = availableHeight >= minimumHeight ? Math.max(1, viewportHeight - value.origin.y) : 0;
           // Absolute document coordinates, never a fixed body/viewport: retain
           // Glyph Story's scroll-lock strategy and Safari's page background.
           canvas.classList.add("texture-transition-canvas");
           canvas.style.height = `${window.innerHeight}px`;
           document.body.append(canvas);
         }
-        textureFrame = value;
         lastFrame = "";
+        // Reparenting changes the canvas box immediately. Replace its old,
+        // root-relative bitmap before the browser paints the relocated canvas.
+        if (entering) this.render();
       },
       finishTexture() {
         textureFrame = null;

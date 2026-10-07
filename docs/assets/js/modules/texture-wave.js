@@ -6,6 +6,7 @@ uniform vec2 texturePixels;
 uniform float textureProgress;
 uniform float textureStage;
 uniform float textureStrength;
+uniform float textureLightLimit;
 vec2 texturePoint() {
   return vec2(gl_FragCoord.x / texturePixels.x, 1. - gl_FragCoord.y / texturePixels.y) * textureViewport;
 }
@@ -13,27 +14,29 @@ float textureReach() {
   return length(max(textureOrigin, textureViewport - textureOrigin));
 }
 float textureTravel(float p) {
-  // Build pressure first, accelerate, then coast to a soft finish.
-  float a = p * p;
-  float b = (1. - p) * (1. - p);
-  return a / max(.0001, a + .55 * b);
+  // The released pressure travels fastest immediately, then steadily settles.
+  return 1. - pow(1. - clamp(p, 0., 1.), 2.4);
+}
+float textureGatherProgress(float p) {
+  p = clamp(p, 0., 1.);
+  return p * (2. - p);
 }
 float textureGatherRadius(float p) {
   // A wide, faint wash concentrates with the pull, without an incoming ring.
-  float extent = min(textureReach() * .82, 940.);
-  return extent * mix(1., .70, smoothstep(0., 1., p));
+  float extent = min(textureReach() * 1.08, 1200.);
+  return extent * mix(1., .48, textureGatherProgress(p));
 }
 float textureSwell(float p) {
   return mix(1., .28, smoothstep(.10, .88, p)) * (1. - smoothstep(.80, 1., p));
 }
 vec4 textureGatherLight(vec2 point, float p) {
   float r = length(point - textureOrigin);
-  float pressure = smoothstep(0., 1., p);
+  float pressure = textureGatherProgress(p);
   float focus = exp(-pow(r / mix(100., 46., pressure), 2.));
   float haze = exp(-pow(r / textureGatherRadius(p), 2.) * 1.5);
   float shoulder = exp(-pow(r / (textureGatherRadius(p) * .43), 2.));
   float alpha = (focus * .59 + shoulder * .10 + haze * .13)
-    * smoothstep(0., .72, p);
+    * pressure;
   vec3 warm = mix(vec3(1., .79, .62), vec3(1., .98, .94), clamp(focus + shoulder * .30, 0., 1.));
   return vec4(warm * alpha, alpha);
 }
@@ -48,9 +51,11 @@ vec3 textureWave(vec2 point) {
 vec2 texturePull(vec2 point, float p) {
   vec2 ray = point - textureOrigin;
   float r = length(ray);
-  float influence = textureGatherRadius(p);
+  // Accumulate the pull over the initial wide field. Contracting its falloff
+  // each frame would let distant features spring back while still gathering.
+  float influence = textureGatherRadius(0.);
   float field = exp(-pow(r / influence, 2.) * 1.8);
-  float pull = min(r * .32, 100.) * field * smoothstep(0., 1., p);
+  float pull = min(r * .40, 112.) * field * textureGatherProgress(p);
   return ray / max(1., r) * pull;
 }
 vec2 textureDisplacement(vec2 point) {
@@ -59,7 +64,7 @@ vec2 textureDisplacement(vec2 point) {
   float p = clamp(textureProgress, 0., 1.);
   if (textureStage < .5) {
     // Pull the sampled image outward so its visible features move INWARD.
-    // Light and refraction share the same contracting influence.
+    // Light contraction and inward movement share the same pressure curve.
     return texturePull(point, p) * textureStrength;
   }
   vec3 wave = textureWave(point);
@@ -102,8 +107,16 @@ void main() {
   float alpha = (crest * .48 + face * .25 + halo * .12 + trough * .12) * envelope;
   vec3 warm = mix(vec3(1., .74, .48), vec3(1., .985, .955), clamp(crest + face * .75, 0., 1.));
   warm *= 1. - trough * .72;
+  // Fade the light independently of the refraction/replacement front, before
+  // the leading halo reaches the bottom. Zero means the short-viewport case.
+  float lightFade = 1.;
+  if (textureLightLimit > 0.) {
+    float finish = max(23., textureLightLimit - wave.y * 1.4);
+    float start = max(22., finish - wave.y * 1.6);
+    lightFade = 1. - smoothstep(start, finish, wave.z);
+  }
   gl_FragColor = mix(textureGatherLight(point, 1.), vec4(warm * alpha, alpha),
-    smoothstep(0., .16, p)) * textureStrength;
+    smoothstep(0., .16, p)) * textureStrength * lightFade;
 }
 `;
 

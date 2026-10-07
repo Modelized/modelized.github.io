@@ -1,6 +1,6 @@
 import { base, assetVersion, SETTLE_PASS_DELAYS, portraitBrandShifts, mobileMenuMotion, body, prefersReducedMotion } from "./context.js?v=20261002a";
 function getPartialUrl(file) {
-  const version = file === "nav.html" ? "20261008c" : assetVersion;
+  const version = file === "nav.html" ? "20261008d" : assetVersion;
   if (!base || base === ".") {
     return `assets/partials/${file}?v=${version}`;
   }

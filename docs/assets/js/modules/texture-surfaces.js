@@ -37,12 +37,17 @@ export function captureTextureSurface(element, density, colorSpace) {
       for (const node of label.childNodes) {
         if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) continue;
         const range = document.createRange();
-        range.selectNodeContents(node);
-        const box = range.getBoundingClientRect();
-        const text = textStyle.textTransform === "uppercase" ? node.textContent.toUpperCase() : node.textContent;
-        const metrics = ctx.measureText(text);
-        const baseline = (metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2;
-        ctx.fillText(text, box.left - rect.left, box.top - rect.top + box.height / 2 + baseline);
+        // A single text node can wrap onto multiple lines without a <br>.
+        // Its bounding box spans all lines; draw each word at its live position.
+        for (const token of node.textContent.matchAll(/\S+/g)) {
+          range.setStart(node, token.index);
+          range.setEnd(node, token.index + token[0].length);
+          const box = range.getBoundingClientRect();
+          const text = textStyle.textTransform === "uppercase" ? token[0].toUpperCase() : token[0];
+          const metrics = ctx.measureText(text);
+          const baseline = (metrics.fontBoundingBoxAscent - metrics.fontBoundingBoxDescent) / 2;
+          ctx.fillText(text, box.left - rect.left, box.top - rect.top + box.height / 2 + baseline);
+        }
       }
     }
     const arrow = element.querySelector("svg");

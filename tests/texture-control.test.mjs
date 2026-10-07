@@ -31,7 +31,7 @@ class Element {
   getBoundingClientRect() { return { left: 340, top: 16, width: 32, height: 32 }; }
 }
 
-async function setup({ preference = 'liquid', available = true, delayed = false } = {}) {
+async function setup({ preference = 'liquid', available = true, delayed = false, scale } = {}) {
   let time = 0, id = 0, resolvePreparation, rejectPreparation;
   const jobs = new Map(), saved = [], draws = [];
   const body = new Element(), html = new Element(), button = new Element(), icon = new Element();
@@ -45,6 +45,7 @@ async function setup({ preference = 'liquid', available = true, delayed = false 
   document.querySelectorAll = () => [otherControl];
   const window = new Element();
   Object.assign(window, { scrollY: 0, scrollTo: ({ top }) => { window.scrollY = top; window.emit('scroll'); } });
+  if (scale !== undefined) window.visualViewport = Object.assign(new Element(), { scale });
   const schedule = (fn, delay) => { jobs.set(++id, { due: time + delay, fn }); return id; };
   const material = {
     available, finishes: 0,
@@ -179,6 +180,68 @@ for (const interrupt of ['hidden', 'renderer']) {
   assert.deepEqual(t.saved, []);
   assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
 }
+{
+  const t = await setup({ scale: 2 });
+  assert.equal(t.button.attrs['aria-disabled'], 'true');
+  t.press(); t.button.emit('click', { detail: 0 }); await t.advance(2000);
+  assert.equal(t.button.dataset.phase, undefined);
+  assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
+  assert.deepEqual(t.saved, []);
+  assert.equal(t.draws.length, 0);
+}
+for (const phase of ['charge', 'spread']) {
+  const t = await setup({ scale: 1 });
+  t.press(); await t.advance(phase === 'charge' ? 300 : 1000);
+  if (phase === 'spread') t.release();
+  t.window.visualViewport.scale = 1.5;
+  t.window.visualViewport.emit('resize');
+  assert.equal(t.button.attrs['aria-disabled'], 'true');
+  assert.equal(t.button.dataset.phase, undefined);
+  assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
+  assert.equal(t.otherControl.inert, false);
+  await t.advance(1200);
+  assert.deepEqual(t.saved, []);
+  t.window.visualViewport.scale = 1;
+  t.window.visualViewport.emit('resize');
+  assert.equal(t.button.attrs['aria-disabled'], 'false');
+  t.press(); await t.advance(1000); t.release(); await t.advance(1200);
+  assert.deepEqual(t.saved, ['flat']);
+}
+// The full label wraps naturally at phone width even without an explicit <br>.
+{
+  const draws = [];
+  const node = { nodeType: 3, textContent: 'View Projects' };
+  const label = { childNodes: [node], getBoundingClientRect: () => ({ width: 80 }) };
+  const rect = { left: 100, top: 200, width: 120, height: 50 };
+  const ctx = {
+    scale() {}, beginPath() {}, roundRect() {}, fill() {}, stroke() {},
+    measureText: () => ({ fontBoundingBoxAscent: 8, fontBoundingBoxDescent: 2 }),
+    fillText: (text, x, y) => draws.push({ text, x, y }),
+    getImageData: () => ({ data: new Uint8ClampedArray(120 * 50 * 4) })
+  };
+  const element = {
+    getBoundingClientRect: () => rect, matches: () => false,
+    querySelector: () => null, querySelectorAll: () => [label]
+  };
+  const context = vm.createContext({
+    Node: { TEXT_NODE: 3 },
+    getComputedStyle: () => ({ fontSize: '14px', fontWeight: '600', fontFamily: 'sans-serif', textTransform: 'uppercase' }),
+    document: {
+      createElement: () => ({ getContext: () => ctx }),
+      createRange: () => ({
+        setStart(_, index) { this.start = index; }, setEnd(_, index) { this.end = index; },
+        getBoundingClientRect() {
+          return { left: 110, top: this.start === 0 ? 210 : 224, width: 70, height: 14 };
+        }
+      })
+    }
+  });
+  const surfaceSource = (await readFile(new URL('../docs/assets/js/modules/texture-surfaces.js', import.meta.url), 'utf8'))
+    .replace('export function', 'function');
+  vm.runInContext(surfaceSource + '\nthis.capture = captureTextureSurface;', context);
+  context.capture(element, 1, 'srgb');
+  assert.deepEqual(draws, [{ text: 'VIEW', x: 10, y: 20 }, { text: 'PROJECTS', x: 10, y: 34 }]);
+}
 const preferenceSource = (await readFile(new URL('../docs/assets/js/modules/texture-state.js', import.meta.url), 'utf8'))
   .replace(/^export /gm, '');
 for (const initial of [null, 'flat', 'liquid', 'invalid']) {
@@ -195,4 +258,4 @@ for (const initial of [null, 'flat', 'liquid', 'invalid']) {
   vm.runInContext('saveTexturePreference("flat")', context);
   assert.equal(vm.runInContext('getTexturePreference()', context), 'flat');
 }
-console.log('Texture controller: 12 scenarios passed; preference persistence: 5 scenarios passed');
+console.log('Texture controller: 15 scenarios passed; wrapped label: passed; preference persistence: 5 scenarios passed');
