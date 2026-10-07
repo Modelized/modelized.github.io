@@ -609,6 +609,16 @@ function initGridFittedTypography() {
     activeWeightAnimations.delete(word);
   };
 
+  const finishWeightAnimation = (word) => {
+    cancelWeightAnimation(word);
+    const configuration = fitConfigurations.get(word);
+    if (!configuration) return;
+    // Fitting may legitimately reuse its geometry cache. Animation completion
+    // must therefore commit the final axes itself, including the material state.
+    applyFittedState(word, configuration.finalState);
+    word.style.opacity = "1";
+  };
+
   const animateFittedWeight = (
     word,
     {
@@ -627,6 +637,10 @@ function initGridFittedTypography() {
     }
 
     cancelWeightAnimation(word);
+    if (document.hidden) {
+      finishWeightAnimation(word);
+      return;
+    }
     const controller = {
       cancelled: false,
       timerId: 0,
@@ -653,9 +667,7 @@ function initGridFittedTypography() {
           return;
         }
 
-        applyFittedState(word, solveFittedState(configuration, configuration.finalWeight));
-        word.style.opacity = "1";
-        activeWeightAnimations.delete(word);
+        finishWeightAnimation(word);
       };
 
       controller.rafId = requestAnimationFrame(tick);
@@ -697,8 +709,30 @@ function initGridFittedTypography() {
   };
 
   const clearArrivalAnimations = () => {
-    Array.from(activeWeightAnimations.keys()).forEach(cancelWeightAnimation);
+    Array.from(activeWeightAnimations.keys()).forEach(finishWeightAnimation);
   };
+
+  let typographySuspended = false;
+  const suspendTypography = () => {
+    typographySuspended = true;
+    clearArrivalAnimations();
+    clearMetalClockAnimations();
+  };
+  const resumeTypography = () => {
+    if (!typographySuspended || document.hidden) return;
+    typographySuspended = false;
+    // Timers may have advanced while rAF was suspended. Settle anything queued
+    // during that interval without restarting the intro or refitting every word.
+    clearArrivalAnimations();
+    clearMetalClockAnimations();
+    syncMetalClockGroups();
+  };
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) suspendTypography();
+    else resumeTypography();
+  });
+  window.addEventListener("pagehide", suspendTypography);
+  window.addEventListener("pageshow", resumeTypography);
 
   const beginResponsiveRefit = () => {
     if (prefersReducedMotion || !body.classList.contains("hero-ready")) return;
