@@ -935,7 +935,7 @@ function initGridFittedTypography() {
         if (cell?.classList.contains("hero-manifesto-cell")) return 900;
         return 400;
       },
-      false
+      true
     );
   });
   window.addEventListener("hero:ready", () => {
