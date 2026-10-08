@@ -82,8 +82,8 @@ class Element {
   getBoundingClientRect() { return { left: 340, top: 16, width: 32, height: 32 }; }
 }
 
-async function setup({ preference = 'liquid', available = true, delayed = false, scale, reduced = false } = {}) {
-  let time = 0, id = 0, resolvePreparation, rejectPreparation;
+async function setup({ preference = 'liquid', available = true, delayed = false, delayedVisuals = false, scale, reduced = false } = {}) {
+  let time = 0, id = 0, resolvePreparation, rejectPreparation, resolveVisuals;
   const jobs = new Map(), saved = [], draws = [];
   const body = new Element(), html = new Element(), button = new Element(), icon = new Element();
   body.classList.add('hero-ready');
@@ -100,9 +100,13 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
   const schedule = (fn, delay) => { jobs.set(++id, { due: time + delay, fn }); return id; };
   const material = {
     available, finishes: 0,
-    prepareTexture: () => delayed ? new Promise((resolve, reject) => {
-      resolvePreparation = resolve; rejectPreparation = reject;
-    }) : Promise.resolve(),
+    prepareTexture: (_, onVisualsReady) => {
+      resolveVisuals = onVisualsReady;
+      if (!delayedVisuals) onVisualsReady();
+      return delayed ? new Promise((resolve, reject) => {
+        resolvePreparation = resolve; rejectPreparation = reject;
+      }) : Promise.resolve();
+    },
     updateTexture: (frame) => draws.push(frame),
     finishTexture: () => material.finishes++
   };
@@ -136,6 +140,7 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
   };
   await advance(200);
   return { body, html, button, otherControl, window, document, material, saved, draws, advance, press, release,
+    visuals: () => resolveVisuals(),
     resolve: () => resolvePreparation(), reject: () => rejectPreparation(new Error('test failure')) };
 }
 
@@ -191,12 +196,40 @@ for (const preference of ['flat', 'liquid']) {
   t.press(); await t.advance(950); t.release();
   assert.equal(t.button.dataset.phase, 'waiting');
   assert.deepEqual(t.saved, []);
+  assert.ok(t.draws.some(({ progress }) => progress > 0 && progress < 1));
+  const waitingStart = t.draws.length;
+  await t.advance(2000);
+  const waitingFrames = t.draws.slice(waitingStart);
+  assert.ok(waitingFrames.length > 100);
+  assert.ok(waitingFrames.every(({ stage, progress, strength }) => stage === 0 && progress === 1 && strength === 1));
+  assert.ok(waitingFrames.at(-1).elapsed > waitingFrames[0].elapsed);
+  assert.ok(waitingFrames.every(({ charge }) => charge === 0));
+  assert.ok(waitingFrames.some(({ loading }) => loading > 0 && loading < 1));
+  assert.equal(waitingFrames.at(-1).loading, 1);
   t.resolve(); await t.advance(1400);
   assert.deepEqual(t.saved, ['flat']);
+  assert.ok(t.draws.every(({ strength }) => strength === 1));
+  assert.ok(t.draws.filter(({ stage }) => stage === 1).every(({ loading }) => loading === 0));
+}
+{
+  const t = await setup({ delayed: true, delayedVisuals: true });
+  t.press(); await t.advance(300);
+  assert.equal(t.draws.length, 0);
+  t.visuals(); await t.advance(200);
+  assert.ok(t.draws.some(({ progress }) => progress > 0 && progress < 1));
+  t.release(); await t.advance(300);
+  const count = t.draws.length;
+  t.visuals(); t.resolve(); await t.advance(100);
+  assert.equal(t.draws.length, count);
+  assert.deepEqual(t.saved, []);
+  assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
 }
 {
   const t = await setup({ delayed: true });
-  t.press(); await t.advance(950); t.resolve(); await t.advance(300);
+  t.press(); await t.advance(3000);
+  assert.equal(t.button.dataset.phase, 'armed');
+  assert.ok(t.draws.every(({ loading }) => loading === 0));
+  t.resolve(); await t.advance(300);
   assert.equal(t.button.dataset.phase, 'armed');
   assert.deepEqual(t.saved, []);
   t.release(); await t.advance(1200);
@@ -335,4 +368,4 @@ for (const initial of [null, 'flat', 'liquid', 'invalid']) {
   vm.runInContext('saveTexturePreference("flat")', context);
   assert.equal(vm.runInContext('getTexturePreference()', context), 'flat');
 }
-console.log('Texture controller: 17 scenarios passed; wrapped label: passed; preference persistence: 5 scenarios passed');
+console.log('Texture controller and delayed visual readiness: passed; wrapped label: passed; preference persistence: passed');

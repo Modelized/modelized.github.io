@@ -60,20 +60,23 @@
   pointer-events: none;
 }
 /* The loading arc appears only while preparation is delayed. */
-[data-preparing][data-phase="charge"] .texture-control__charge {
+[data-preparing][data-phase="charge"] .texture-control__charge,
+[data-preparing][data-phase="armed"] .texture-control__charge {
   opacity: var(--texture-charge);
   background: radial-gradient(circle, #fff9ed99, #ffd3a133 45%, transparent 72%);
   transform: scale(calc(3 - var(--texture-charge) * 1.6));
 }
-[data-phase="waiting"] .texture-control__charge {
+[data-preparing][data-phase="waiting"] .texture-control__charge {
   opacity: 1;
   background: conic-gradient(from 0deg, transparent, #ffd3a166 180deg, #fff5e6 310deg, transparent);
-  -webkit-mask-image: radial-gradient(circle, transparent 48%, #000 59%, #000 65%, transparent 74%);
-  mask-image: radial-gradient(circle, transparent 48%, #000 59%, #000 65%, transparent 74%);
-  animation: texture-loading 900ms linear infinite;
+  -webkit-mask-image: radial-gradient(circle, transparent 31%, #000 42%, #000 52%, transparent 61%);
+  mask-image: radial-gradient(circle, transparent 31%, #000 42%, #000 52%, transparent 61%);
+  animation: texture-loading 1800ms linear infinite;
 }
 .nav-texture-control[data-phase="charge"],
-.nav-texture-control[data-phase="armed"] {
+.nav-texture-control[data-phase="armed"],
+.nav-texture-control[data-phase="waiting"],
+.nav-texture-control[data-phase="resume"] {
   transform: scale(calc(1 - var(--texture-charge) * .12));
 }
 .nav-texture-control[data-phase="spread"] {

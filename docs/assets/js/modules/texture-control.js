@@ -1,5 +1,5 @@
-import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008i";
-import { sampleTextureMotion, sampleTextureCharge } from "./texture-wave.js?v=20261008i";
+import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008k";
+import { sampleTextureMotion, sampleTextureCharge } from "./texture-wave.js?v=20261008k";
 
 const TEXTURE_HOLD_MS = 900;
 const TEXTURE_SPREAD_MS = 1050;
@@ -118,13 +118,14 @@ export function initTextureControl({ materialReady }) {
   const draw = (current, stage, progress, strength = 1) => {
     const motion = sampleTextureMotion(stage, progress);
     if (stage === 0) button.style.setProperty("--texture-charge", String(motion.position * strength));
-    if (reducedMotion.matches || !current.ready) return;
+    if (reducedMotion.matches || !current.visualReady) return;
     const elapsed = performance.now() - current.started;
-    if (stage === 0) current.jitter = sampleTextureCharge(elapsed);
+    if (stage === 0 && !current.released) current.jitter = sampleTextureCharge(elapsed);
     const jitter = current.jitter || { x: 0, y: 0 };
     const settling = stage === 0 ? 1 : Math.exp(-progress * 35);
     material.updateTexture({ origin: current.origin, target: current.target, stage, progress, motion, strength,
       elapsed: elapsed / 1000, charge: (jitter.energy || 0) * settling,
+      loading: current.loading,
       jitter: { x: jitter.x * settling, y: jitter.y * settling } });
   };
   const tick = (now) => {
@@ -135,31 +136,36 @@ export function initTextureControl({ materialReady }) {
       finish(false, "Texture transition cancelled", true);
       return;
     }
+    if (!current.ready && now - current.started > 12000) {
+      finish(false, "Texture could not be prepared. Please try again.");
+      return;
+    }
     if (current.phase === "charge") {
       const progress = Math.min(1, (now - current.started) / TEXTURE_HOLD_MS);
       draw(current, 0, progress);
       if (progress === 1) {
         current.released = current.autoRelease;
-        current.phase = current.ready ? (current.released ? "spread" : "armed") : "waiting";
+        current.phase = current.released ? (current.ready ? "spread" : "waiting") : "armed";
         current.phaseStart = now;
         button.dataset.phase = current.phase;
-        announce(current.ready ? "Release to change texture" : "Preparing texture");
+        announce(current.released && !current.ready ? "Preparing texture" : "Release to change texture");
       }
     } else if (current.phase === "armed") {
       draw(current, 0, 1);
     } else if (current.phase === "waiting") {
-      if (now - current.started > 12000) {
-        finish(false, "Texture could not be prepared. Please try again.");
-        return;
-      }
+      const progress = Math.min(1, (now - current.phaseStart) / 240);
+      current.loading = progress * progress * (3 - 2 * progress);
+      draw(current, 0, 1);
       if (current.ready) {
+        current.resumeLoading = current.loading;
         current.phase = "resume";
         current.phaseStart = now;
         button.dataset.phase = current.phase;
       }
     } else if (current.phase === "resume") {
       const progress = Math.min(1, (now - current.phaseStart) / 160);
-      draw(current, 0, 1, progress);
+      current.loading = current.resumeLoading * (1 - progress * progress * (3 - 2 * progress));
+      draw(current, 0, 1);
       if (progress === 1) {
         current.phase = current.released ? "spread" : "armed";
         current.phaseStart = now;
@@ -187,7 +193,7 @@ export function initTextureControl({ materialReady }) {
     const rect = button.getBoundingClientRect();
     const current = {
       abort: new AbortController(), started: performance.now(), phaseStart: 0,
-      phase: "charge", ready: false, released: false, autoRelease,
+      phase: "charge", ready: false, visualReady: false, loading: 0, released: false, autoRelease,
       target: getTexturePreference() === "liquid" ? "flat" : "liquid",
       origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, radius: Math.min(rect.width, rect.height) / 2 }
     };
@@ -198,10 +204,15 @@ export function initTextureControl({ materialReady }) {
     announce("Hold to change texture");
     updateButton();
     frame = requestAnimationFrame(tick);
-    material.prepareTexture(current.abort.signal).then(() => {
+    const visualsReady = () => {
+      if (session !== current || current.abort.signal.aborted) return;
+      current.visualReady = true;
+      delete button.dataset.preparing;
+    };
+    material.prepareTexture(current.abort.signal, visualsReady).then(() => {
       if (session === current && !current.abort.signal.aborted) {
+        visualsReady();
         current.ready = true;
-        delete button.dataset.preparing;
       }
     }).catch((error) => {
       if (session !== current || error.name === "AbortError") return;
@@ -220,12 +231,11 @@ export function initTextureControl({ materialReady }) {
   const releaseHold = () => {
     if (!session || session.phase === "cancel" || session.released) return;
     if (performance.now() - session.started < TEXTURE_HOLD_MS) { cancelHold(); return; }
-    const wasWaiting = session.phase === "waiting";
     session.released = true;
-    if (session.phase === "resume") return;
-    session.phase = session.ready ? (wasWaiting ? "resume" : "spread") : "waiting";
+    session.phase = session.ready ? "spread" : "waiting";
     session.phaseStart = performance.now();
     button.dataset.phase = session.phase;
+    if (!session.ready) announce("Preparing texture");
   };
   button.addEventListener("contextmenu", (event) => event.preventDefault());
   // Also guard delegated document handlers and any focus retained before lock.

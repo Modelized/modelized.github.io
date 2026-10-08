@@ -41,6 +41,8 @@ uniform float textureStrength;
 uniform float textureLightLimit;
 uniform vec2 textureJitter;
 uniform float textureCharge;
+uniform float textureLoading;
+uniform float textureElapsed;
 vec2 texturePoint() {
   return vec2(gl_FragCoord.x / texturePixels.x, 1. - gl_FragCoord.y / texturePixels.y) * textureViewport;
 }
@@ -60,13 +62,18 @@ float textureSwell() {
 vec4 textureGatherLight(vec2 point, float phase) {
   float r = length(point - textureOrigin);
   float extent = textureGatherRadius(0.);
-  float radius = textureGatherRadius(phase);
-  float width = mix(extent * .36, textureFocus * 1.5, phase);
+  float radius = mix(textureGatherRadius(phase), textureFocus * .98 / .72, textureLoading);
+  float width = mix(mix(extent * .36, textureFocus * 1.5, phase), textureFocus * .29, textureLoading);
   float q = (r - radius * .72) / width;
   float focus = exp(-pow(r / mix(extent * .30, textureFocus * 1.15, phase), 2.));
   float shoulder = exp(-q * q * 1.7);
   float haze = exp(-pow(r / (radius + width), 2.));
-  float alpha = (focus * mix(.025, .72, phase) + shoulder * mix(.035, .19, phase) + haze * .045)
+  vec2 ray = point - textureOrigin;
+  float angle = fract(atan(ray.y, ray.x) / 6.2831853 - textureElapsed / 1.8);
+  float arc = smoothstep(.08, .85, angle) * (1. - smoothstep(.85, 1., angle));
+  float alpha = (focus * mix(.025, .72, phase) * (1. - textureLoading)
+    + shoulder * mix(mix(.035, .19, phase), .9 * arc, textureLoading)
+    + haze * .045 * (1. - textureLoading))
     * smoothstep(0., .12, phase);
   vec3 warm = mix(vec3(1., .76, .53), vec3(1., .985, .96), clamp(focus + shoulder * .8, 0., 1.));
   return vec4(warm * alpha, alpha);

@@ -1,6 +1,6 @@
-import { getTexturePreference } from "./texture-state.js?v=20261008i";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261008i";
-import { captureTextureSurface } from "./texture-surfaces.js?v=20261008i";
+import { getTexturePreference } from "./texture-state.js?v=20261008k";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261008k";
+import { captureTextureSurface } from "./texture-surfaces.js?v=20261008k";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
 const REFLECTION_TILE_SIZE = 1024;
@@ -426,6 +426,7 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform2f(uniform(shader, "textureJitter"), textureFrame.jitter?.x || 0, textureFrame.jitter?.y || 0);
       gl.uniform1f(uniform(shader, "textureCharge"), textureFrame.charge || 0);
       gl.uniform1f(uniform(shader, "textureElapsed"), textureFrame.elapsed || 0);
+      gl.uniform1f(uniform(shader, "textureLoading"), textureFrame.loading || 0);
     };
     // The field only translates; its shape never changes. Bake one full period
     // once, then move sampling coordinates rather than redraw reflection buffers.
@@ -845,7 +846,7 @@ export async function initHeroMaterial({ typographyReady } = {}) {
     const main = () => layers.find((layer) => layer?.root.matches(".hero-brand-lockup"));
     return {
       get available() { return !!main()?.active; },
-      async prepareTexture(signal) {
+      async prepareTexture(signal, onVisualsReady) {
         const layer = main();
         const check = () => {
           if (signal.aborted) throw new DOMException("Texture preparation cancelled", "AbortError");
@@ -865,6 +866,8 @@ export async function initHeroMaterial({ typographyReady } = {}) {
             layer.render(entry);
           }
         }
+        check();
+        onVisualsReady?.();
         await nextFrame();
         check();
       },
