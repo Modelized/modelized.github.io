@@ -1,9 +1,17 @@
-// Shared by the glyph and light passes: one wave, in CSS viewport coordinates.
+export function sampleTextureMotion(stage, progress) {
+  const p = Math.max(0, Math.min(1, progress));
+  if (stage < .5) return { position: p * p * (3 - 2 * p), speed: 4 * p * (1 - p) };
+  const onset = Math.sqrt(.035);
+  const root = Math.sqrt(p + .035);
+  return { position: (root - onset) / (Math.sqrt(1.035) - onset), speed: onset / root };
+}
+
 export const TEXTURE_WAVE = `
 uniform vec2 textureOrigin;
 uniform vec2 textureViewport;
 uniform vec2 texturePixels;
-uniform float textureProgress;
+uniform vec2 textureMotion;
+uniform float textureFocus;
 uniform float textureStage;
 uniform float textureStrength;
 uniform float textureLightLimit;
@@ -13,78 +21,69 @@ vec2 texturePoint() {
 float textureReach() {
   return length(max(textureOrigin, textureViewport - textureOrigin));
 }
-float textureTravel(float p) {
-  // The released pressure travels fastest immediately, then steadily settles.
-  return 1. - pow(1. - clamp(p, 0., 1.), 2.4);
+float textureGatherRadius(float phase) {
+  return mix(textureReach() * 1.12, textureFocus * 5., phase);
 }
-float textureGatherProgress(float p) {
-  p = clamp(p, 0., 1.);
-  return p * (2. - p);
+float textureHandoff() {
+  return smoothstep(0., .12, textureMotion.x);
 }
-float textureGatherRadius(float p) {
-  // A wide, faint wash concentrates with the pull, without an incoming ring.
-  float extent = min(textureReach() * 1.08, 1200.);
-  return extent * mix(1., .48, textureGatherProgress(p));
+float textureSwell() {
+  float phase = textureMotion.x;
+  return sqrt(textureMotion.y) * (1. - phase * .5)
+    * (1. - smoothstep(.9, 1., phase)) * textureHandoff();
 }
-float textureSwell(float p) {
-  return mix(1., .28, smoothstep(.10, .88, p)) * (1. - smoothstep(.80, 1., p));
-}
-vec4 textureGatherLight(vec2 point, float p) {
+vec4 textureGatherLight(vec2 point, float phase) {
   float r = length(point - textureOrigin);
-  float pressure = textureGatherProgress(p);
-  float focus = exp(-pow(r / mix(100., 46., pressure), 2.));
-  float haze = exp(-pow(r / textureGatherRadius(p), 2.) * 1.5);
-  float shoulder = exp(-pow(r / (textureGatherRadius(p) * .43), 2.));
-  float alpha = (focus * .59 + shoulder * .10 + haze * .13)
-    * pressure;
+  float extent = textureGatherRadius(0.);
+  float focus = exp(-pow(r / mix(extent * .40, textureFocus * 1.45, phase), 2.));
+  float haze = exp(-pow(r / textureGatherRadius(phase), 2.) * 1.5);
+  float shoulder = exp(-pow(r / mix(extent * .65, textureFocus * 2.6, phase), 2.));
+  float alpha = (focus * mix(.08, .59, phase) + shoulder * .10 + haze * .13)
+    * (1. - exp(-8. * phase));
   vec3 warm = mix(vec3(1., .79, .62), vec3(1., .98, .94), clamp(focus + shoulder * .30, 0., 1.));
   return vec4(warm * alpha, alpha);
 }
 vec3 textureWave(vec2 point) {
-  float p = clamp(textureProgress, 0., 1.);
+  float phase = textureMotion.x;
   float breadth = clamp(min(textureViewport.x, textureViewport.y) * .24, 92., 180.);
-  float radius = mix(22., textureReach() + breadth * 2., textureTravel(p));
-  float width = breadth * mix(.65, 1.25, smoothstep(0., .55, p));
+  float radius = mix(textureFocus, textureReach() + breadth * 2., phase);
+  float width = breadth * mix(.65, 1.25, phase);
   float q = (length(point - textureOrigin) - radius) / width;
   return vec3(q, width, radius);
 }
-vec2 texturePull(vec2 point, float p) {
+vec2 texturePull(vec2 point, float phase) {
   vec2 ray = point - textureOrigin;
   float r = length(ray);
-  // Accumulate the pull over the initial wide field. Contracting its falloff
-  // each frame would let distant features spring back while still gathering.
   float influence = textureGatherRadius(0.);
   float field = exp(-pow(r / influence, 2.) * 1.8);
-  float pull = min(r * .40, 112.) * field * textureGatherProgress(p);
-  return ray / max(1., r) * pull;
+  float t = .22 * phase * field;
+  // Inverse quadratic Bezier contraction; the two axes turn at different rates.
+  vec2 contraction = vec2(1. - 1.5 * t + .5 * t * t, 1. - .8 * t - .2 * t * t);
+  return ray * (1. / contraction - 1.);
 }
 vec2 textureDisplacement(vec2 point) {
   vec2 ray = point - textureOrigin;
   float r = length(ray);
-  float p = clamp(textureProgress, 0., 1.);
+  float phase = textureMotion.x;
   if (textureStage < .5) {
-    // Pull the sampled image outward so its visible features move INWARD.
-    // Light contraction and inward movement share the same pressure curve.
-    return texturePull(point, p) * textureStrength;
+    return texturePull(point, phase) * textureStrength;
   }
   vec3 wave = textureWave(point);
-  float envelope = textureSwell(p) * smoothstep(0., .12, p);
-  // A broad convex lens followed by a smaller recovery trough, not a thin ripple.
   float lens = wave.x * exp(-wave.x * wave.x * 2.2);
   float wake = (wave.x + 1.4) * exp(-pow(wave.x + 1.4, 2.) * 4.) * .16;
-  vec2 release = texturePull(point, 1.) * (1. - smoothstep(0., .35, p));
-  return (release + ray / max(1., r) * (lens - wake) * wave.y * 1.35 * envelope) * textureStrength;
+  vec2 release = texturePull(point, 1.) * (1. - phase);
+  return (release + ray / max(1., r) * (lens - wake) * wave.y * 1.65 * textureSwell()) * textureStrength;
 }
 float textureDefocus(vec2 point) {
   float r = length(point - textureOrigin);
+  float phase = textureMotion.x;
   if (textureStage < .5) {
-    float extent = textureGatherRadius(textureProgress) * .65;
-    return 2.6 * smoothstep(0., .8, textureProgress) * exp(-pow(r / extent, 2.)) * textureStrength;
+    float extent = textureGatherRadius(phase) * .65;
+    return 2.6 * phase * exp(-pow(r / extent, 2.)) * textureStrength;
   }
   float q = textureWave(point).x;
-  float release = 2.6 * exp(-pow(r / (textureGatherRadius(1.) * .65), 2.)) * (1. - smoothstep(0., .3, textureProgress));
-  return (release + 3.4 * exp(-q * q * 2.) * textureSwell(textureProgress)
-    * smoothstep(0., .12, textureProgress)) * textureStrength;
+  float release = 2.6 * exp(-pow(r / (textureGatherRadius(1.) * .65), 2.)) * (1. - phase);
+  return (release + 3.4 * exp(-q * q * 2.) * textureSwell()) * textureStrength;
 }
 `;
 
@@ -93,34 +92,33 @@ precision highp float;
 ${TEXTURE_WAVE}
 void main() {
   vec2 point = texturePoint();
-  float p = textureProgress;
+  float phase = textureMotion.x;
   if (textureStage < .5) {
-    gl_FragColor = textureGatherLight(point, p) * textureStrength;
+    gl_FragColor = textureGatherLight(point, phase) * textureStrength;
     return;
   }
   vec3 wave = textureWave(point);
-  float envelope = mix(1., .55, smoothstep(.18, .85, p)) * (1. - smoothstep(.72, 1., p));
-  float crest = exp(-pow(wave.x + .18, 2.) * 7.);
-  float face = exp(-pow(wave.x + .50, 2.) * 1.6);
-  float halo = exp(-wave.x * wave.x * .48);
-  float trough = exp(-pow(wave.x - .65, 2.) * 5.);
-  float alpha = (crest * .48 + face * .25 + halo * .12 + trough * .12) * envelope;
+  float dispersal = phase;
+  if (textureLightLimit > 0.) {
+    float finish = max(textureFocus + 1., textureLightLimit - wave.y * 1.4);
+    float start = max(textureFocus, finish - wave.y * 2.);
+    dispersal = max(dispersal, smoothstep(start, finish, wave.z));
+  }
+  float spread = 1. + 2.4 * dispersal * dispersal;
+  float q = wave.x / spread;
+  float crest = exp(-pow(q + .18, 2.) * 7.);
+  float face = exp(-pow(q + .50, 2.) * 1.6);
+  float halo = exp(-q * q * .48);
+  float trough = exp(-pow(q - .65, 2.) * 5.);
+  float energy = sqrt(textureMotion.y) * pow(1. - dispersal, 2.) / spread;
+  float alpha = (crest * .48 + face * .25 + halo * .12 + trough * .12) * energy;
   vec3 warm = mix(vec3(1., .74, .48), vec3(1., .985, .955), clamp(crest + face * .75, 0., 1.));
   warm *= 1. - trough * .72;
-  // Fade the light independently of the refraction/replacement front, before
-  // the leading halo reaches the bottom. Zero means the short-viewport case.
-  float lightFade = 1.;
-  if (textureLightLimit > 0.) {
-    float finish = max(23., textureLightLimit - wave.y * 1.4);
-    float start = max(22., finish - wave.y * 1.6);
-    lightFade = 1. - smoothstep(start, finish, wave.z);
-  }
   gl_FragColor = mix(textureGatherLight(point, 1.), vec4(warm * alpha, alpha),
-    smoothstep(0., .16, p)) * textureStrength * lightFade;
+    textureHandoff()) * textureStrength;
 }
 `;
 
-// Logos/CTA use the identical displacement and local defocus as the typography.
 export const TEXTURE_SURFACE = `
 precision highp float;
 ${TEXTURE_WAVE}

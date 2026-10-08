@@ -1,5 +1,3 @@
-// Small, static UI surfaces are rasterized once per gesture, never per frame.
-// Read the live layout/styles; the source DOM remains responsible for layout.
 export function captureTextureSurface(element, density, colorSpace) {
   const rect = element.getBoundingClientRect();
   if (!rect.width || !rect.height) return null;
@@ -37,8 +35,7 @@ export function captureTextureSurface(element, density, colorSpace) {
       for (const node of label.childNodes) {
         if (node.nodeType !== Node.TEXT_NODE || !node.textContent.trim()) continue;
         const range = document.createRange();
-        // A single text node can wrap onto multiple lines without a <br>.
-        // Its bounding box spans all lines; draw each word at its live position.
+        // Word ranges preserve wrapping within a single text node.
         for (const token of node.textContent.matchAll(/\S+/g)) {
           range.setStart(node, token.index);
           range.setEnd(node, token.index + token[0].length);

@@ -1,10 +1,34 @@
-// Dependency-free controller checks; actual shader rendering is tested in-browser.
+// Dependency-free controller and motion checks; no GPU rendering.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
 const source = (await readFile(new URL('../docs/assets/js/modules/texture-control.js', import.meta.url), 'utf8'))
-  .replace(/^import .*;\n/, '').replace('export function', 'function');
+  .replace(/^import .*;\n/gm, '').replace('export function', 'function');
+const waveSource = (await readFile(new URL('../docs/assets/js/modules/texture-wave.js', import.meta.url), 'utf8'))
+  .replace(/^export /gm, '');
+const motionContext = vm.createContext({});
+vm.runInContext(waveSource, motionContext);
+const sampleTextureMotion = motionContext.sampleTextureMotion;
+
+for (const stage of [0, 1]) {
+  assert.equal(sampleTextureMotion(stage, 0).position, 0);
+  assert.equal(sampleTextureMotion(stage, 1).position, 1);
+  let previous = sampleTextureMotion(stage, 0);
+  let increment = Infinity;
+  for (let i = 1; i <= 100; i++) {
+    const next = sampleTextureMotion(stage, i / 100);
+    assert.ok(Number.isFinite(next.speed) && next.speed >= 0);
+    assert.ok(next.position >= previous.position && next.position <= 1);
+    if (stage === 1) {
+      assert.ok(next.speed <= previous.speed);
+      assert.ok(next.position - previous.position <= increment + 1e-12);
+    }
+    increment = next.position - previous.position;
+    previous = next;
+  }
+}
+console.log('Motion profiles: bounded, continuous endpoints and decelerating expansion');
 
 class Element {
   constructor() {
@@ -56,7 +80,7 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
     finishTexture: () => material.finishes++
   };
   const context = vm.createContext({
-    document, window, innerWidth: 440, AbortController, console: { warn() {}, debug() {} },
+    document, window, innerWidth: 440, AbortController, sampleTextureMotion, console: { warn() {}, debug() {} },
     performance: { now: () => time },
     requestAnimationFrame: (fn) => schedule(fn, 16), cancelAnimationFrame: (key) => jobs.delete(key),
     setTimeout: (fn, delay) => schedule(fn, delay), clearTimeout: (key) => jobs.delete(key),
@@ -100,6 +124,10 @@ for (const preference of ['flat', 'liquid']) {
   t.release(); await t.advance(1200);
   assert.deepEqual(t.saved, [preference === 'flat' ? 'liquid' : 'flat']);
   assert.ok(t.draws.some((frame) => frame.stage === 1));
+  for (const frame of t.draws) {
+    assert.equal(frame.origin.radius, 16);
+    assert.deepEqual(frame.motion, sampleTextureMotion(frame.stage, frame.progress));
+  }
   assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
   assert.equal(t.otherControl.inert, false);
 }

@@ -1,5 +1,5 @@
 import { createScrollReveal } from "../scroll-reveal.js?v=20261002a";
-import { getScrollTop } from "./navigation.js?v=20261002a";
+import { getScrollTop } from "./navigation.js?v=20261008e";
 import { prefersReducedMotion, body } from "./context.js?v=20261002a";
 function applyRevealStagger() {
   const sections = Array.from(document.querySelectorAll(".section"));

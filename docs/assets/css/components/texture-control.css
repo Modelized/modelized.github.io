@@ -1,4 +1,3 @@
-/* Texture interaction: preserve the existing navigation button shell. */
 .nav-texture-control {
   --texture-charge: 0;
   padding: 0;
@@ -60,8 +59,7 @@
   opacity: 0;
   pointer-events: none;
 }
-/* No second charging ring. Only an actual preparation delay turns the
-   gathered warm light into a rotating, softly feathered loading arc. */
+/* The loading arc appears only while preparation is delayed. */
 [data-preparing][data-phase="charge"] .texture-control__charge {
   opacity: var(--texture-charge);
   background: radial-gradient(circle, #fff9ed99, #ffd3a133 45%, transparent 72%);
@@ -95,7 +93,6 @@ body.texture-transition-active .site-nav .brand,
 body.texture-transition-active .site-nav .menu,
 body.texture-transition-active .nav-toggle { pointer-events: none; }
 
-/* The existing context moves here only for the transient, viewport-space wave. */
 body > .texture-transition-canvas {
   position: absolute;
   inset: 0 auto auto 0;

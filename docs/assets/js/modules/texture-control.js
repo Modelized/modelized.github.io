@@ -1,4 +1,5 @@
-import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008d";
+import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008e";
+import { sampleTextureMotion } from "./texture-wave.js?v=20261008e";
 
 const TEXTURE_HOLD_MS = 900;
 const TEXTURE_SPREAD_MS = 1050;
@@ -51,8 +52,7 @@ export function initTextureControl({ materialReady }) {
       return;
     }
     const next = scrollTop() > 0 ? "top" : "texture";
-    // Scrolling down changes the action immediately. Returning to the top
-    // retains Back to top until BOTH halves of the icon fade have completed.
+    // Keep Back to top active until the return icon fade completes.
     if (next === "top") action = "top";
     if (desiredIcon === next) { updateButton(); return; }
     desiredIcon = next;
@@ -116,8 +116,10 @@ export function initTextureControl({ materialReady }) {
     } else releaseLock();
   };
   const draw = (current, stage, progress, strength = 1) => {
+    const motion = sampleTextureMotion(stage, progress);
+    if (stage === 0) button.style.setProperty("--texture-charge", String(motion.position * strength));
     if (reducedMotion.matches || !current.ready) return;
-    material.updateTexture({ origin: current.origin, target: current.target, stage, progress, strength });
+    material.updateTexture({ origin: current.origin, target: current.target, stage, progress, motion, strength });
   };
   const tick = (now) => {
     frame = 0;
@@ -129,7 +131,6 @@ export function initTextureControl({ materialReady }) {
     }
     if (current.phase === "charge") {
       const progress = Math.min(1, (now - current.started) / TEXTURE_HOLD_MS);
-      button.style.setProperty("--texture-charge", String(progress));
       draw(current, 0, progress);
       if (progress === 1) {
         current.released = current.autoRelease;
@@ -151,7 +152,6 @@ export function initTextureControl({ materialReady }) {
         button.dataset.phase = current.phase;
       }
     } else if (current.phase === "resume") {
-      // A short handoff from the circular loading cue back into the warm wave.
       const progress = Math.min(1, (now - current.phaseStart) / 160);
       draw(current, 0, 1, progress);
       if (progress === 1) {
@@ -169,7 +169,6 @@ export function initTextureControl({ materialReady }) {
     } else if (current.phase === "cancel") {
       const progress = Math.min(1, (now - current.phaseStart) / 180);
       draw(current, 0, current.cancelProgress, 1 - progress);
-      button.style.setProperty("--texture-charge", String(current.cancelProgress * (1 - progress)));
       if (progress === 1) { finish(); return; }
     }
     frame = requestAnimationFrame(tick);
@@ -177,15 +176,14 @@ export function initTextureControl({ materialReady }) {
   const start = (autoRelease = false) => {
     if (!canTexture()) return;
     ++unlockRevision;
-    // canTexture already requires scrollTop === 0. Reissuing scrollTo here can
-    // disturb Safari's visual viewport while its browser chrome is settling.
+    // Already at the top; another scrollTo can disturb Safari's settling chrome.
     setLocked(true);
     const rect = button.getBoundingClientRect();
     const current = {
       abort: new AbortController(), started: performance.now(), phaseStart: 0,
       phase: "charge", ready: false, released: false, autoRelease,
       target: getTexturePreference() === "liquid" ? "flat" : "liquid",
-      origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      origin: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, radius: Math.min(rect.width, rect.height) / 2 }
     };
     session = current;
     button.dataset.phase = "charge";

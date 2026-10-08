@@ -1,6 +1,6 @@
-import { getTexturePreference } from "./texture-state.js?v=20261008d";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261008d";
-import { captureTextureSurface } from "./texture-surfaces.js?v=20261008d";
+import { getTexturePreference } from "./texture-state.js?v=20261008e";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261008e";
+import { captureTextureSurface } from "./texture-surfaces.js?v=20261008e";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
 const REFLECTION_TILE_SIZE = 1024;
@@ -176,8 +176,7 @@ void main() {
     1. - (displaced.y - textureGlyph.y) / textureGlyph.w);
   float front = textureStage < .5 ? 0. : 1. - smoothstep(-.45, .45, textureWave(point).x);
   float liquid = mix(1. - textureToLiquid, textureToLiquid, front);
-  // Transient, radial three-tap defocus. No full-screen blur surface, and the
-  // normal material shader still uses exactly one sample path.
+  // Three-tap defocus is limited to the transition shader.
   vec2 ray = point - textureOrigin;
   vec2 defocus = ray / max(1., length(ray)) * textureDefocus(point);
   vec2 delta = vec2(defocus.x / textureGlyph.z, -defocus.y / textureGlyph.w);
@@ -261,6 +260,7 @@ function createMaterialLayer(root, restore, unavailable) {
   let lost = false;
   let lastFrame = "";
   let textureFrame = null;
+  let texturePadding = 0;
   let textureMaterial = null;
   let textureLight = null;
   let textureFlatPalette = null;
@@ -370,8 +370,7 @@ function createMaterialLayer(root, restore, unavailable) {
         textureSurfaceProgram = createProgram(gl, TEXTURE_SURFACE);
         programs.push(textureSurfaceProgram);
       }
-      // Bake the existing CSS gradients, including their actual color space.
-      // A texture switch must not replace the old flat design with a new palette.
+      // Preserve the flat CSS palette and its color space.
       const paletteCanvas = document.createElement("canvas");
       paletteCanvas.width = 512;
       paletteCanvas.height = 2;
@@ -402,7 +401,8 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform2f(uniform(shader, "textureOrigin"), textureFrame.origin.x, textureFrame.origin.y);
       gl.uniform2f(uniform(shader, "textureViewport"), box.width, box.height);
       gl.uniform2f(uniform(shader, "texturePixels"), canvas.width, canvas.height);
-      gl.uniform1f(uniform(shader, "textureProgress"), textureFrame.progress);
+      gl.uniform2f(uniform(shader, "textureMotion"), textureFrame.motion.position, textureFrame.motion.speed);
+      gl.uniform1f(uniform(shader, "textureFocus"), textureFrame.origin.radius);
       gl.uniform1f(uniform(shader, "textureStage"), textureFrame.stage);
       gl.uniform1f(uniform(shader, "textureStrength"), textureFrame.strength ?? 1);
       gl.uniform1f(uniform(shader, "textureLightLimit"), textureLightLimit);
@@ -550,22 +550,23 @@ function createMaterialLayer(root, restore, unavailable) {
         const entering = !textureFrame;
         textureFrame = value;
         if (entering) {
-          // Measure once per gesture. Short viewports constrained by the hero's
-          // CSS minimum retain the full light pass, as well as the full warp.
+          const reach = Math.hypot(Math.max(value.origin.x, window.innerWidth - value.origin.x),
+            Math.max(value.origin.y, window.innerHeight - value.origin.y));
+          const breadth = Math.max(92, Math.min(180, Math.min(window.innerWidth, window.innerHeight) * .24));
+          texturePadding = Math.ceil(reach * .18 + breadth * .75 + 8);
+          // Short viewports retain the full light pass below the hero minimum.
           const viewportHeight = Math.min(window.innerHeight, window.visualViewport?.height || window.innerHeight);
           const stage = root.closest(".hero-stage");
           const minimumHeight = stage ? parseFloat(getComputedStyle(stage).minHeight) || 0 : 0;
           const availableHeight = viewportHeight - (stage?.getBoundingClientRect().top || 0);
           textureLightLimit = availableHeight >= minimumHeight ? Math.max(1, viewportHeight - value.origin.y) : 0;
-          // Absolute document coordinates, never a fixed body/viewport: retain
-          // Glyph Story's scroll-lock strategy and Safari's page background.
+          // Absolute positioning preserves Safari's page background during the lock.
           canvas.classList.add("texture-transition-canvas");
           canvas.style.height = `${window.innerHeight}px`;
           document.body.append(canvas);
         }
         lastFrame = "";
-        // Reparenting changes the canvas box immediately. Replace its old,
-        // root-relative bitmap before the browser paints the relocated canvas.
+        // Repaint the relocated canvas before exposing its old coordinate space.
         if (entering) this.render();
       },
       finishTexture() {
@@ -697,7 +698,7 @@ function createMaterialLayer(root, restore, unavailable) {
             bind(entry.textures[0], 0);
             bind(entry.textures[2], 1);
             bind(reflectionTile, 2);
-            const padding = textureFrame ? 128 : 0;
+            const padding = textureFrame ? texturePadding : 0;
             gl.uniform4f(uniform(shader, "rectangle"),
               (rect.left - box.left - padding) / box.width * 2 - 1,
               1 - (rect.bottom - box.top + padding) / box.height * 2,
@@ -729,9 +730,9 @@ function createMaterialLayer(root, restore, unavailable) {
               bind(surface.texture);
               gl.uniform4f(uniform(textureSurfaceProgram, "surfaceBox"), rect.left - box.left, rect.top - box.top, rect.width, rect.height);
               gl.uniform4f(uniform(textureSurfaceProgram, "rectangle"),
-                (rect.left - box.left - 128) / box.width * 2 - 1,
-                1 - (rect.bottom - box.top + 128) / box.height * 2,
-                (rect.width + 256) / box.width * 2, (rect.height + 256) / box.height * 2);
+                (rect.left - box.left - texturePadding) / box.width * 2 - 1,
+                1 - (rect.bottom - box.top + texturePadding) / box.height * 2,
+                (rect.width + texturePadding * 2) / box.width * 2, (rect.height + texturePadding * 2) / box.height * 2);
               gl.drawArrays(gl.TRIANGLES, 0, 6);
               surface.element.classList.add("texture-surface-active");
             }
@@ -827,8 +828,7 @@ export async function initHeroMaterial({ typographyReady } = {}) {
         layer.prepareTexturePrograms();
         await layer.prepareTextureSurfaces(signal);
         check();
-        // Preparation renders must not clear the visible liquid canvas. Only
-        // flat mode needs the paused glyph data brought up to date here.
+        // Refresh paused flat glyphs without clearing a visible liquid canvas.
         if (getTexturePreference() === "flat") {
           for (const entry of layer.entries) {
             await nextFrame();
