@@ -1,5 +1,5 @@
-import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008e";
-import { sampleTextureMotion } from "./texture-wave.js?v=20261008e";
+import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008i";
+import { sampleTextureMotion, sampleTextureCharge } from "./texture-wave.js?v=20261008i";
 
 const TEXTURE_HOLD_MS = 900;
 const TEXTURE_SPREAD_MS = 1050;
@@ -119,7 +119,13 @@ export function initTextureControl({ materialReady }) {
     const motion = sampleTextureMotion(stage, progress);
     if (stage === 0) button.style.setProperty("--texture-charge", String(motion.position * strength));
     if (reducedMotion.matches || !current.ready) return;
-    material.updateTexture({ origin: current.origin, target: current.target, stage, progress, motion, strength });
+    const elapsed = performance.now() - current.started;
+    if (stage === 0) current.jitter = sampleTextureCharge(elapsed);
+    const jitter = current.jitter || { x: 0, y: 0 };
+    const settling = stage === 0 ? 1 : Math.exp(-progress * 35);
+    material.updateTexture({ origin: current.origin, target: current.target, stage, progress, motion, strength,
+      elapsed: elapsed / 1000, charge: (jitter.energy || 0) * settling,
+      jitter: { x: jitter.x * settling, y: jitter.y * settling } });
   };
   const tick = (now) => {
     frame = 0;

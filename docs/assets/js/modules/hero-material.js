@@ -1,6 +1,6 @@
-import { getTexturePreference } from "./texture-state.js?v=20261008e";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261008e";
-import { captureTextureSurface } from "./texture-surfaces.js?v=20261008e";
+import { getTexturePreference } from "./texture-state.js?v=20261008i";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261008i";
+import { captureTextureSurface } from "./texture-surfaces.js?v=20261008i";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
 const REFLECTION_TILE_SIZE = 1024;
@@ -178,23 +178,23 @@ void main() {
   float liquid = mix(1. - textureToLiquid, textureToLiquid, front);
   // Three-tap defocus is limited to the transition shader.
   vec2 ray = point - textureOrigin;
-  vec2 defocus = ray / max(1., length(ray)) * textureDefocus(point);
+  float chromatic = textureChromatic(point);
+  vec2 defocus = ray / max(1., length(ray)) * (textureDefocus(point) * (1. - chromatic * .5) + chromatic * 2.);
   vec2 delta = vec2(defocus.x / textureGlyph.z, -defocus.y / textureGlyph.w);
-  gl_FragColor = materialSample(sampleUV, liquid) * .5
-    + materialSample(sampleUV - delta, liquid) * .25
-    + materialSample(sampleUV + delta, liquid) * .25;
+  gl_FragColor = textureComposite(materialSample(sampleUV, liquid),
+    materialSample(sampleUV - delta, liquid), materialSample(sampleUV + delta, liquid), chromatic);
 #else
   gl_FragColor = materialSample(uv, 1.);
 #endif
 }
 `;
 
-function createProgram(gl, fragment) {
+function createProgram(gl, fragment, vertex = VERTEX) {
   const program = gl.createProgram();
   const shaders = [];
   try {
     if (!program) throw new Error("WebGL program allocation failed");
-    for (const [type, code] of [[gl.VERTEX_SHADER, VERTEX], [gl.FRAGMENT_SHADER, fragment]]) {
+    for (const [type, code] of [[gl.VERTEX_SHADER, vertex], [gl.FRAGMENT_SHADER, fragment]]) {
       const shader = gl.createShader(type);
       if (!shader) throw new Error("WebGL shader allocation failed");
       shaders.push(shader);
@@ -263,6 +263,8 @@ function createMaterialLayer(root, restore, unavailable) {
   let texturePadding = 0;
   let textureMaterial = null;
   let textureLight = null;
+  let textureParticles = null;
+  let particleBuffer = null;
   let textureFlatPalette = null;
   let textureSurfaceProgram = null;
   let textureLightLimit = 0;
@@ -303,6 +305,7 @@ function createMaterialLayer(root, restore, unavailable) {
     if (textureFlatPalette) gl.deleteTexture(textureFlatPalette);
     programs.forEach((shader) => gl.deleteProgram(shader.program));
     if (quad) gl.deleteBuffer(quad);
+    if (particleBuffer) gl.deleteBuffer(particleBuffer);
     if (releaseContext) gl.getExtension("WEBGL_lose_context")?.loseContext();
   };
   const fail = (error) => {
@@ -356,7 +359,7 @@ function createMaterialLayer(root, restore, unavailable) {
       return result;
     };
     const prepareTexturePrograms = () => {
-      if (textureMaterial && textureLight && textureFlatPalette && textureSurfaceProgram) return;
+      if (textureMaterial && textureLight && textureFlatPalette && textureSurfaceProgram && textureParticles && particleBuffer) return;
       // Keep individually completed resources reusable after a failed attempt.
       if (!textureMaterial) {
         textureMaterial = createProgram(gl, "#define TEXTURE_TRANSITION\n" + MATERIAL);
@@ -369,6 +372,19 @@ function createMaterialLayer(root, restore, unavailable) {
       if (!textureSurfaceProgram) {
         textureSurfaceProgram = createProgram(gl, TEXTURE_SURFACE);
         programs.push(textureSurfaceProgram);
+      }
+      if (!textureParticles) {
+        textureParticles = createProgram(gl, TEXTURE_PARTICLE_FRAGMENT, TEXTURE_PARTICLE_VERTEX);
+        programs.push(textureParticles);
+      }
+      if (!particleBuffer) {
+        particleBuffer = gl.createBuffer();
+        if (!particleBuffer) throw new Error("Texture particle allocation failed");
+        const seeds = new Float32Array(32);
+        for (let i = 0; i < 16; i++) { seeds[i * 2] = i; seeds[i * 2 + 1] = i / 16; }
+        gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, seeds, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, quad);
       }
       // Preserve the flat CSS palette and its color space.
       const paletteCanvas = document.createElement("canvas");
@@ -402,10 +418,14 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform2f(uniform(shader, "textureViewport"), box.width, box.height);
       gl.uniform2f(uniform(shader, "texturePixels"), canvas.width, canvas.height);
       gl.uniform2f(uniform(shader, "textureMotion"), textureFrame.motion.position, textureFrame.motion.speed);
+      gl.uniform1f(uniform(shader, "textureRecoil"), textureFrame.motion.recoil);
       gl.uniform1f(uniform(shader, "textureFocus"), textureFrame.origin.radius);
       gl.uniform1f(uniform(shader, "textureStage"), textureFrame.stage);
       gl.uniform1f(uniform(shader, "textureStrength"), textureFrame.strength ?? 1);
       gl.uniform1f(uniform(shader, "textureLightLimit"), textureLightLimit);
+      gl.uniform2f(uniform(shader, "textureJitter"), textureFrame.jitter?.x || 0, textureFrame.jitter?.y || 0);
+      gl.uniform1f(uniform(shader, "textureCharge"), textureFrame.charge || 0);
+      gl.uniform1f(uniform(shader, "textureElapsed"), textureFrame.elapsed || 0);
     };
     // The field only translates; its shape never changes. Bake one full period
     // once, then move sampling coordinates rather than redraw reflection buffers.
@@ -552,8 +572,8 @@ function createMaterialLayer(root, restore, unavailable) {
         if (entering) {
           const reach = Math.hypot(Math.max(value.origin.x, window.innerWidth - value.origin.x),
             Math.max(value.origin.y, window.innerHeight - value.origin.y));
-          const breadth = Math.max(92, Math.min(180, Math.min(window.innerWidth, window.innerHeight) * .24));
-          texturePadding = Math.ceil(reach * .18 + breadth * .75 + 8);
+          const breadth = Math.min(window.innerWidth, window.innerHeight) * .30 + reach * .035;
+          texturePadding = Math.ceil(reach * .09 + breadth * .40 + 10);
           // Short viewports retain the full light pass below the hero minimum.
           const viewportHeight = Math.min(window.innerHeight, window.visualViewport?.height || window.innerHeight);
           const stage = root.closest(".hero-stage");
@@ -740,6 +760,15 @@ function createMaterialLayer(root, restore, unavailable) {
             textureUniforms(textureLight, box);
             gl.uniform4f(uniform(textureLight, "rectangle"), -1, -1, 2, 2);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
+            if (textureFrame.stage === 0 || textureFrame.motion.position < .22) {
+              gl.useProgram(textureParticles.program);
+              textureUniforms(textureParticles, box);
+              gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
+              gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+              gl.drawArrays(gl.POINTS, 0, 16);
+              gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+              gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+            }
           }
           if (preparingEntry) {
             // Exercise the real upload/relief/composite path without exposing a

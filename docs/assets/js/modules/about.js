@@ -1,6 +1,6 @@
 import { prefersReducedMotion } from "./context.js?v=20261002a";
-import { syncRockSaltSafeAreas } from "./typography.js?v=20261008e";
-import { createSettledScheduler } from "./navigation.js?v=20261008e";
+import { syncRockSaltSafeAreas } from "./typography.js?v=20261008i";
+import { createSettledScheduler } from "./navigation.js?v=20261008i";
 function initAboutDisclosure() {
   const details = document.getElementById("about-details");
   const toggle = document.querySelector(".about-copy__toggle");

@@ -10,6 +10,7 @@ const waveSource = (await readFile(new URL('../docs/assets/js/modules/texture-wa
 const motionContext = vm.createContext({});
 vm.runInContext(waveSource, motionContext);
 const sampleTextureMotion = motionContext.sampleTextureMotion;
+const sampleTextureCharge = motionContext.sampleTextureCharge;
 
 for (const stage of [0, 1]) {
   assert.equal(sampleTextureMotion(stage, 0).position, 0);
@@ -29,6 +30,32 @@ for (const stage of [0, 1]) {
   }
 }
 console.log('Motion profiles: bounded, continuous endpoints and decelerating expansion');
+assert.ok(sampleTextureMotion(1, .25).position > .5);
+assert.ok(sampleTextureMotion(1, .5).position > .79);
+assert.ok(sampleTextureMotion(1, .5).position < .81);
+assert.equal(sampleTextureMotion(1, 1).speed, 0);
+for (const elapsed of [0, 900, 1300]) {
+  const jitter = sampleTextureCharge(elapsed);
+  assert.equal(Math.abs(jitter.x) + Math.abs(jitter.y), 0);
+}
+for (let elapsed = 1300; elapsed < 30000; elapsed += 16) {
+  const jitter = sampleTextureCharge(elapsed);
+  assert.ok(Math.abs(jitter.x) <= 2.48 && Math.abs(jitter.y) <= 1.92);
+  assert.ok(jitter.energy >= 0 && jitter.energy <= 1.6);
+}
+assert.equal(sampleTextureCharge(1300).energy, 0);
+assert.equal(sampleTextureCharge(2500).energy, 1);
+assert.ok(sampleTextureCharge(4000).energy > 1);
+assert.equal(sampleTextureCharge(5500).energy, 1.6);
+assert.equal(sampleTextureCharge(30000).energy, 1.6);
+assert.equal(sampleTextureMotion(1, 0).recoil, 1);
+assert.equal(sampleTextureMotion(1, 1).recoil, 0);
+assert.ok(Math.abs(sampleTextureMotion(1, .2).recoil) < .02);
+assert.ok(sampleTextureMotion(1, .3).recoil < -.08);
+assert.ok(sampleTextureMotion(1, .3).recoil > -.12);
+assert.ok(sampleTextureMotion(1, .6).recoil > 0);
+for (let i = 50; i <= 100; i++) assert.ok(Math.abs(sampleTextureMotion(1, i / 100).recoil) < .012);
+console.log('Recoil: early return, one primary overshoot and a subdued settling response');
 
 class Element {
   constructor() {
@@ -55,7 +82,7 @@ class Element {
   getBoundingClientRect() { return { left: 340, top: 16, width: 32, height: 32 }; }
 }
 
-async function setup({ preference = 'liquid', available = true, delayed = false, scale } = {}) {
+async function setup({ preference = 'liquid', available = true, delayed = false, scale, reduced = false } = {}) {
   let time = 0, id = 0, resolvePreparation, rejectPreparation;
   const jobs = new Map(), saved = [], draws = [];
   const body = new Element(), html = new Element(), button = new Element(), icon = new Element();
@@ -80,11 +107,11 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
     finishTexture: () => material.finishes++
   };
   const context = vm.createContext({
-    document, window, innerWidth: 440, AbortController, sampleTextureMotion, console: { warn() {}, debug() {} },
+    document, window, innerWidth: 440, AbortController, sampleTextureMotion, sampleTextureCharge, console: { warn() {}, debug() {} },
     performance: { now: () => time },
     requestAnimationFrame: (fn) => schedule(fn, 16), cancelAnimationFrame: (key) => jobs.delete(key),
     setTimeout: (fn, delay) => schedule(fn, delay), clearTimeout: (key) => jobs.delete(key),
-    matchMedia: () => Object.assign(new Element(), { matches: false }),
+    matchMedia: () => Object.assign(new Element(), { matches: reduced }),
     MutationObserver: class { observe() {} },
     getTexturePreference: () => preference,
     saveTexturePreference: (value) => { preference = value; saved.push(value); }
@@ -130,6 +157,28 @@ for (const preference of ['flat', 'liquid']) {
   }
   assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
   assert.equal(t.otherControl.inert, false);
+}
+{
+  const t = await setup();
+  t.press(); await t.advance(1200);
+  assert.ok(t.draws.every(({ jitter }) => Math.abs(jitter.x) + Math.abs(jitter.y) === 0));
+  await t.advance(1800);
+  assert.ok(t.draws.some(({ jitter }) => Math.abs(jitter.x) > .5));
+  t.release(); await t.advance(350);
+  const last = t.draws.at(-1);
+  assert.equal(last.stage, 1);
+  assert.ok(Math.abs(last.jitter.x) + Math.abs(last.jitter.y) < .001);
+  assert.ok(last.charge < .001);
+  assert.equal(last.strength, 1);
+  await t.advance(900);
+  assert.deepEqual(t.saved, ['flat']);
+}
+{
+  const t = await setup({ reduced: true });
+  t.press(); await t.advance(3000); t.release(); await t.advance(300);
+  assert.equal(t.draws.length, 0);
+  assert.deepEqual(t.saved, ['flat']);
+  assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
 }
 {
   const t = await setup();
@@ -286,4 +335,4 @@ for (const initial of [null, 'flat', 'liquid', 'invalid']) {
   vm.runInContext('saveTexturePreference("flat")', context);
   assert.equal(vm.runInContext('getTexturePreference()', context), 'flat');
 }
-console.log('Texture controller: 15 scenarios passed; wrapped label: passed; preference persistence: 5 scenarios passed');
+console.log('Texture controller: 17 scenarios passed; wrapped label: passed; preference persistence: 5 scenarios passed');

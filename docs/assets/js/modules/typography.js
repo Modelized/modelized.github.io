@@ -1,6 +1,6 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
-import { createSettledScheduler } from "./navigation.js?v=20261008e";
-import { updateHeroMaterial, prepareHeroMaterial } from "./hero-material.js?v=20261008e";
+import { createSettledScheduler } from "./navigation.js?v=20261008i";
+import { updateHeroMaterial, prepareHeroMaterial } from "./hero-material.js?v=20261008i";
 // Keep the pulse implementation available independently of arrival/refit motion.
 const HERO_TOUCH_PULSE_ENABLED = true;
 const METAL_ARRIVAL_DURATION = 900;
