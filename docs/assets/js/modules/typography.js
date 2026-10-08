@@ -509,7 +509,10 @@ function initGridFittedTypography() {
 
     const animations = metalRoot.getAnimations({ subtree: true });
     metalClockGroups.forEach((group, animationName) => {
-      const members = animations.filter((animation) => animation.animationName === animationName);
+      const members = animations.filter((animation) =>
+        animation.animationName === animationName &&
+        !animation.effect?.target?.closest(".discipline-stack-card")
+      );
       const clockRoot = animationName === "hero-intro-metal-stream" ? introMetalRoot : metalRoot;
       const clock = members.find((animation) => animation.effect?.target === clockRoot);
       const added = group.has(clock)
@@ -869,19 +872,6 @@ function initGridFittedTypography() {
     .matchMedia("(prefers-reduced-motion: reduce)")
     .addEventListener?.("change", syncMetalClockGroups);
   syncMetalClockGroups();
-  document.addEventListener("stack:decoration", (event) => {
-    // Rejoin the shared metal clock after a stack resumes, without waking paused effects.
-    metalClockGroups.forEach((group) => {
-      const clock = Array.from(group).find((animation) => animation.effect?.target === metalRoot);
-      if (!clock || clock.startTime === null) return;
-      group.forEach((animation) => {
-        if (!event.target.contains(animation.effect?.target) || animation.playState === "paused")
-          return;
-        animation.playbackRate = clock.playbackRate;
-        animation.startTime = clock.startTime;
-      });
-    });
-  });
   document.querySelector(".hero-brand-lockup")?.addEventListener("click", (event) => {
     if (
       !HERO_TOUCH_PULSE_ENABLED ||

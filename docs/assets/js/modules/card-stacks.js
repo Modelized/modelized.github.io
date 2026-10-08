@@ -109,7 +109,6 @@ function initStackDeck({
     const value = String(decorating);
     if (stack.dataset.stackDecorating !== value) {
       stack.dataset.stackDecorating = value;
-      if (decorating) stack.dispatchEvent(new Event("stack:decoration", { bubbles: true }));
     }
     if (!stackVisible || document.hidden) releaseSettledMotions();
   };
