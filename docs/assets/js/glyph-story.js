@@ -1,4 +1,4 @@
-import "./shell.js?v=20261008k";
+import "./shell.js?v=20261008l";
 
 (function () {
   "use strict";

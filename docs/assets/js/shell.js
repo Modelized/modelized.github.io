@@ -44,6 +44,11 @@ async function boot() {
 
   await siteBootGate.release();
   initHeroIntro({ waitForFonts: outcome === "ready" });
+  if (new URLSearchParams(location.search).get("stackDebug") === "1") {
+    import("./modules/stack-diagnostics.js?v=20261008a")
+      .then(({ initStackDiagnostics }) => initStackDiagnostics())
+      .catch((error) => console.warn("Stack diagnostics unavailable", error));
+  }
 }
 
 if (document.readyState === "loading") {
