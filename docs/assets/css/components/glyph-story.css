@@ -1,27 +1,28 @@
 /* Modelized Glyph Story */
-.glyph-portal-logo {
+.glyph-story__rail.glyph-portal-logo {
   position: fixed;
-  z-index: 5100;
   pointer-events: none;
-  transform-origin: center;
-  will-change: transform;
+  transform: none;
+  will-change: auto;
 }
 
-.glyph-portal-logo svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  filter: drop-shadow(0 0 3px rgba(255, 216, 174, .6));
+.glyph-story.is-portal-flying .glyph-story__visual {
+  container-type: normal;
 }
 
-.glyph-portal-fill { fill: #fff; }
-.glyph-portal-outline,
+.glyph-story.is-portal-flying .glyph-piece__motion,
+.glyph-story.is-portal-flying .glyph-piece__float,
+.glyph-story.is-portal-flying .glyph-piece__form {
+  will-change: auto;
+}
+
+.glyph-story.is-portal-flying .glyph-piece__fill,
+.glyph-story.is-portal-flying .glyph-piece__outline {
+  transition: none;
+}
+
 .glyph-portal-tail {
   fill: none;
-  stroke: #ffe5c5;
-  stroke-width: var(--glyph-portal-stroke, 2.8px);
-  vector-effect: non-scaling-stroke;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -38,11 +39,16 @@
   pointer-events: none;
 }
 
-body.glyph-portal-active .site-nav {
-  translate: var(--glyph-surrounding-x, 0px) var(--glyph-surrounding-y, 0px);
+body.glyph-portal-spreading .site-nav {
+  animation: none !important;
+  opacity: 1 !important;
 }
 
-body.glyph-portal-spreading .site-nav,
+body.glyph-portal-spreading .site-nav :is(.brand, .menu.desktop, .nav-right) {
+  opacity: var(--glyph-nav-fade, 1) !important;
+  transition: none !important;
+}
+
 body.glyph-portal-spreading .page-wrap > .section:not(#hero),
 body.glyph-portal-spreading .site-footer {
   opacity: var(--glyph-home-fade, 1);
@@ -57,6 +63,7 @@ body.glyph-story-lock {
 }
 
 .hero-project-logo-frame {
+  overflow: visible;
   touch-action: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -78,6 +85,10 @@ body.glyph-story-lock {
 .hero-project-logo-frame:focus-visible {
   outline: 2px solid rgba(243, 242, 238, 0.88);
   outline-offset: 4px;
+}
+
+.hero-project-logo-frame .hero-project-logo {
+  pointer-events: none;
 }
 
 .hero-project-logo-frame:not(:disabled) .hero-project-logo {
@@ -135,6 +146,8 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story {
+  --glyph-ink-rgb: 255, 233, 208;
+  --glyph-glow-rgb: 255, 208, 170;
   --glyph-stroke: clamp(2.6px, 0.17vw, 3.2px);
   --glyph-float-strength: 1;
   --glyph-overview-size: min(78cqw, 74cqh, 52rem);
@@ -150,7 +163,7 @@ body.glyph-story-active .site-nav {
   inset: 0;
   z-index: 5000;
   box-sizing: border-box;
-  color: #f3f2ee;
+  color: rgb(var(--glyph-ink-rgb));
   visibility: hidden;
   pointer-events: none;
   overflow: hidden;
@@ -403,8 +416,8 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece__fill {
-  fill: rgba(255, 233, 208, 0);
-  fill-opacity: 1;
+  fill: rgb(var(--glyph-ink-rgb));
+  fill-opacity: 0;
   stroke: none;
   transition:
     fill 1080ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -412,7 +425,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece__art .glyph-piece__outline {
-  stroke: rgba(255, 229, 197, 0.96);
+  stroke: rgb(var(--glyph-ink-rgb));
   stroke-width: var(--glyph-stroke);
   transition:
     stroke 1080ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -428,8 +441,8 @@ body.glyph-story-active .site-nav {
 
 .glyph-piece__glow {
   z-index: -1;
-  opacity: 0.5;
-  filter: blur(9px);
+  opacity: calc(.5 * var(--glyph-emission, 1));
+  filter: blur(var(--glyph-glow-blur, 9px));
   transform: scale(1.03);
   transition:
     opacity 480ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -438,7 +451,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece__glow .glyph-piece__outline {
-  stroke: #ffd7ad;
+  stroke: rgb(var(--glyph-glow-rgb));
   stroke-width: calc(var(--glyph-stroke) * 3.7);
 }
 
@@ -449,7 +462,7 @@ body.glyph-story-active .site-nav {
 
 .glyph-story.is-filled .glyph-piece__fill,
 .glyph-story[data-state="epilogue"] .glyph-piece__fill {
-  fill: #ffe9d0;
+  fill: rgb(var(--glyph-ink-rgb));
   fill-opacity: 1;
   transition:
     fill 900ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -458,7 +471,7 @@ body.glyph-story-active .site-nav {
 
 .glyph-story.is-filled .glyph-piece__art .glyph-piece__outline,
 .glyph-story[data-state="epilogue"] .glyph-piece__art .glyph-piece__outline {
-  stroke: #ffd0aa;
+  stroke: rgb(var(--glyph-ink-rgb));
   stroke-dashoffset: 0;
   transition: stroke 900ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -481,7 +494,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece:focus-visible .glyph-piece__art .glyph-piece__outline {
-  stroke: #fff4e6;
+  stroke: rgb(var(--glyph-ink-rgb));
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -496,7 +509,7 @@ body.glyph-story-active .site-nav {
   }
 
   .glyph-story[data-state="overview"] .glyph-piece:hover .glyph-piece__art .glyph-piece__outline {
-    stroke: #fff4e6;
+    stroke: rgb(var(--glyph-ink-rgb));
   }
 }
 
@@ -510,6 +523,10 @@ body.glyph-story-active .site-nav {
 
 .glyph-story .glyph-piece--d .glyph-piece__float {
   animation: glyph-float-d 5.9s linear infinite;
+}
+
+.glyph-story.is-synthesis-light .glyph-piece__float {
+  animation-play-state: paused;
 }
 
 .glyph-story[data-state="focus"] .glyph-story__rail {
@@ -579,7 +596,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story[data-state="focus"] .glyph-piece.is-active .glyph-piece__art .glyph-piece__outline {
-  stroke: #fff4e6;
+  stroke: #fff8ef;
 }
 
 .glyph-story__edge {
@@ -662,13 +679,13 @@ body.glyph-story-active .site-nav {
   width: min(100%, 46rem);
   min-width: 0;
   opacity: 0;
-  transform: translate3d(0, 16px, 0);
+  transform: translate3d(0, 10px, 0);
   visibility: hidden;
   pointer-events: none;
   transition:
-    opacity 680ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 820ms cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 0ms linear 820ms;
+    opacity 620ms cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 960ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    visibility 0ms linear 960ms;
   will-change: opacity, transform;
 }
 
@@ -686,14 +703,15 @@ body.glyph-story-active .site-nav {
 .glyph-story.is-transitioning .glyph-story__details,
 .glyph-story.is-transitioning .glyph-story__epilogue {
   opacity: 0;
-  transform: translate3d(0, 10px, 0);
+  transform: translate3d(0, 3px, 0);
+  transition-duration: 240ms, 420ms, 420ms;
   pointer-events: none;
 }
 
 .glyph-story__eyebrow,
 .glyph-story__epilogue-index {
   margin: 0 0 var(--glyph-copy-gap-small);
-  color: rgba(255, 184, 128, 0.86);
+  color: rgba(var(--glyph-ink-rgb), 0.86);
   font-family: var(--body-font);
   font-size: 0.82rem;
   font-weight: 600;
@@ -754,7 +772,7 @@ body.glyph-story-active .site-nav {
 .glyph-story__epilogue > p:nth-of-type(2) {
   max-width: 62ch;
   margin: var(--glyph-copy-gap) auto 0;
-  color: rgba(243, 242, 238, 0.8);
+  color: rgba(var(--glyph-ink-rgb), 0.8);
   font-size: clamp(0.88rem, 3.65vw, 1.08rem);
   font-weight: 500;
   line-height: 1.46;

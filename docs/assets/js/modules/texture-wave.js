@@ -18,6 +18,10 @@ export function sampleTextureMotion(stage, progress) {
   return { position, speed: Math.max(0, speed), recoil };
 }
 
+export function sampleTexturePress(stage, position, strength = 1) {
+  return 1 - .1 * (stage < .5 ? position : 1 - position) * strength;
+}
+
 export function sampleTextureCharge(elapsed) {
   const t = Math.max(0, Math.min(1, (elapsed - 1300) / 1200));
   const sustained = Math.max(0, Math.min(1, (elapsed - 2500) / 3000));
@@ -34,6 +38,7 @@ uniform vec2 textureOrigin;
 uniform vec2 textureViewport;
 uniform vec2 texturePixels;
 uniform vec2 textureMotion;
+uniform vec2 textureWaveSize;
 uniform float textureRecoil;
 uniform float textureFocus;
 uniform float textureStage;
@@ -61,10 +66,11 @@ float textureSwell() {
   return (1. - phase * .72) * (1. - smoothstep(.82, 1., phase)) * textureHandoff();
 }
 vec4 textureGatherLight(vec2 point, float phase) {
+  float loading = textureGlyphMode > .5 ? 0. : textureLoading;
   float r = length(point - textureOrigin);
   float extent = textureGatherRadius(0.);
-  float radius = mix(textureGatherRadius(phase), textureFocus * .98 / .72, textureLoading);
-  float width = mix(mix(extent * .36, textureFocus * 1.5, phase), textureFocus * .29, textureLoading);
+  float radius = mix(textureGatherRadius(phase), textureFocus * .98 / .72, loading);
+  float width = mix(mix(extent * .36, textureFocus * 1.5, phase), textureFocus * .29, loading);
   float q = (r - radius * .72) / width;
   float focus = exp(-pow(r / mix(extent * .30, textureFocus * 1.15, phase), 2.));
   float shoulder = exp(-q * q * 1.7);
@@ -72,17 +78,19 @@ vec4 textureGatherLight(vec2 point, float phase) {
   vec2 ray = point - textureOrigin;
   float angle = fract(atan(ray.y, ray.x) / 6.2831853 - textureElapsed / 1.8);
   float arc = smoothstep(.08, .85, angle) * (1. - smoothstep(.85, 1., angle));
-  float alpha = (focus * mix(.025, .72, phase) * (1. - textureLoading)
-    + shoulder * mix(mix(.035, .19, phase), .9 * arc, textureLoading)
-    + haze * .045 * (1. - textureLoading))
+  float alpha = (focus * mix(.025, .72, phase) * (1. - loading)
+    + shoulder * mix(mix(.035, .19, phase), .9 * arc, loading)
+    + haze * .045)
     * smoothstep(0., .12, phase);
+  if (textureGlyphMode > .5) alpha = mix(alpha, shoulder * .045 + haze * .065, textureLoading);
   vec3 warm = mix(vec3(1., .76, .53), vec3(1., .985, .96), clamp(focus + shoulder * .8, 0., 1.));
   return vec4(warm * alpha, alpha);
 }
 vec3 textureWave(vec2 point) {
   float phase = textureMotion.x;
-  float breadth = min(textureViewport.x, textureViewport.y) * .30 + textureReach() * .035;
-  float radius = mix(textureFocus, textureReach() + breadth * 1.1, phase);
+  float reach = textureWaveSize.x > 0. ? textureWaveSize.x : textureReach();
+  float breadth = textureWaveSize.y > 0. ? textureWaveSize.y : min(textureViewport.x, textureViewport.y) * .30 + reach * .035;
+  float radius = mix(textureFocus, reach + breadth * 1.1, phase);
   float width = breadth * mix(.8, 1.2, phase);
   float q = (length(point - textureOrigin) - radius) / width;
   return vec3(q, width, radius);
@@ -176,10 +184,18 @@ void main() {
   particleAlpha = smoothstep(0., .18, life) * (1. - smoothstep(.82, 1., life))
     * mix(.24, .62, particleFocus) * fade * textureStrength;
   if (textureBurst > .5) {
-    float burst = textureMotion.x;
-    point = textureOrigin + vec2(cos(angle), sin(angle)) * reach * burst * mix(.3, .85, fract(seed * .317));
-    particleAxis = vec2(cos(angle), sin(angle));
-    particleAlpha = .8 * (1. - smoothstep(.1, 1., burst)) * textureStrength;
+    float delay = .05 + fract(seed * .413) * .28;
+    float age = max(0., textureElapsed - delay);
+    float duration = mix(.55, 1.15, fract(seed * .217));
+    float burst = 1. - exp(-age * 3.2);
+    vec2 direction = vec2(cos(angle), sin(angle));
+    point = textureOrigin + direction * reach * burst * mix(.18, .58, fract(seed * .317));
+    point.y += age * age * 24.;
+    particleAxis = normalize(direction + vec2(0., age * .1));
+    particleFocus = 1.;
+    particleStretch = mix(4., 1.5, min(1., age / duration));
+    particleAlpha = smoothstep(0., .05, age) * (1. - smoothstep(duration * .2, duration, age))
+      * mix(.3, .8, fract(seed * .619)) * textureStrength;
   }
   gl_Position = vec4(point / textureViewport * vec2(2., -2.) + vec2(-1., 1.), 0., 1.);
   gl_PointSize = (8. + fract(seed * .37) * 5. + travel * 7.) * texturePixels.x / textureViewport.x;
@@ -205,16 +221,9 @@ void main() {
 }
 `;
 
-export const TEXTURE_LIGHT = `
-precision highp float;
-${TEXTURE_WAVE}
-void main() {
-  vec2 point = texturePoint();
+export const TEXTURE_SPREAD_LIGHT = `
+vec4 textureSpreadLight(vec2 point) {
   float phase = textureMotion.x;
-  if (textureStage < .5) {
-    gl_FragColor = textureGatherLight(point, phase) * textureStrength;
-    return;
-  }
   vec3 wave = textureWave(point);
   float dispersal = smoothstep(.3, 1., phase);
   if (textureLightLimit > 0.) {
@@ -229,11 +238,27 @@ void main() {
   float halo = exp(-q * q * .38);
   float fringe = exp(-pow(q - .48, 2.) * 9.);
   float cap = (1. - smoothstep(-.85, -.1, q)) * (1. - smoothstep(.08, .32, phase));
+  if (textureGlyphMode > .5) {
+    float core = exp(-pow(length(point - textureOrigin) / max(1., textureFocus * 2.8), 2.));
+    cap += core * .38 * (1. - smoothstep(.1, .98, phase));
+  }
   float energy = (1. - phase * .35) * (1. - dispersal) / sqrt(spread);
   float alpha = min(.96, (crest * .83 + face * .32 + halo * .075 + fringe * .16 + cap * .88) * energy);
   vec3 warm = mix(vec3(1., .69, .43), vec3(1., .99, .97), clamp(crest + face + cap, 0., 1.));
-  gl_FragColor = mix(textureGatherLight(point, 1.), vec4(warm * alpha, alpha),
+  return mix(textureGatherLight(point, 1.), vec4(warm * alpha, alpha),
     textureHandoff()) * textureStrength;
+}
+`;
+
+export const TEXTURE_LIGHT = `
+precision highp float;
+${TEXTURE_WAVE}
+${TEXTURE_SPREAD_LIGHT}
+void main() {
+  vec2 point = texturePoint();
+  gl_FragColor = textureStage < .5
+    ? textureGatherLight(point, textureMotion.x) * textureStrength
+    : textureSpreadLight(point);
 }
 `;
 

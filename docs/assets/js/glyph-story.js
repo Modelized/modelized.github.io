@@ -1,7 +1,7 @@
-import { heroMaterialReady } from "./shell.js?v=20261011a";
-import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261011a";
-import { sampleTextureMotion } from "./modules/texture-wave.js?v=20261011a";
-import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261011a";
+import { heroMaterialReady } from "./shell.js?v=20261012b";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261012b";
+import { sampleTextureMotion } from "./modules/texture-wave.js?v=20261012b";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261012b";
 
 (function () {
   "use strict";
@@ -165,8 +165,8 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
       path.removeAttribute("pathLength");
       path.removeAttribute("stroke-dasharray");
       path.removeAttribute("stroke-dashoffset");
-      path.style.strokeDasharray = `${dashLength} ${dashLength}`;
-      path.style.strokeDashoffset = "0";
+      path.style.removeProperty("stroke-dasharray");
+      path.style.removeProperty("stroke-dashoffset");
     });
   };
 
@@ -219,6 +219,7 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
   };
 
   const setPathDash = (path, progress) => {
+    path.style.strokeDasharray = `${dashLengthFor(path)} ${dashLengthFor(path)}`;
     path.style.strokeDashoffset = String(dashLengthFor(path) * (1 - clamp(progress, 0, 1)));
   };
 
@@ -249,12 +250,12 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     const box = synthesisBox || mark.getBoundingClientRect();
     const center = rectCenter(box);
     synthesisLight?.render({ origin: { ...center, radius: Math.min(box.width, box.height) * .1 },
-      stage: 1, motion, elapsed: progress * 1.05, burst: true });
+      stage: 1, motion, progress, elapsed: progress * 1.45, burst: true });
     fillPaths.forEach((path) => {
-      path.style.fill = `rgba(255, 233, 208, ${motion.position})`;
-      path.style.fillOpacity = "1";
+      path.style.fill = "#ffe9d0";
+      path.style.fillOpacity = progress === 1 ? "1" : "0";
     });
-    glowLayers.forEach((layer) => { layer.style.opacity = String(.5 + .4 * (1 - motion.position)); });
+    glowLayers.forEach((layer) => { layer.style.opacity = String(.5 + .3 * motion.position); });
   };
 
   const clearFrameDrivenStyles = () => {
@@ -271,7 +272,10 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     root.classList.remove("is-frame-driven");
   };
 
-  const clearSynthesisLight = () => { synthesisLight?.dispose(); synthesisLight = null; synthesisBox = null; };
+  const clearSynthesisLight = () => {
+    synthesisLight?.dispose(); synthesisLight = null; synthesisBox = null;
+    root.classList.remove("is-synthesis-light");
+  };
 
   const rotationForProgress = (progress) =>
     Math.sin(clamp(progress, 0, pieces.length - 1) * (Math.PI / 2)) * 90;
@@ -880,14 +884,15 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     }
 
     try {
-      synthesisLight = createTextureLightLayer(root);
+      root.classList.add("is-synthesis-light");
+      synthesisLight = createTextureLightLayer(root, mark);
       synthesisBox = mark.getBoundingClientRect();
     } catch (error) {
       console.warn("Glyph synthesis unavailable", error);
       cancelStory(); setScrollLocked(false); return;
     }
     transitioning = true;
-    const completed = await runFrameTimeline(reducedMotion.matches ? 180 : 1050, applyAssemblyVisual);
+    const completed = await runFrameTimeline(reducedMotion.matches ? 180 : 1450, applyAssemblyVisual);
     transitioning = false;
     if (!completed) {
       clearSynthesisLight();

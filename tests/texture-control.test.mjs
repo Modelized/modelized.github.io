@@ -11,6 +11,12 @@ const motionContext = vm.createContext({});
 vm.runInContext(waveSource, motionContext);
 const sampleTextureMotion = motionContext.sampleTextureMotion;
 const sampleTextureCharge = motionContext.sampleTextureCharge;
+const sampleTexturePress = motionContext.sampleTexturePress;
+assert.equal(sampleTexturePress(0, 0), 1);
+assert.equal(sampleTexturePress(0, 1), .9);
+assert.equal(sampleTexturePress(1, 0), .9);
+assert.equal(sampleTexturePress(1, 1), 1);
+assert.equal(sampleTexturePress(0, 1, 0), 1);
 
 for (const stage of [0, 1]) {
   assert.equal(sampleTextureMotion(stage, 0).position, 0);
@@ -111,7 +117,7 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
     finishTexture: () => material.finishes++
   };
   const context = vm.createContext({
-    document, window, innerWidth: 440, AbortController, sampleTextureMotion, sampleTextureCharge, console: { warn() {}, debug() {} },
+    document, window, innerWidth: 440, AbortController, sampleTextureMotion, sampleTextureCharge, sampleTexturePress, console: { warn() {}, debug() {} },
     performance: { now: () => time },
     requestAnimationFrame: (fn) => schedule(fn, 16), cancelAnimationFrame: (key) => jobs.delete(key),
     setTimeout: (fn, delay) => schedule(fn, delay), clearTimeout: (key) => jobs.delete(key),

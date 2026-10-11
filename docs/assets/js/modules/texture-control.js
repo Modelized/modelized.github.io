@@ -1,5 +1,5 @@
 import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008k";
-import { sampleTextureMotion, sampleTextureCharge } from "./texture-wave.js?v=20261011a";
+import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261012b";
 
 const TEXTURE_HOLD_MS = 900;
 const TEXTURE_SPREAD_MS = 1050;
@@ -106,6 +106,7 @@ export function initTextureControl({ materialReady }) {
     delete button.dataset.phase;
     delete button.dataset.preparing;
     button.style.removeProperty("--texture-charge");
+    button.style.removeProperty("--texture-press-scale");
     body.classList.remove("texture-transition-active");
     if (message) announce(message);
     updateButton();
@@ -117,6 +118,7 @@ export function initTextureControl({ materialReady }) {
   };
   const draw = (current, stage, progress, strength = 1) => {
     const motion = sampleTextureMotion(stage, progress);
+    button.style.setProperty("--texture-press-scale", String(sampleTexturePress(stage, motion.position, strength)));
     if (stage === 0) button.style.setProperty("--texture-charge", String(motion.position * strength));
     if (reducedMotion.matches || !current.visualReady) return;
     const elapsed = performance.now() - current.started;

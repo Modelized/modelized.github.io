@@ -25,6 +25,9 @@
   outline: 2px solid #fff0df;
   outline-offset: 4px;
 }
+.nav-texture-control[data-icon="texture"]:hover {
+  background: var(--nav-surface);
+}
 .texture-control__icon {
   display: grid;
   place-items: center;
@@ -73,15 +76,12 @@
   mask-image: radial-gradient(circle, transparent 31%, #000 42%, #000 52%, transparent 61%);
   animation: texture-loading 1800ms linear infinite;
 }
-.nav-texture-control[data-phase="charge"],
-.nav-texture-control[data-phase="armed"],
-.nav-texture-control[data-phase="waiting"],
-.nav-texture-control[data-phase="resume"] {
-  transform: scale(calc(1 - var(--texture-charge) * .12));
+.nav-texture-control[data-phase] {
+  transform: scale(var(--texture-press-scale, 1));
+  transition: opacity 160ms linear;
 }
 .nav-texture-control[data-phase="spread"] {
   opacity: 0;
-  transform: scale(.8);
 }
 @keyframes texture-loading { to { transform: rotate(360deg); } }
 
