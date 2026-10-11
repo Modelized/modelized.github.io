@@ -1,5 +1,5 @@
-import { TEXTURE_LIGHT, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261012b";
-import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261012b";
+import { TEXTURE_LIGHT, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261012c";
+import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261012c";
 
 export function createTextureLightLayer(parent, mark) {
   const canvas = document.createElement("canvas");
@@ -81,6 +81,7 @@ export function createTextureLightLayer(parent, mark) {
         textureViewport: [width, height], texturePixels: [canvas.width, canvas.height],
         textureMotion: [state.motion.position, state.motion.speed], textureRecoil: state.motion.recoil,
         textureWaveSize: field?.waveSize || [0, 0],
+        textureBloom: field ? 1 : 0,
         textureFocus: state.origin.radius, textureStage: state.stage, textureStrength: state.strength ?? 1,
         textureLightLimit: 0, textureJitter: [0, 0], textureCharge: 0, textureLoading: 0,
         textureElapsed: state.elapsed, textureGlyphMode: 0, textureRadial: 1, textureBurst: state.burst ? 1 : 0,

@@ -39,6 +39,7 @@ uniform vec2 textureViewport;
 uniform vec2 texturePixels;
 uniform vec2 textureMotion;
 uniform vec2 textureWaveSize;
+uniform float textureBloom;
 uniform float textureRecoil;
 uniform float textureFocus;
 uniform float textureStage;
@@ -90,7 +91,9 @@ vec3 textureWave(vec2 point) {
   float phase = textureMotion.x;
   float reach = textureWaveSize.x > 0. ? textureWaveSize.x : textureReach();
   float breadth = textureWaveSize.y > 0. ? textureWaveSize.y : min(textureViewport.x, textureViewport.y) * .30 + reach * .035;
-  float radius = mix(textureFocus, reach + breadth * 1.1, phase);
+  float radius = textureBloom > .5
+    ? mix(-reach * .45, reach + breadth * 1.3, phase)
+    : mix(textureFocus, reach + breadth * 1.1, phase);
   float width = breadth * mix(.8, 1.2, phase);
   float q = (length(point - textureOrigin) - radius) / width;
   return vec3(q, width, radius);
@@ -225,7 +228,7 @@ export const TEXTURE_SPREAD_LIGHT = `
 vec4 textureSpreadLight(vec2 point) {
   float phase = textureMotion.x;
   vec3 wave = textureWave(point);
-  float dispersal = smoothstep(.3, 1., phase);
+  float dispersal = smoothstep(textureBloom > .5 ? .55 : .3, 1., phase);
   if (textureLightLimit > 0.) {
     float finish = max(textureFocus + 1., textureLightLimit * .85);
     float start = mix(textureFocus, finish, .42);
@@ -242,11 +245,21 @@ vec4 textureSpreadLight(vec2 point) {
     float core = exp(-pow(length(point - textureOrigin) / max(1., textureFocus * 2.8), 2.));
     cap += core * .38 * (1. - smoothstep(.1, .98, phase));
   }
+  if (textureBloom > .5) {
+    float ring = smoothstep(.42, .78, phase);
+    float radialDistance = length(point - textureOrigin);
+    float focusRadius = max(wave.y * .8, wave.z + wave.y * .65);
+    float core = exp(-pow(radialDistance / focusRadius, 2.) * 1.35);
+    crest *= ring;
+    fringe *= ring;
+    face *= mix(.3, 1., ring);
+    cap = core * (1. - smoothstep(.35, .85, phase));
+  }
   float energy = (1. - phase * .35) * (1. - dispersal) / sqrt(spread);
   float alpha = min(.96, (crest * .83 + face * .32 + halo * .075 + fringe * .16 + cap * .88) * energy);
   vec3 warm = mix(vec3(1., .69, .43), vec3(1., .99, .97), clamp(crest + face + cap, 0., 1.));
-  return mix(textureGatherLight(point, 1.), vec4(warm * alpha, alpha),
-    textureHandoff()) * textureStrength;
+  if (textureBloom > .5) return vec4(warm * alpha, alpha) * smoothstep(0., .12, phase) * textureStrength;
+  return mix(textureGatherLight(point, 1.), vec4(warm * alpha, alpha), textureHandoff()) * textureStrength;
 }
 `;
 

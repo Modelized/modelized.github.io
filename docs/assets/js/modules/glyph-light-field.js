@@ -1,4 +1,11 @@
-import { TEXTURE_WAVE, TEXTURE_SPREAD_LIGHT } from "./texture-wave.js?v=20261012b";
+import { TEXTURE_WAVE, TEXTURE_SPREAD_LIGHT } from "./texture-wave.js?v=20261012c";
+
+export const GLYPH_SYNTHESIS_MS = 1650;
+export function sampleGlyphSynthesis(progress) {
+  const p = Math.max(0, Math.min(1, progress));
+  return { position: Math.sin(p * Math.PI / 2),
+    speed: p === 1 ? 0 : Math.PI / 2 * Math.cos(p * Math.PI / 2), recoil: 0 };
+}
 
 export function signedGlyphDistance(alpha, width, height) {
   const inside = new Float32Array(alpha.length), outside = new Float32Array(alpha.length);
@@ -51,7 +58,7 @@ export function captureGlyphField(mark) {
   }
   const rgba = context.getImageData(0, 0, canvas.width, canvas.height).data;
   const alpha = Uint8Array.from({ length: canvas.width * canvas.height }, (_, i) => rgba[i * 4 + 3]);
-  return { rect, density, waveSize: [Math.hypot(box.width, box.height) / 2, Math.min(box.width, box.height) * .13],
+  return { rect, density, waveSize: [Math.hypot(box.width, box.height) / 2, Math.min(box.width, box.height) * .30],
     width: canvas.width, height: canvas.height,
     pixels: signedGlyphDistance(alpha, canvas.width, canvas.height) };
 }
@@ -76,7 +83,7 @@ void main() {
   float p = glyphProgress;
   float size = min(glyphBox.z, glyphBox.w) / 1.8;
   vec3 wave = textureWave(point);
-  float revealed = (1. - smoothstep(-.45, .45, wave.x)) * smoothstep(0., .065, textureMotion.x);
+  float revealed = (1. - smoothstep(-1., 1., wave.x)) * smoothstep(0., .12, textureMotion.x);
   float d = distanceAt(point);
   float softness = mix(size * .025, .4, textureMotion.x);
   float focused = 1. - smoothstep(-softness, softness, d);

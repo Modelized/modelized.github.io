@@ -53,10 +53,37 @@ const phase = scope.sampleTextureMotion(1, .15).position;
 const reach = Math.hypot(320, 320) / 2, breadth = 320 * .13;
 const radius = 32 + (reach + breadth * 1.1 - 32) * phase;
 assert.ok(radius < 160, 'The wave must not clear a 320px logo in the first 15% of synthesis');
+const smoothstep = (a, b, x) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+const fillAt = (time, distance) => {
+  const p = scope.sampleGlyphSynthesis(time).position;
+  const width = 320 * .30;
+  const radius = -reach * .45 + (reach * 1.45 + width * 1.3) * p;
+  const q = (distance - radius) / (width * (.8 + .4 * p));
+  return (1 - smoothstep(-1, 1, q)) * smoothstep(0, .12, p);
+};
+assert.equal(scope.sampleGlyphSynthesis(0).position, 0);
+assert.equal(scope.sampleGlyphSynthesis(1).position, 1);
+let previous = 0;
+for (let i = 0; i <= 100; i++) {
+  const value = fillAt(i / 100, reach * .7);
+  assert.ok(value >= previous && value <= 1);
+  previous = value;
+}
+assert.ok(fillAt(.2, reach * .7) < .25, 'Outer glyphs must remain mostly unfilled at 330ms');
+assert.ok(fillAt(.5, reach * .7) > .5 && fillAt(.5, reach * .7) < .95);
+assert.equal(fillAt(1, reach), 1);
+assert.match(waveSource, /float ring = smoothstep\(\.42, \.78, phase\)/);
+assert.match(source, /item.opacity = Math.min\(item.opacity \?\? 1/);
 assert.doesNotMatch(fieldSource, /haloDistance|float front/);
 const css = await readFile(new URL('../docs/assets/css/components/glyph-story.css', import.meta.url), 'utf8');
 assert.match(css, /\.glyph-piece__fill \{\s*fill: rgb\(var\(--glyph-ink-rgb\)\);\s*fill-opacity: 0;/);
 assert.match(css, /translate3d\(0, 10px, 0\)/);
+assert.match(css, /body.glyph-story-active \.site-nav \{\s*animation: none !important;\s*transition: none !important;\s*visibility: hidden;/);
+assert.match(css, /color: #f3f2ee;/);
+assert.match(css, /color: rgba\(243, 242, 238, 0.8\);/);
 const mask = new Uint8Array(49);
 for (let y = 2; y < 5; y++) for (let x = 2; x < 5; x++) mask[y * 7 + x] = 255;
 const field = scope.signedGlyphDistance(mask, 7, 7);

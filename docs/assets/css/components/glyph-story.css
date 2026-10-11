@@ -41,6 +41,7 @@
 
 body.glyph-portal-spreading .site-nav {
   animation: none !important;
+  transition: none !important;
   opacity: 1 !important;
 }
 
@@ -128,6 +129,9 @@ body.glyph-story-measuring-home .hero-brand-lockup {
 }
 
 body.glyph-story-active .site-nav {
+  animation: none !important;
+  transition: none !important;
+  visibility: hidden;
   opacity: 0 !important;
   pointer-events: none !important;
 }
@@ -163,7 +167,7 @@ body.glyph-story-active .site-nav {
   inset: 0;
   z-index: 5000;
   box-sizing: border-box;
-  color: rgb(var(--glyph-ink-rgb));
+  color: #f3f2ee;
   visibility: hidden;
   pointer-events: none;
   overflow: hidden;
@@ -772,7 +776,7 @@ body.glyph-story-active .site-nav {
 .glyph-story__epilogue > p:nth-of-type(2) {
   max-width: 62ch;
   margin: var(--glyph-copy-gap) auto 0;
-  color: rgba(var(--glyph-ink-rgb), 0.8);
+  color: rgba(243, 242, 238, 0.8);
   font-size: clamp(0.88rem, 3.65vw, 1.08rem);
   font-weight: 500;
   line-height: 1.46;

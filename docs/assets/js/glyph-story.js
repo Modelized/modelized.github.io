@@ -1,7 +1,7 @@
-import { heroMaterialReady } from "./shell.js?v=20261012b";
-import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261012b";
-import { sampleTextureMotion } from "./modules/texture-wave.js?v=20261012b";
-import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261012b";
+import { heroMaterialReady } from "./shell.js?v=20261012c";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261012c";
+import { sampleGlyphSynthesis, GLYPH_SYNTHESIS_MS } from "./modules/glyph-light-field.js?v=20261012c";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261012c";
 
 (function () {
   "use strict";
@@ -246,11 +246,11 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
 
   let synthesisLight = null, synthesisBox = null;
   const applyAssemblyVisual = (progress) => {
-    const motion = sampleTextureMotion(1, progress);
+    const motion = sampleGlyphSynthesis(progress);
     const box = synthesisBox || mark.getBoundingClientRect();
     const center = rectCenter(box);
     synthesisLight?.render({ origin: { ...center, radius: Math.min(box.width, box.height) * .1 },
-      stage: 1, motion, progress, elapsed: progress * 1.45, burst: true });
+      stage: 1, motion, progress, elapsed: progress * GLYPH_SYNTHESIS_MS / 1000, burst: true });
     fillPaths.forEach((path) => {
       path.style.fill = "#ffe9d0";
       path.style.fillOpacity = progress === 1 ? "1" : "0";
@@ -892,7 +892,7 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
       cancelStory(); setScrollLocked(false); return;
     }
     transitioning = true;
-    const completed = await runFrameTimeline(reducedMotion.matches ? 180 : 1450, applyAssemblyVisual);
+    const completed = await runFrameTimeline(reducedMotion.matches ? 180 : GLYPH_SYNTHESIS_MS, applyAssemblyVisual);
     transitioning = false;
     if (!completed) {
       clearSynthesisLight();

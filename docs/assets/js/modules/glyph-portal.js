@@ -1,4 +1,4 @@
-import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261012b";
+import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261012c";
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
 
 export const GLYPH_HOLD_MS = 900;
@@ -154,10 +154,12 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
       const reach = Math.hypot(Math.max(origin.x, innerWidth - origin.x), Math.max(origin.y, innerHeight - origin.y));
       const breadth = Math.min(innerWidth, innerHeight) * .30 + reach * .035;
       const radius = origin.radius + (reach + breadth * 1.1 - origin.radius) * motion.position;
-      s.navigation.forEach(({ element, x, y }) => {
+      s.navigation.forEach((item) => {
+        const { element, x, y } = item;
         const q = (Math.hypot(x - origin.x, y - origin.y) - radius) / (breadth * (.8 + .4 * motion.position));
         const t = Math.max(0, Math.min(1, (q + .45) / .9));
-        element.style.setProperty("--glyph-nav-fade", String(t * t * (3 - 2 * t)));
+        item.opacity = Math.min(item.opacity ?? 1, t * t * (3 - 2 * t));
+        element.style.setProperty("--glyph-nav-fade", String(item.opacity));
       });
     }
   };
