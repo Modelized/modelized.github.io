@@ -1,10 +1,9 @@
-import { TEXTURE_WAVE, TEXTURE_SPREAD_LIGHT } from "./texture-wave.js?v=20261012c";
+import { TEXTURE_WAVE, TEXTURE_SPREAD_LIGHT } from "./texture-wave.js?v=20261012d";
 
-export const GLYPH_SYNTHESIS_MS = 1650;
+export const GLYPH_SYNTHESIS_MS = 1500;
 export function sampleGlyphSynthesis(progress) {
   const p = Math.max(0, Math.min(1, progress));
-  return { position: Math.sin(p * Math.PI / 2),
-    speed: p === 1 ? 0 : Math.PI / 2 * Math.cos(p * Math.PI / 2), recoil: 0 };
+  return { position: p + .4 * p * (1 - p), speed: 1.4 - .8 * p, recoil: 0 };
 }
 
 export function signedGlyphDistance(alpha, width, height) {
@@ -70,7 +69,6 @@ ${TEXTURE_SPREAD_LIGHT}
 uniform sampler2D glyphField;
 uniform vec4 glyphBox;
 uniform float glyphDensity;
-uniform float glyphProgress;
 float distanceAt(vec2 point) {
   vec2 uv = (point - glyphBox.xy) / glyphBox.zw;
   vec2 bounded = clamp(uv, 0., 1.);
@@ -80,19 +78,17 @@ float distanceAt(vec2 point) {
 }
 void main() {
   vec2 point = texturePoint();
-  float p = glyphProgress;
   float size = min(glyphBox.z, glyphBox.w) / 1.8;
   vec3 wave = textureWave(point);
-  float revealed = (1. - smoothstep(-1., 1., wave.x)) * smoothstep(0., .12, textureMotion.x);
+  float revealed = 1. - smoothstep(-1., 1., wave.x);
   float d = distanceAt(point);
   float softness = mix(size * .025, .4, textureMotion.x);
   float focused = 1. - smoothstep(-softness, softness, d);
   vec2 uv = (point - glyphBox.xy) / glyphBox.zw;
   float coverage = texture2D(glyphField, clamp(uv, 0., 1.)).b
     * step(0., uv.x) * step(uv.x, 1.) * step(0., uv.y) * step(uv.y, 1.);
-  float defocus = exp(-wave.x * wave.x * 3.) * (1. - textureMotion.x);
+  float defocus = exp(-wave.x * wave.x * 3.) * textureBloomEnergy() * .45;
   float core = mix(coverage, focused, defocus) * revealed;
-  if (p >= 1.) core = coverage;
   vec4 innerLight = vec4(vec3(1., .913725, .815686) * core, core);
   vec4 lens = textureSpreadLight(point);
   gl_FragColor = lens + innerLight * (1. - lens.a);

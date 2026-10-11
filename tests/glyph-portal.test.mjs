@@ -49,10 +49,7 @@ vm.runInContext(fieldSource.replace(/^import .*;\n/gm, '').replace(/^export /gm,
 assert.match(fieldSource, /vec3 wave = textureWave\(point\)/);
 assert.match(fieldSource, /vec4 lens = textureSpreadLight\(point\)/);
 assert.match(fieldSource, /waveSize: \[Math.hypot\(box.width, box.height\) \/ 2/);
-const phase = scope.sampleTextureMotion(1, .15).position;
-const reach = Math.hypot(320, 320) / 2, breadth = 320 * .13;
-const radius = 32 + (reach + breadth * 1.1 - 32) * phase;
-assert.ok(radius < 160, 'The wave must not clear a 320px logo in the first 15% of synthesis');
+const reach = Math.hypot(320, 320) / 2;
 const smoothstep = (a, b, x) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
@@ -62,7 +59,7 @@ const fillAt = (time, distance) => {
   const width = 320 * .30;
   const radius = -reach * .45 + (reach * 1.45 + width * 1.3) * p;
   const q = (distance - radius) / (width * (.8 + .4 * p));
-  return (1 - smoothstep(-1, 1, q)) * smoothstep(0, .12, p);
+  return 1 - smoothstep(-1, 1, q);
 };
 assert.equal(scope.sampleGlyphSynthesis(0).position, 0);
 assert.equal(scope.sampleGlyphSynthesis(1).position, 1);
@@ -72,10 +69,24 @@ for (let i = 0; i <= 100; i++) {
   assert.ok(value >= previous && value <= 1);
   previous = value;
 }
-assert.ok(fillAt(.2, reach * .7) < .25, 'Outer glyphs must remain mostly unfilled at 330ms');
+assert.ok(fillAt(.2, reach * .7) < .25, 'Outer glyphs must remain mostly unfilled at 20% progress');
 assert.ok(fillAt(.5, reach * .7) > .5 && fillAt(.5, reach * .7) < .95);
 assert.equal(fillAt(1, reach), 1);
-assert.match(waveSource, /float ring = smoothstep\(\.42, \.78, phase\)/);
+assert.equal(fillAt(0, 0), 0);
+const bloom = waveSource.split('vec4 textureSpreadLight(vec2 point) {')[1].match(/if \(textureBloom > \.5\) \{([\s\S]*?)\n  \}/)[1];
+assert.doesNotMatch(bloom, /smoothstep|max\(|focusRadius|dispersal/);
+assert.match(bloom, /textureBloomEnergy\(\)/);
+assert.match(fieldSource, /textureBloomEnergy\(\)/);
+assert.doesNotMatch(fieldSource, /if \(p >= 1\.\)|uniform float glyphProgress/);
+let previousSpeed = Infinity;
+for (let i = 0; i <= 100; i++) {
+  const { position, speed } = scope.sampleGlyphSynthesis(i / 100);
+  assert.ok(speed > .59 && speed <= previousSpeed);
+  assert.ok(position >= 0 && position <= 1);
+  previousSpeed = speed;
+}
+const latePhase = scope.sampleGlyphSynthesis(.9).position;
+assert.ok(4 * latePhase * (1 - latePhase) > .2, 'Light must not disappear long before the text handoff');
 assert.match(source, /item.opacity = Math.min\(item.opacity \?\? 1/);
 assert.doesNotMatch(fieldSource, /haloDistance|float front/);
 const css = await readFile(new URL('../docs/assets/css/components/glyph-story.css', import.meta.url), 'utf8');

@@ -1,4 +1,4 @@
-import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261012c";
+import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261012d";
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
 
 export const GLYPH_HOLD_MS = 900;

@@ -1,7 +1,7 @@
-import { heroMaterialReady } from "./shell.js?v=20261012c";
-import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261012c";
-import { sampleGlyphSynthesis, GLYPH_SYNTHESIS_MS } from "./modules/glyph-light-field.js?v=20261012c";
-import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261012c";
+import { heroMaterialReady } from "./shell.js?v=20261012d";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261012d";
+import { sampleGlyphSynthesis, GLYPH_SYNTHESIS_MS } from "./modules/glyph-light-field.js?v=20261012d";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261012d";
 
 (function () {
   "use strict";

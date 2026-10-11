@@ -1,5 +1,5 @@
-import { TEXTURE_LIGHT, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261012c";
-import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261012c";
+import { TEXTURE_LIGHT, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261012d";
+import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261012d";
 
 export function createTextureLightLayer(parent, mark) {
   const canvas = document.createElement("canvas");
@@ -84,8 +84,7 @@ export function createTextureLightLayer(parent, mark) {
         textureBloom: field ? 1 : 0,
         textureFocus: state.origin.radius, textureStage: state.stage, textureStrength: state.strength ?? 1,
         textureLightLimit: 0, textureJitter: [0, 0], textureCharge: 0, textureLoading: 0,
-        textureElapsed: state.elapsed, textureGlyphMode: 0, textureRadial: 1, textureBurst: state.burst ? 1 : 0,
-        glyphProgress: state.progress ?? 0
+        textureElapsed: state.elapsed, textureGlyphMode: 0, textureRadial: 1, textureBurst: state.burst ? 1 : 0
       };
       for (const [name, value] of Object.entries(values)) {
         if (!shader.uniforms.has(name)) shader.uniforms.set(name, gl.getUniformLocation(shader.program, name));
