@@ -1,5 +1,5 @@
 import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008k";
-import { sampleTextureMotion, sampleTextureCharge } from "./texture-wave.js?v=20261008k";
+import { sampleTextureMotion, sampleTextureCharge } from "./texture-wave.js?v=20261011a";
 
 const TEXTURE_HOLD_MS = 900;
 const TEXTURE_SPREAD_MS = 1050;

@@ -1,4 +1,7 @@
-import "./shell.js?v=20261008m";
+import { heroMaterialReady } from "./shell.js?v=20261011a";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261011a";
+import { sampleTextureMotion } from "./modules/texture-wave.js?v=20261011a";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261011a";
 
 (function () {
   "use strict";
@@ -8,8 +11,6 @@ import "./shell.js?v=20261008m";
   if (!root || !trigger) return;
 
   const visual = root.querySelector("[data-glyph-visual]");
-  const grid = root.querySelector(".glyph-story__grid");
-  const bloom = root.querySelector(".glyph-story__bloom");
   const rail = root.querySelector("[data-glyph-rail]");
   const mark = root.querySelector("[data-glyph-mark]");
   const control = root.querySelector("[data-glyph-control]");
@@ -30,7 +31,6 @@ import "./shell.js?v=20261008m";
   const glowLayers = pieces.map((piece) => piece.querySelector(".glyph-piece__glow"));
   const outlinePaths = [...artPaths, ...glowPaths];
   const keys = pieces.map((piece) => piece.dataset.glyphPiece);
-  const gridContext = grid?.getContext("2d");
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const stackedLayout = window.matchMedia(
@@ -38,9 +38,6 @@ import "./shell.js?v=20261008m";
   );
   if (
     !visual ||
-    !grid ||
-    !gridContext ||
-    !bloom ||
     !rail ||
     !mark ||
     !control ||
@@ -77,8 +74,6 @@ import "./shell.js?v=20261008m";
   let railCommitTimer = 0;
   let finishRevealFrame = 0;
   let reflowFrame = 0;
-  let gridDrawFrame = 0;
-  let gridSignature = "";
   let transitionTimeline = null;
   let pendingReflow = false;
   let lastViewportWidth = window.innerWidth;
@@ -131,7 +126,6 @@ import "./shell.js?v=20261008m";
   };
 
   const transitionEase = cubicBezier(0.22, 1, 0.36, 1);
-  const outlineEase = cubicBezier(0.18, 0.88, 0.25, 1);
 
   const configureOutlinePaths = () => {
     // Read all SVG geometry before changing any dash styles.
@@ -207,7 +201,10 @@ import "./shell.js?v=20261008m";
         if (timeline.startedAt === null) timeline.startedAt = now;
 
         const progress = clamp((now - timeline.startedAt) / duration, 0, 1);
-        update(progress);
+        try { update(progress); } catch (error) {
+          console.warn("Glyph transition unavailable", error);
+          cancelStory(); setScrollLocked(false); resolve(false); return;
+        }
         if (progress < 1) {
           timeline.frame = requestAnimationFrame(tick);
           return;
@@ -225,39 +222,20 @@ import "./shell.js?v=20261008m";
     path.style.strokeDashoffset = String(dashLengthFor(path) * (1 - clamp(progress, 0, 1)));
   };
 
-  const applyEntryVisual = (progress) => {
-    const outlineProgress = outlineEase(progress);
-    const fillProgress = transitionEase(clamp(progress / 0.72, 0, 1));
-    const glowProgress = transitionEase(clamp((progress - 0.08) / 0.92, 0, 1));
-
-    fillPaths.forEach((path) => {
-      path.style.fill = `rgba(255, 255, 255, ${1 - fillProgress})`;
-      path.style.fillOpacity = "1";
-    });
-    artPaths.forEach((path) => {
-      setPathDash(path, outlineProgress);
-      path.style.stroke = `rgba(255, 169, 99, ${0.96 * outlineProgress})`;
-    });
-    glowPaths.forEach((path) => setPathDash(path, outlineProgress));
-    glowLayers.forEach((layer) => {
-      layer.style.opacity = String(0.5 * glowProgress);
-    });
-  };
-
   const applyClosingVisual = (progress, fromFilled, easedProgress = transitionEase(progress)) => {
     const visualProgress = easedProgress;
     const outlineProgress = 1 - visualProgress;
 
     fillPaths.forEach((path) => {
-      const startGreen = fromFilled ? 159 : 255;
-      const startBlue = fromFilled ? 85 : 255;
+      const startGreen = fromFilled ? 233 : 255;
+      const startBlue = fromFilled ? 208 : 255;
       const startAlpha = fromFilled ? 1 : 0;
       path.style.fill = `rgba(255, ${mix(startGreen, 255, visualProgress)}, ${mix(startBlue, 255, visualProgress)}, ${mix(startAlpha, 1, visualProgress)})`;
       path.style.fillOpacity = "1";
     });
     artPaths.forEach((path) => {
       setPathDash(path, outlineProgress);
-      path.style.stroke = `rgba(255, ${mix(fromFilled ? 208 : 169, 169, visualProgress)}, ${mix(fromFilled ? 170 : 99, 99, visualProgress)}, ${0.96 * outlineProgress})`;
+      path.style.stroke = `rgba(255, ${mix(233, 229, visualProgress)}, ${mix(208, 197, visualProgress)}, ${0.96 * outlineProgress})`;
     });
     glowPaths.forEach((path) => setPathDash(path, outlineProgress));
     glowLayers.forEach((layer) => {
@@ -265,28 +243,18 @@ import "./shell.js?v=20261008m";
     });
   };
 
+  let synthesisLight = null, synthesisBox = null;
   const applyAssemblyVisual = (progress) => {
-    const bloomPeak = 0.3;
-    const bloomIn = transitionEase(clamp(progress / bloomPeak, 0, 1));
-    const bloomReleaseProgress = clamp((progress - bloomPeak) / (1 - bloomPeak), 0, 1);
-    const bloomSpread = 1 - Math.pow(1 - clamp(progress, 0, 1), 2.2);
-    const fillProgress = transitionEase(clamp((progress - 0.28) / 0.66, 0, 1));
-    const bloomOpacity = progress <= bloomPeak ? bloomIn : Math.pow(1 - bloomReleaseProgress, 1.08);
-    const bloomScale = mix(0.16, 1.94, bloomSpread);
-
-    bloom.style.opacity = String(bloomOpacity);
-    bloom.style.transform = `translate(-50%, -50%) scale(${bloomScale})`;
+    const motion = sampleTextureMotion(1, progress);
+    const box = synthesisBox || mark.getBoundingClientRect();
+    const center = rectCenter(box);
+    synthesisLight?.render({ origin: { ...center, radius: Math.min(box.width, box.height) * .1 },
+      stage: 1, motion, elapsed: progress * 1.05, burst: true });
     fillPaths.forEach((path) => {
-      path.style.fill = `rgba(255, 159, 85, ${fillProgress})`;
+      path.style.fill = `rgba(255, 233, 208, ${motion.position})`;
       path.style.fillOpacity = "1";
     });
-    artPaths.forEach((path) => {
-      path.style.stroke = `rgb(255, ${mix(169, 208, fillProgress)}, ${mix(99, 170, fillProgress)})`;
-      path.style.strokeDashoffset = "0";
-    });
-    glowLayers.forEach((layer) => {
-      layer.style.opacity = String(mix(0.5, 0.8, fillProgress));
-    });
+    glowLayers.forEach((layer) => { layer.style.opacity = String(.5 + .4 * (1 - motion.position)); });
   };
 
   const clearFrameDrivenStyles = () => {
@@ -300,88 +268,10 @@ import "./shell.js?v=20261008m";
       path.style.removeProperty("stroke");
     });
     glowLayers.forEach((layer) => layer.style.removeProperty("opacity"));
-    bloom.style.removeProperty("opacity");
-    bloom.style.removeProperty("transform");
     root.classList.remove("is-frame-driven");
   };
 
-  const deactivateBloom = () => {
-    bloom.hidden = true;
-    bloom.style.removeProperty("opacity");
-    bloom.style.removeProperty("transform");
-  };
-
-  const drawGlyphGrid = () => {
-    gridDrawFrame = 0;
-    if (root.hidden) return;
-    const bounds = visual.getBoundingClientRect();
-    const width = bounds.width;
-    const height = bounds.height;
-    if (width <= 0 || height <= 0) return;
-
-    const dpr = clamp(window.devicePixelRatio || 1, 1, 3);
-    const pixelWidth = Math.max(1, Math.round(width * dpr));
-    const pixelHeight = Math.max(1, Math.round(height * dpr));
-    const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    const focusGrid = state === "focus";
-    const signature = [width, height, dpr, rootFontSize, focusGrid].join("|");
-    if (signature === gridSignature) return;
-    gridSignature = signature;
-    if (grid.width !== pixelWidth || grid.height !== pixelHeight) {
-      grid.width = pixelWidth;
-      grid.height = pixelHeight;
-    }
-
-    gridContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-    gridContext.clearRect(0, 0, width, height);
-    gridContext.lineWidth = 1 / dpr;
-
-    const spacing = clamp(width * 0.032, rootFontSize * 0.9, rootFontSize * 2.1);
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const snap = (value) => (Math.round(value * dpr) + 0.5) / dpr;
-
-    const drawLine = (x1, y1, x2, y2, color) => {
-      gridContext.beginPath();
-      gridContext.strokeStyle = color;
-      gridContext.moveTo(snap(x1), snap(y1));
-      gridContext.lineTo(snap(x2), snap(y2));
-      gridContext.stroke();
-    };
-
-    const verticalStart = -Math.ceil(centerX / spacing);
-    const verticalEnd = Math.ceil((width - centerX) / spacing);
-    for (let index = verticalStart; index <= verticalEnd; index += 1) {
-      const isCenter = index === 0;
-      const isMajor = index % 4 === 0;
-      const color =
-        isCenter && focusGrid
-          ? "rgba(255, 159, 85, 0.28)"
-          : isMajor
-            ? "rgba(255, 168, 98, 0.09)"
-            : "rgba(255, 255, 255, 0.032)";
-      drawLine(centerX + index * spacing, 0, centerX + index * spacing, height, color);
-    }
-
-    const horizontalStart = -Math.ceil(centerY / spacing);
-    const horizontalEnd = Math.ceil((height - centerY) / spacing);
-    for (let index = horizontalStart; index <= horizontalEnd; index += 1) {
-      const isCenter = index === 0;
-      const isMajor = index % 4 === 0;
-      const color =
-        isCenter && focusGrid
-          ? "rgba(255, 159, 85, 0.28)"
-          : isMajor
-            ? "rgba(255, 168, 98, 0.09)"
-            : "rgba(255, 255, 255, 0.032)";
-      drawLine(0, centerY + index * spacing, width, centerY + index * spacing, color);
-    }
-  };
-
-  const scheduleGridDraw = () => {
-    cancelAnimationFrame(gridDrawFrame);
-    gridDrawFrame = requestAnimationFrame(drawGlyphGrid);
-  };
+  const clearSynthesisLight = () => { synthesisLight?.dispose(); synthesisLight = null; synthesisBox = null; };
 
   const rotationForProgress = (progress) =>
     Math.sin(clamp(progress, 0, pieces.length - 1) * (Math.PI / 2)) * 90;
@@ -457,7 +347,6 @@ import "./shell.js?v=20261008m";
   const setState = (nextState) => {
     state = nextState;
     root.dataset.state = nextState;
-    scheduleGridDraw();
 
     pieces.forEach((piece) => {
       piece.disabled = nextState !== "overview";
@@ -775,7 +664,7 @@ import "./shell.js?v=20261008m";
     rail.scrollLeft = 0;
     root.classList.remove("is-transitioning", "is-filled", "is-closing", "is-reflowing");
     clearFrameDrivenStyles();
-    deactivateBloom();
+    clearSynthesisLight();
     root.style.removeProperty("--glyph-float-strength");
     mark.style.removeProperty("transform");
     mark.style.removeProperty("opacity");
@@ -847,76 +736,41 @@ import "./shell.js?v=20261008m";
     if (changed && keyboardSession) control.focus({ preventScroll: true });
   };
 
-  const openStory = async (event) => {
-    if (state !== "closed" || transitioning || trigger.disabled) return;
-
-    transitioning = true;
-    keyboardSession = event?.detail === 0;
-    lastFocused = document.activeElement;
-    const previousScrollBehavior = document.documentElement.style.scrollBehavior;
-    document.documentElement.style.scrollBehavior = "auto";
-    window.scrollTo(0, 0);
-    await nextFrame();
-    document.documentElement.style.scrollBehavior = previousScrollBehavior;
-
+  const backgroundInert = new Map();
+  const restoreBackground = () => {
+    for (const [element, inert] of backgroundInert) element.inert = inert;
+    backgroundInert.clear();
+  };
+  const cancelStory = () => {
     resetExploration();
-    setFloatStrength(0);
-    const sourceRect = getTriggerRect();
-    root.hidden = false;
-    root.inert = false;
-    root.setAttribute("aria-hidden", "false");
-    trigger.setAttribute("aria-expanded", "true");
-    setState("entering");
-    setScrollLocked(true);
-
-    // Measure once while hidden, then let one frame loop own every visual value.
+    root.hidden = true; root.inert = true; root.classList.remove("is-open", "is-portal-entering");
+    root.setAttribute("aria-hidden", "true"); trigger.setAttribute("aria-expanded", "false");
+    document.body.classList.remove("glyph-story-active", "glyph-story-source-hidden", "glyph-story-measuring-home");
+    restoreBackground(); transitioning = false; pendingReflow = false; setState("closed");
+  };
+  const prepareStory = async (keyboard) => {
+    transitioning = true; keyboardSession = keyboard; lastFocused = document.activeElement;
+    resetExploration(); setFloatStrength(0);
+    root.hidden = false; root.inert = true;
+    root.setAttribute("aria-hidden", "true");
+    setState("entering"); root.classList.add("is-open", "is-portal-entering");
+    mark.style.opacity = "0";
     await nextFrame();
+    if (root.hidden) throw new Error("Glyph entry cancelled");
     configureOutlinePaths();
-    const baseRect = mark.getBoundingClientRect();
-    const sourceMetrics = markTransformMetricsForRect(sourceRect, baseRect);
-    const destinationMetrics = { x: 0, y: 0, scale: 1 };
-    root.classList.add("is-frame-driven");
-    applyEntryVisual(0);
-    mark.style.transform = formatMarkTransform(sourceMetrics);
-    mark.style.opacity = "1";
-    void mark.offsetWidth;
-
-    // The replacement is visible before the source is hidden, preventing a flash.
-    root.classList.add("is-open");
+    return mark.getBoundingClientRect();
+  };
+  const completeStory = (keyboard) => {
     document.body.classList.add("glyph-story-active", "glyph-story-source-hidden");
-    await nextFrame();
-
-    const entryDuration = 1180;
-    const markAnimation = startMarkTransformAnimation(
-      sourceMetrics,
-      destinationMetrics,
-      entryDuration
-    );
-    const completed = await runFrameTimeline(entryDuration, (progress) => {
-      const eased = transitionEase(progress);
-      if (!markAnimation) {
-        mark.style.transform = interpolateMarkTransform(sourceMetrics, destinationMetrics, eased);
-      }
-      setFloatStrength(eased);
-      applyEntryVisual(progress);
-    });
-    if (!completed) {
-      markAnimation?.cancel();
-      return;
+    root.classList.remove("is-portal-entering"); root.inert = false;
+    root.setAttribute("aria-hidden", "false"); trigger.setAttribute("aria-expanded", "true");
+    mark.style.removeProperty("opacity"); root.style.removeProperty("--glyph-float-strength");
+    for (const element of document.querySelectorAll(".page-wrap, .site-nav, #footer-slot")) {
+      backgroundInert.set(element, element.inert); element.inert = true;
     }
-
-    applyEntryVisual(1);
-    setFloatStrength(1);
-    finishMarkTransformAnimation(markAnimation, destinationMetrics);
-    setState("overview");
-    await nextFrame();
-    clearFrameDrivenStyles();
-    root.style.removeProperty("--glyph-float-strength");
-    mark.style.removeProperty("transform");
-    mark.style.removeProperty("opacity");
-    transitioning = false;
+    transitioning = false; setState("overview");
     if (pendingReflow) performResponsiveReflow();
-    if (keyboardSession) control.focus({ preventScroll: true });
+    if (keyboard) control.focus({ preventScroll: true });
   };
 
   const closeStory = async () => {
@@ -982,12 +836,10 @@ import "./shell.js?v=20261008m";
 
     // Retire hidden rendering work before releasing the viewport scroll lock.
     // Merely setting hidden and unlocking in the same task skips this boundary.
-    cancelAnimationFrame(gridDrawFrame);
     cancelAnimationFrame(railVisualFrame);
     cancelAnimationFrame(reflowFrame);
-    gridDrawFrame = railVisualFrame = reflowFrame = 0;
-    grid.width = grid.height = 1;
-    gridSignature = "";
+    railVisualFrame = reflowFrame = 0;
+    restoreBackground();
     await nextFrame();
     setScrollLocked(false);
     await nextFrame();
@@ -1010,7 +862,7 @@ import "./shell.js?v=20261008m";
     control.setAttribute("aria-label", "Close glyph story");
     epilogue.setAttribute("aria-hidden", "false");
 
-    bloom.hidden = false;
+    clearSynthesisLight();
     root.classList.add("is-frame-driven");
     applyAssemblyVisual(0);
     const changed = await transitionForms({
@@ -1023,13 +875,22 @@ import "./shell.js?v=20261008m";
       }
     });
     if (!changed) {
-      deactivateBloom();
+      clearSynthesisLight();
       return;
     }
 
-    const completed = await runFrameTimeline(1900, applyAssemblyVisual);
+    try {
+      synthesisLight = createTextureLightLayer(root);
+      synthesisBox = mark.getBoundingClientRect();
+    } catch (error) {
+      console.warn("Glyph synthesis unavailable", error);
+      cancelStory(); setScrollLocked(false); return;
+    }
+    transitioning = true;
+    const completed = await runFrameTimeline(reducedMotion.matches ? 180 : 1050, applyAssemblyVisual);
+    transitioning = false;
     if (!completed) {
-      deactivateBloom();
+      clearSynthesisLight();
       return;
     }
 
@@ -1038,7 +899,7 @@ import "./shell.js?v=20261008m";
     setState("epilogue");
     await nextFrame();
     clearFrameDrivenStyles();
-    deactivateBloom();
+    clearSynthesisLight();
     if (keyboardSession) closeButton.focus({ preventScroll: true });
   };
 
@@ -1205,7 +1066,8 @@ import "./shell.js?v=20261008m";
     }
   };
 
-  trigger.addEventListener("click", openStory);
+  initGlyphPortal({ trigger, root, materialReady: heroMaterialReady, lock: setScrollLocked,
+    prepare: prepareStory, complete: completeStory, cancel: cancelStory });
   root.addEventListener(
     "pointerdown",
     () => {
@@ -1236,14 +1098,6 @@ import "./shell.js?v=20261008m";
   window.addEventListener("resize", handleResize);
   window.addEventListener("orientationchange", performResponsiveReflow);
   window.visualViewport?.addEventListener("resize", handleResize, { passive: true });
-  window.addEventListener("hero:ready", () => {
-    trigger.disabled = false;
-  });
-
-  const gridResizeObserver =
-    typeof ResizeObserver === "function" ? new ResizeObserver(scheduleGridDraw) : null;
-  gridResizeObserver?.observe(visual);
   setState("closed");
   resetExploration();
-  if (document.body.classList.contains("hero-ready")) trigger.disabled = false;
 })();

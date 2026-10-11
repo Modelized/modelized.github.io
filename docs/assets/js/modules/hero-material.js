@@ -1,5 +1,5 @@
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261008k";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261011a";
 import { captureTextureSurface } from "./texture-surfaces.js?v=20261008k";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
@@ -176,13 +176,14 @@ void main() {
     1. - (displaced.y - textureGlyph.y) / textureGlyph.w);
   float front = textureStage < .5 ? 0. : 1. - smoothstep(-.45, .45, textureWave(point).x);
   float liquid = mix(1. - textureToLiquid, textureToLiquid, front);
+  if (textureGlyphMode > .5) liquid = textureToLiquid;
   // Three-tap defocus is limited to the transition shader.
   vec2 ray = point - textureOrigin;
   float chromatic = textureChromatic(point);
   vec2 defocus = ray / max(1., length(ray)) * (textureDefocus(point) * (1. - chromatic * .5) + chromatic * 2.);
   vec2 delta = vec2(defocus.x / textureGlyph.z, -defocus.y / textureGlyph.w);
   gl_FragColor = textureComposite(materialSample(sampleUV, liquid),
-    materialSample(sampleUV - delta, liquid), materialSample(sampleUV + delta, liquid), chromatic);
+    materialSample(sampleUV - delta, liquid), materialSample(sampleUV + delta, liquid), chromatic) * textureVisibility(point);
 #else
   gl_FragColor = materialSample(uv, 1.);
 #endif
@@ -427,6 +428,9 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform1f(uniform(shader, "textureCharge"), textureFrame.charge || 0);
       gl.uniform1f(uniform(shader, "textureElapsed"), textureFrame.elapsed || 0);
       gl.uniform1f(uniform(shader, "textureLoading"), textureFrame.loading || 0);
+      gl.uniform1f(uniform(shader, "textureGlyphMode"), textureFrame.glyph ? 1 : 0);
+      gl.uniform1f(uniform(shader, "textureRadial"), textureFrame.glyph ? 1 : 0);
+      gl.uniform1f(uniform(shader, "textureBurst"), 0);
     };
     // The field only translates; its shape never changes. Bake one full period
     // once, then move sampling coordinates rather than redraw reflection buffers.
@@ -549,10 +553,11 @@ function createMaterialLayer(root, restore, unavailable) {
       get active() { return !stopped && !lost; },
       get textureActive() { return !!textureFrame; },
       prepareTexturePrograms,
-      async prepareTextureSurfaces(signal) {
+      async prepareTextureSurfaces(signal, exclude) {
         clearTextureSurfaces();
         const elements = document.querySelectorAll(".hero-project-logo-frame, .hero-project-link, .brand-logo");
         for (const element of elements) {
+          if (element === exclude) continue;
           await new Promise(requestAnimationFrame);
           if (signal.aborted || stopped || lost) throw new DOMException("Texture preparation cancelled", "AbortError");
           const box = element.getBoundingClientRect();
@@ -846,7 +851,7 @@ export async function initHeroMaterial({ typographyReady } = {}) {
     const main = () => layers.find((layer) => layer?.root.matches(".hero-brand-lockup"));
     return {
       get available() { return !!main()?.active; },
-      async prepareTexture(signal, onVisualsReady) {
+      async prepareTexture(signal, onVisualsReady, { exclude } = {}) {
         const layer = main();
         const check = () => {
           if (signal.aborted) throw new DOMException("Texture preparation cancelled", "AbortError");
@@ -856,7 +861,7 @@ export async function initHeroMaterial({ typographyReady } = {}) {
         await nextFrame();
         check();
         layer.prepareTexturePrograms();
-        await layer.prepareTextureSurfaces(signal);
+        await layer.prepareTextureSurfaces(signal, exclude);
         check();
         // Refresh paused flat glyphs without clearing a visible liquid canvas.
         if (getTexturePreference() === "flat") {

@@ -43,6 +43,7 @@ uniform vec2 textureJitter;
 uniform float textureCharge;
 uniform float textureLoading;
 uniform float textureElapsed;
+uniform float textureGlyphMode;
 vec2 texturePoint() {
   return vec2(gl_FragCoord.x / texturePixels.x, 1. - gl_FragCoord.y / texturePixels.y) * textureViewport;
 }
@@ -85,6 +86,10 @@ vec3 textureWave(vec2 point) {
   float width = breadth * mix(.8, 1.2, phase);
   float q = (length(point - textureOrigin) - radius) / width;
   return vec3(q, width, radius);
+}
+float textureVisibility(vec2 point) {
+  if (textureGlyphMode < .5 || textureStage < .5) return 1.;
+  return smoothstep(-.45, .45, textureWave(point).x);
 }
 vec2 texturePull(vec2 point, float phase) {
   vec2 ray = point - textureOrigin;
@@ -141,6 +146,8 @@ uniform vec2 textureMotion;
 uniform float textureElapsed;
 uniform float textureStage;
 uniform float textureStrength;
+uniform float textureRadial;
+uniform float textureBurst;
 varying mediump float particleAlpha;
 varying mediump vec2 particleAxis;
 varying mediump float particleStretch;
@@ -153,8 +160,11 @@ void main() {
   float reach = min(textureViewport.x, textureViewport.y) * .85;
   vec2 start = vec2((seed + .5) / 16. * textureViewport.x,
     min(textureViewport.y - 12., textureOrigin.y + reach * mix(.3, 1., fract(seed * .317))));
+  float angle = seed * 2.399963;
+  if (textureRadial > .5) start = textureOrigin + vec2(cos(angle), sin(angle)) * reach * mix(.35, 1., fract(seed * .317));
   vec2 offset = start - textureOrigin;
   vec2 end = textureOrigin + vec2(sign(offset.x) * 7., 9.);
+  if (textureRadial > .5) end = textureOrigin + normalize(offset) * 9.;
   vec2 control = textureOrigin + offset * vec2(.18, .72);
   vec2 point = remaining * remaining * start + 2. * remaining * travel * control + travel * travel * end;
   float fade = textureStage < .5 ? smoothstep(0., .25, textureMotion.x)
@@ -165,6 +175,12 @@ void main() {
   particleAxis = tangent / max(1., length(tangent));
   particleAlpha = smoothstep(0., .18, life) * (1. - smoothstep(.82, 1., life))
     * mix(.24, .62, particleFocus) * fade * textureStrength;
+  if (textureBurst > .5) {
+    float burst = textureMotion.x;
+    point = textureOrigin + vec2(cos(angle), sin(angle)) * reach * burst * mix(.3, .85, fract(seed * .317));
+    particleAxis = vec2(cos(angle), sin(angle));
+    particleAlpha = .8 * (1. - smoothstep(.1, 1., burst)) * textureStrength;
+  }
   gl_Position = vec4(point / textureViewport * vec2(2., -2.) + vec2(-1., 1.), 0., 1.);
   gl_PointSize = (8. + fract(seed * .37) * 5. + travel * 7.) * texturePixels.x / textureViewport.x;
 }
@@ -239,6 +255,6 @@ void main() {
   float chromatic = textureChromatic(point);
   vec2 delta = ray / max(1., length(ray)) * (textureDefocus(point) * (1. - chromatic * .5) + chromatic * 2.);
   gl_FragColor = textureComposite(readSurface(displaced), readSurface(displaced - delta),
-    readSurface(displaced + delta), chromatic);
+    readSurface(displaced + delta), chromatic) * textureVisibility(point);
 }
 `;

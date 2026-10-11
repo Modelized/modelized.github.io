@@ -1,4 +1,55 @@
 /* Modelized Glyph Story */
+.glyph-portal-logo {
+  position: fixed;
+  z-index: 5100;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.glyph-portal-logo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 3px rgba(255, 216, 174, .6));
+}
+
+.glyph-portal-fill { fill: #fff; }
+.glyph-portal-outline,
+.glyph-portal-tail {
+  fill: none;
+  stroke: #ffe5c5;
+  stroke-width: var(--glyph-portal-stroke, 2.8px);
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph-story.is-portal-entering .glyph-story__copy,
+.glyph-story.is-portal-entering .glyph-story__control { visibility: hidden; }
+
+.glyph-texture-light {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 25;
+  pointer-events: none;
+}
+
+body.glyph-portal-active .site-nav {
+  translate: var(--glyph-surrounding-x, 0px) var(--glyph-surrounding-y, 0px);
+}
+
+body.glyph-portal-spreading .site-nav,
+body.glyph-portal-spreading .page-wrap > .section:not(#hero),
+body.glyph-portal-spreading .site-footer {
+  opacity: var(--glyph-home-fade, 1);
+  transition: none;
+}
+
+.glyph-story__panel h3 span { display: block; white-space: nowrap; }
 html.glyph-story-lock,
 body.glyph-story-lock {
   overflow: hidden;
@@ -6,6 +57,10 @@ body.glyph-story-lock {
 }
 
 .hero-project-logo-frame {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
   appearance: none;
   -webkit-appearance: none;
   border: 0;
@@ -17,6 +72,7 @@ body.glyph-story-lock {
 
 .hero-project-logo-frame:disabled {
   cursor: default;
+  opacity: .5;
 }
 
 .hero-project-logo-frame:focus-visible {
@@ -31,11 +87,12 @@ body.glyph-story-lock {
 }
 
 .hero-project-logo-frame:not(:disabled):is(:hover, :focus-visible) .hero-project-logo {
-  filter: drop-shadow(0 0 5px rgba(255, 159, 85, 0.62))
+  filter: drop-shadow(0 0 5px rgba(255, 233, 208, 0.62))
     drop-shadow(0 0 16px rgba(255, 122, 47, 0.34));
 }
 
-body.glyph-story-source-hidden .hero-project-logo {
+body.glyph-story-source-hidden .hero-project-logo,
+body.glyph-portal-active .hero-project-logo {
   opacity: 0 !important;
   transition: none !important;
 }
@@ -48,6 +105,7 @@ body.page-home .site-footer {
 body.glyph-story-active .page-wrap > .section,
 body.glyph-story-active .site-footer {
   opacity: 0 !important;
+  transition: none;
   pointer-events: none;
 }
 
@@ -77,7 +135,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story {
-  --glyph-stroke: clamp(1.95px, 0.13vw, 2.45px);
+  --glyph-stroke: clamp(2.6px, 0.17vw, 3.2px);
   --glyph-float-strength: 1;
   --glyph-overview-size: min(78cqw, 74cqh, 52rem);
   --glyph-copy-gap: clamp(0.9rem, min(2.2vw, 2.2vh), 1.45rem);
@@ -150,68 +208,6 @@ body.glyph-story-active .site-nav {
   transition: none !important;
 }
 
-.glyph-story__grid,
-.glyph-story__bloom {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.glyph-story__grid {
-  z-index: -3;
-  display: block;
-  width: 100%;
-  height: 100%;
-  mask-image: radial-gradient(
-    ellipse at 50% 50%,
-    #000 8%,
-    rgba(0, 0, 0, 0.92) 52%,
-    transparent 96%
-  );
-  -webkit-mask-image: radial-gradient(
-    ellipse at 50% 50%,
-    #000 8%,
-    rgba(0, 0, 0, 0.92) 52%,
-    transparent 96%
-  );
-  opacity: 0;
-  transform: scale(1.03);
-  transition:
-    opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 980ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.glyph-story[data-state="overview"] .glyph-story__grid,
-.glyph-story[data-state="focus"] .glyph-story__grid,
-.glyph-story[data-state="synthesis"] .glyph-story__grid,
-.glyph-story[data-state="epilogue"] .glyph-story__grid {
-  opacity: 0.74;
-  transform: scale(1);
-}
-
-.glyph-story__bloom {
-  z-index: -1;
-  inset: auto;
-  left: 50%;
-  top: 50%;
-  width: min(86cqw, 78cqh);
-  height: min(86cqw, 78cqh);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 239, 222, 0.98) 0%,
-    rgba(255, 159, 85, 0.78) 10%,
-    rgba(255, 91, 24, 0.26) 36%,
-    transparent 72%
-  );
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.16);
-  filter: blur(18px);
-}
-
-.glyph-story__bloom[hidden] {
-  display: none !important;
-}
 
 .glyph-story__control {
   position: absolute;
@@ -407,7 +403,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece__fill {
-  fill: rgba(255, 159, 85, 0);
+  fill: rgba(255, 233, 208, 0);
   fill-opacity: 1;
   stroke: none;
   transition:
@@ -416,7 +412,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece__art .glyph-piece__outline {
-  stroke: rgba(255, 169, 99, 0.96);
+  stroke: rgba(255, 229, 197, 0.96);
   stroke-width: var(--glyph-stroke);
   transition:
     stroke 1080ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -442,7 +438,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece__glow .glyph-piece__outline {
-  stroke: #ff8d43;
+  stroke: #ffd7ad;
   stroke-width: calc(var(--glyph-stroke) * 3.7);
 }
 
@@ -453,7 +449,7 @@ body.glyph-story-active .site-nav {
 
 .glyph-story.is-filled .glyph-piece__fill,
 .glyph-story[data-state="epilogue"] .glyph-piece__fill {
-  fill: #ff9f55;
+  fill: #ffe9d0;
   fill-opacity: 1;
   transition:
     fill 900ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -485,7 +481,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-piece:focus-visible .glyph-piece__art .glyph-piece__outline {
-  stroke: #ffd7b5;
+  stroke: #fff4e6;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -500,7 +496,7 @@ body.glyph-story-active .site-nav {
   }
 
   .glyph-story[data-state="overview"] .glyph-piece:hover .glyph-piece__art .glyph-piece__outline {
-    stroke: #ffd7b5;
+    stroke: #fff4e6;
   }
 }
 
@@ -583,7 +579,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story[data-state="focus"] .glyph-piece.is-active .glyph-piece__art .glyph-piece__outline {
-  stroke: #ffd7b5;
+  stroke: #fff4e6;
 }
 
 .glyph-story__edge {
@@ -634,11 +630,11 @@ body.glyph-story-active .site-nav {
   }
 
   .glyph-story[data-state="focus"] .glyph-story__edge--previous:not(:disabled):hover {
-    background: linear-gradient(90deg, rgba(255, 159, 85, 0.055), transparent);
+    background: linear-gradient(90deg, rgba(255, 233, 208, 0.055), transparent);
   }
 
   .glyph-story[data-state="focus"] .glyph-story__edge--next:not(:disabled):hover {
-    background: linear-gradient(270deg, rgba(255, 159, 85, 0.055), transparent);
+    background: linear-gradient(270deg, rgba(255, 233, 208, 0.055), transparent);
   }
 }
 
@@ -695,7 +691,6 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story__eyebrow,
-.glyph-story__panel-index,
 .glyph-story__epilogue-index {
   margin: 0 0 var(--glyph-copy-gap-small);
   color: rgba(255, 184, 128, 0.86);
@@ -792,7 +787,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story__progress span.is-visited {
-  background: rgba(255, 159, 85, 0.8);
+  background: rgba(255, 233, 208, 0.8);
   box-shadow: 0 0 10px rgba(255, 122, 47, 0.34);
 }
 
@@ -853,8 +848,8 @@ body.glyph-story-active .site-nav {
 .glyph-story__finish:focus-visible,
 .glyph-story__close:focus-visible {
   color: #120803;
-  background: #ff9f55;
-  border-color: #ff9f55;
+  background: #ffe9d0;
+  border-color: #ffe9d0;
   box-shadow:
     0 0 22px rgba(255, 122, 47, 0.34),
     0 0 46px rgba(255, 122, 47, 0.18);
@@ -874,8 +869,8 @@ body.glyph-story-active .site-nav {
   .glyph-story__finish:hover,
   .glyph-story__close:hover {
     color: #120803;
-    background: #ff9f55;
-    border-color: #ff9f55;
+    background: #ffe9d0;
+    border-color: #ffe9d0;
     box-shadow:
       0 0 22px rgba(255, 122, 47, 0.34),
       0 0 46px rgba(255, 122, 47, 0.18);
@@ -1129,7 +1124,6 @@ body.glyph-story-active .site-nav {
   }
 
   .glyph-story__eyebrow,
-  .glyph-story__panel-index,
   .glyph-story__epilogue-index {
     margin-bottom: 0.3rem;
     font-size: 0.82rem;
