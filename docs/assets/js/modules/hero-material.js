@@ -1,21 +1,17 @@
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261013p";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261013q";
 import { captureTextureSurface } from "./texture-surfaces.js?v=20261008k";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
 const REFLECTION_TILE_SIZE = 1024;
 const REFLECTION_PERIOD = 486;
-// Keep the familiar phone-scale density on larger fitted words. This changes
-// texture coordinates only, not the cached reflection or glyph resolution.
+// Phone-scale reflection density; independent of glyph resolution.
 const REFLECTION_REPEATS = 1.2;
 const fittedStates = new WeakMap();
 const fittedBounds = new WeakMap();
 const reflectionPeriods = new WeakMap();
 const pendingPreparations = new WeakSet();
-// Pinch zoom only magnifies the existing canvas. For page zoom, DPR and CSS
-// viewport width change inversely while the physical viewport stays the same.
-// Track that separately from real display / preview-density changes, rather
-// than freezing the first DPR (which may belong to a temporary preview setup).
+// Page zoom preserves physical viewport width; display changes update render density.
 function viewportSample() {
   return { dpr: window.devicePixelRatio || 1, width: window.innerWidth,
     outerWidth: window.outerWidth,
@@ -431,9 +427,7 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform1f(uniform(shader, "textureGlyphMode"), textureFrame.glyph ? 1 : 0);
       gl.uniform1f(uniform(shader, "textureRadial"), textureFrame.glyph ? 1 : 0);
     };
-    // The field only translates; its shape never changes. Bake one full period
-    // once, then move sampling coordinates rather than redraw reflection buffers.
-    // Power-of-two storage allows seamless horizontal REPEAT in WebGL 1.
+    // Bake one period; power-of-two storage supports seamless WebGL 1 REPEAT.
     const tileSize = Math.min(REFLECTION_TILE_SIZE, maxTexture);
     reflectionTile = texture();
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -455,9 +449,7 @@ function createMaterialLayer(root, restore, unavailable) {
       const { mask, context, family } = entry;
       const w = Math.min(maxTexture, Math.max(1, Math.ceil(width * densityX)));
       const h = Math.min(maxTexture, Math.max(1, Math.ceil(height * densityY)));
-      // Reserve the fitted animation envelope, not just this frame's thin glyph.
-      // Small headroom also covers the existing 5.5% touch expansion. Reserve
-      // dimensions stay within the GPU's actual texture-size limit.
+      // Reserve the fitted envelope plus 5.5% touch expansion, within GPU limits.
       const bounds = fittedBounds.get(entry.word);
       const rootScaleX = densityX / Math.max(.00001, Math.abs(state.scaleX));
       let reserveW = Math.max(w, Math.ceil((bounds?.width || 0) * rootScaleX * 1.0625));

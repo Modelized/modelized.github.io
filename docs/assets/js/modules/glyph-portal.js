@@ -1,8 +1,8 @@
-import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261013p";
+import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261013q";
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
-import { clearGlyphCopy } from "./glyph-copy-motion.js?v=20261013p";
-import { createTextureLightLayer } from "./texture-light-layer.js?v=20261013p";
-import { glyphFlight } from "./glyph-motion.js?v=20261013p";
+import { clearGlyphCopy } from "./glyph-copy-motion.js?v=20261013q";
+import { createTextureLightLayer } from "./texture-light-layer.js?v=20261013q";
+import { glyphFlight } from "./glyph-motion.js?v=20261013q";
 
 export const GLYPH_HOLD_MS = 900;
 export const GLYPH_OPEN_MS = 1180;

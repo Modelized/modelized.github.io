@@ -48,7 +48,6 @@ uniform vec2 textureOrigin;
 uniform vec2 textureViewport;
 uniform vec2 texturePixels;
 uniform vec2 textureMotion;
-uniform vec2 textureWaveSize;
 uniform float textureBloom;
 uniform float textureRecoil;
 uniform float textureFocus;
@@ -101,8 +100,8 @@ vec4 textureGatherLight(vec2 point, float phase) {
 vec3 textureWave(vec2 point) {
   float phase = textureMotion.x;
   if (textureBloom > .5) return textureBloomWave(point, textureOrigin, textureViewport, phase);
-  float reach = textureWaveSize.x > 0. ? textureWaveSize.x : textureReach();
-  float breadth = textureWaveSize.y > 0. ? textureWaveSize.y : min(textureViewport.x, textureViewport.y) * .30 + reach * .035;
+  float reach = textureReach();
+  float breadth = min(textureViewport.x, textureViewport.y) * .30 + reach * .035;
   float radius = mix(textureFocus, reach + breadth * 1.1, phase);
   float width = breadth * mix(.8, 1.2, phase);
   float q = (length(point - textureOrigin) - radius) / width;

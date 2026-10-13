@@ -1,4 +1,4 @@
-import { body, prefersReducedMotion, base } from "./context.js?v=20261002a";
+import { prefersReducedMotion } from "./context.js?v=20261002a";
 import { disciplines, projects } from "./content.js?v=20261002a";
 function measureDisciplineCard(card) {
   const surface = card.querySelector(".discipline-stack-card__surface");
@@ -115,7 +115,6 @@ function initStackDeck({
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const createLayout = (x, y, scale, rotate) => ({ x, y, scale, rotate });
-  const getSide = (offset) => (offset === 0 ? "front" : offset < 0 ? "left" : "right");
   const dragCurve = {
     inwardScaleLift: [0, 0.032, 0.026, 0.02, 0.016, 0.014],
     outwardScaleDrop: [0, 0.022, 0.028, 0.032, 0.036, 0.04],
@@ -218,7 +217,6 @@ function initStackDeck({
 
     return {
       cardWidth,
-      cardHeight,
       layouts: buildLayouts(cardWidth)
     };
   };
@@ -319,7 +317,6 @@ function initStackDeck({
   const syncLabels = () => {
     const active = items[activeIndex];
     stack.setAttribute("aria-label", getAriaLabel(active, activeIndex, total));
-    stack.dataset.swipeEnabled = portraitQuery.matches ? "true" : "false";
     stack.removeAttribute("tabindex");
   };
 
@@ -436,8 +433,6 @@ function initStackDeck({
       const isNeighbor = !portraitQuery.matches && Math.abs(offset) === 1;
 
       card.dataset.stackPos = String(offset);
-      card.dataset.stackDepth = String(Math.abs(offset));
-      card.dataset.stackSide = getSide(offset);
       card.classList.toggle("is-active", offset === 0);
       card.classList.toggle("is-neighbor", isNeighbor);
       card.classList.toggle("is-settling", shouldAnimate && card !== outgoingCard);

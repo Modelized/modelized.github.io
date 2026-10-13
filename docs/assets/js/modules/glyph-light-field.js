@@ -1,5 +1,5 @@
-import { TEXTURE_WAVE, TEXTURE_SPREAD_LIGHT } from "./texture-wave.js?v=20261013p";
-import { glyphFlight } from "./glyph-motion.js?v=20261013p";
+import { TEXTURE_WAVE, TEXTURE_SPREAD_LIGHT } from "./texture-wave.js?v=20261013q";
+import { glyphFlight } from "./glyph-motion.js?v=20261013q";
 
 export const GLYPH_SYNTHESIS_MS = 1600;
 export const GLYPH_ASSEMBLY_MS = 980;

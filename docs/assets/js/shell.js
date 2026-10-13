@@ -1,12 +1,12 @@
 import { injectPartial, initNav, syncMobileNavState, initAnchorScroll, initSectionSpy } from "./modules/navigation.js?v=20261008k";
 import { renderProjects, renderDisciplines, initYear } from "./modules/content.js?v=20261002a";
-import { initAboutDisclosure, initAboutCreator } from "./modules/about.js?v=20261013p";
+import { initAboutDisclosure, initAboutCreator } from "./modules/about.js?v=20261013q";
 import { initReveal, initHeroIntro } from "./modules/reveal.js?v=20261008k";
-import { initGridFittedTypography, initRockSaltSafeAreas } from "./modules/typography.js?v=20261013p";
-import { initHeroMaterial } from "./modules/hero-material.js?v=20261013p";
-import { initTextureControl } from "./modules/texture-control.js?v=20261013p";
-import { initGlyphStory } from "./glyph-story.js?v=20261013p";
-import { initDisciplineStack, initProjectStack } from "./modules/card-stacks.js?v=20261008m";
+import { initGridFittedTypography, initRockSaltSafeAreas } from "./modules/typography.js?v=20261013q";
+import { initHeroMaterial } from "./modules/hero-material.js?v=20261013q";
+import { initTextureControl } from "./modules/texture-control.js?v=20261013q";
+import { initGlyphStory } from "./glyph-story.js?v=20261013q";
+import { initDisciplineStack, initProjectStack } from "./modules/card-stacks.js?v=20261013q";
 import { waitForSiteReadiness, siteBootGate } from "./modules/readiness.js?v=20261002a";
 async function boot() {
   let outcome = "ready";

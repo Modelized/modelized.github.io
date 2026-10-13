@@ -1,6 +1,6 @@
-import { TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261013p";
-import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261013p";
-import { captureGlyphCopy } from "./glyph-copy-motion.js?v=20261013p";
+import { TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261013q";
+import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261013q";
+import { captureGlyphCopy } from "./glyph-copy-motion.js?v=20261013q";
 
 export function createTextureLightLayer(parent, mark, copyElement = null, { copyOnly = false } = {}) {
   const canvas = document.createElement("canvas");
@@ -98,7 +98,6 @@ export function createTextureLightLayer(parent, mark, copyElement = null, { copy
         textureViewport: [width, height], texturePixels: [canvas.width, canvas.height],
         textureMotion: [state.motion.position, state.motion.speed], textureRecoil: state.motion.recoil,
         glyphScale: state.glyphScale ?? 1,
-        textureWaveSize: [0, 0],
         textureBloom: field ? 1 : 0,
         textureFocus: state.origin.radius, textureStage: state.stage, textureStrength: state.strength ?? 1,
         textureLightLimit: 0, textureJitter: [0, 0], textureCharge: 0, textureLoading: 0,

@@ -1,7 +1,7 @@
-import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261013p";
-import { sampleGlyphSynthesis, sampleGlyphSynthesisScale, sampleGlyphAssemblyScale, GLYPH_SYNTHESIS_MS, GLYPH_ASSEMBLY_MS } from "./modules/glyph-light-field.js?v=20261013p";
-import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261013p";
-import { GLYPH_COPY_MS, clearGlyphCopy } from "./modules/glyph-copy-motion.js?v=20261013p";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261013q";
+import { sampleGlyphSynthesis, sampleGlyphSynthesisScale, sampleGlyphAssemblyScale, GLYPH_SYNTHESIS_MS, GLYPH_ASSEMBLY_MS } from "./modules/glyph-light-field.js?v=20261013q";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261013q";
+import { GLYPH_COPY_MS, clearGlyphCopy } from "./modules/glyph-copy-motion.js?v=20261013q";
 
 export function initGlyphStory({ heroMaterialReady }) {
 
@@ -124,16 +124,6 @@ export function initGlyphStory({ heroMaterialReady }) {
 
   const transitionEase = cubicBezier(0.22, 1, 0.36, 1);
 
-  const resetOutlinePaths = () => {
-    outlinePaths.forEach((path) => {
-      path.removeAttribute("pathLength");
-      path.removeAttribute("stroke-dasharray");
-      path.removeAttribute("stroke-dashoffset");
-      path.style.removeProperty("stroke-dasharray");
-      path.style.removeProperty("stroke-dashoffset");
-    });
-  };
-
   const cancelTransitionTimeline = () => {
     if (!transitionTimeline) return;
 
@@ -221,8 +211,6 @@ export function initGlyphStory({ heroMaterialReady }) {
       path.style.removeProperty("fill-opacity");
     });
     outlinePaths.forEach((path) => {
-      path.style.removeProperty("stroke-dasharray");
-      path.style.removeProperty("stroke-dashoffset");
       path.style.removeProperty("stroke");
     });
     glowLayers.forEach((layer) => layer.style.removeProperty("opacity"));
@@ -748,7 +736,6 @@ export function initGlyphStory({ heroMaterialReady }) {
     await document.fonts.ready;
     if (root.hidden) throw new Error("Glyph entry cancelled");
     syncVisualBounds();
-    resetOutlinePaths();
     return mark.getBoundingClientRect();
   };
   const completeStory = (keyboard) => {
@@ -783,7 +770,6 @@ export function initGlyphStory({ heroMaterialReady }) {
     root.classList.add("is-closing", "is-transitioning", "is-frame-driven");
     setState("closing");
     void root.offsetWidth;
-    resetOutlinePaths();
     const baseRect = mark.getBoundingClientRect();
     const startMetrics = markTransformMetricsForRect(currentRect, baseRect);
     const targetMetrics = markTransformMetricsForRect(targetRect, baseRect);
