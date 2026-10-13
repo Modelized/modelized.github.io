@@ -1,5 +1,5 @@
 import { getTexturePreference, saveTexturePreference } from "./texture-state.js?v=20261008k";
-import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261012d";
+import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261013p";
 
 const TEXTURE_HOLD_MS = 900;
 const TEXTURE_SPREAD_MS = 1050;
@@ -27,7 +27,7 @@ export function initTextureControl({ materialReady }) {
   const inertBeforeLock = new Map();
 
   const scrollTop = () => Math.max(0, window.scrollY || 0, document.scrollingElement?.scrollTop || 0);
-  const zoomed = () => Math.abs((window.visualViewport?.scale || 1) - 1) > .01;
+  const zoomed = () => (window.visualViewport?.scale || 1) > 1.01;
   const blocked = () => !body.classList.contains("hero-ready") ||
     body.classList.contains("glyph-story-lock") || body.classList.contains("nav-menu-open") ||
     body.classList.contains("nav-menu-closing") || body.classList.contains("hero-refitting");

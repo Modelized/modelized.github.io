@@ -1002,9 +1002,6 @@ a {
     background: var(--nav-press-bg);
   }
 
-  .nav-texture-control:hover {
-    background: var(--nav-press-bg);
-  }
 }
 
 /* Press background should apply only to the mobile sheet links */

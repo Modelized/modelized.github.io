@@ -1,24 +1,22 @@
-import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261012d";
+import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261013p";
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
+import { clearGlyphCopy } from "./glyph-copy-motion.js?v=20261013p";
+import { createTextureLightLayer } from "./texture-light-layer.js?v=20261013p";
+import { glyphFlight } from "./glyph-motion.js?v=20261013p";
 
 export const GLYPH_HOLD_MS = 900;
 export const GLYPH_OPEN_MS = 1180;
-export function glyphLoadingPhase(elapsed, length, scale, referenceRadius) {
-  const referenceLength = 2 * Math.PI * referenceRadius * .98;
-  return (elapsed / (1800 * Math.max(1, length * scale / referenceLength))) % 1;
-}
-
-export function glyphFlight(progress) {
-  const p = Math.max(0, Math.min(1, progress));
-  return { position: p === 1 ? 1 : 1 - Math.exp(-7 * p) * (Math.cos(8 * p) + .875 * Math.sin(8 * p)),
-    scale: 1 - Math.pow(1 - p, 3) };
+export const GLYPH_LOADING_MS = 2000;
+export function glyphLoadingPhase(elapsed) {
+  return (elapsed / GLYPH_LOADING_MS) % 1;
 }
 
 export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, complete, cancel }) {
   let material, session, frame = 0, pointer = null, key = null, suppressClick = false;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const body = document.body;
-  const zoomed = () => Math.abs((visualViewport?.scale || 1) - 1) > .01;
+  const copy = root.querySelector(".glyph-story__header");
+  const zoomed = () => (visualViewport?.scale || 1) > 1.01;
   const available = () => !!material?.available && body.classList.contains("hero-ready") && !zoomed();
   const enabled = () => available() && !session && root.hidden &&
     !body.classList.contains("texture-transition-active") && !body.classList.contains("nav-menu-open") &&
@@ -33,29 +31,28 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     const ns = "http://www.w3.org/2000/svg";
     const host = root.querySelector("[data-glyph-rail]");
     const mark = root.querySelector("[data-glyph-mark]");
+    const hoverFilter = getComputedStyle(trigger.querySelector(".hero-project-logo")).filter;
     const fills = [...mark.querySelectorAll(".glyph-piece__fill")];
     const outlines = [...mark.querySelectorAll(".glyph-piece__outline")];
     const tails = [];
-    outlines.forEach((path, index) => {
+    outlines.forEach((path) => {
       const svg = path.ownerSVGElement, length = path.getTotalLength();
-      const defs = document.createElementNS(ns, "defs");
-      const gradient = document.createElementNS(ns, "linearGradient");
-      gradient.id = `glyph-loading-${index}`;
-      gradient.setAttribute("gradientUnits", "userSpaceOnUse");
-      for (const [offset, opacity] of [[0, 0], [.65, .5], [1, 1]]) {
-        const stop = document.createElementNS(ns, "stop");
-        stop.setAttribute("offset", offset); stop.setAttribute("stop-color", "#fff8ef");
-        stop.setAttribute("stop-opacity", opacity); gradient.append(stop);
-      }
-      defs.append(gradient); svg.append(defs);
-      const tail = path.cloneNode(true);
-      tail.removeAttribute("class"); tail.removeAttribute("style");
-      tail.setAttribute("class", "glyph-portal-tail");
-      tail.style.stroke = `url(#${gradient.id})`;
-      tail.style.strokeDasharray = `${length * .48} ${length * .52}`;
-      svg.append(tail);
-      tails.push({ path: tail, base: path, gradient, defs, length,
-        points: Array.from({ length: 128 }, (_, i) => path.getPointAtLength(length * i / 128)) });
+      const group = document.createElementNS(ns, "g");
+      group.setAttribute("class", "glyph-portal-tail");
+      group.style.stroke = "#fff8ef";
+      const segments = Array.from({ length: 32 }, (_, index) => {
+        const segment = path.cloneNode(true);
+        segment.removeAttribute("class"); segment.removeAttribute("style");
+        segment.style.fill = "none";
+        segment.style.strokeLinecap = "butt";
+        segment.style.strokeLinejoin = "round";
+        segment.style.strokeDasharray = `${length * .48 / 32} ${length * (1 - .48 / 32)}`;
+        segment.style.opacity = String(Math.pow((index + .5) / 32, 1.6));
+        group.append(segment);
+        return segment;
+      });
+      svg.append(group);
+      tails.push({ path: group, base: path, segments, length });
     });
     const stroke = parseFloat(getComputedStyle(outlines.find((path) => path.closest(".glyph-piece__art"))).strokeWidth) || 2.6;
     root.classList.add("is-portal-flying");
@@ -67,14 +64,13 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
       const matrix = tail.base.getScreenCTM();
       tail.scale = Math.hypot(matrix.a, matrix.b);
     });
-    tails.forEach((tail) => {
-      const piece = tail.base.closest(".glyph-piece");
-      tail.travelLength = Math.max(...tails.filter((other) => other.base.closest(".glyph-piece") === piece)
-        .map((other) => other.length * other.scale));
-    });
     root.style.setProperty("--glyph-ink-rgb", "255, 248, 239");
     root.style.setProperty("--glyph-glow-rgb", "255, 229, 197");
-    return { host, fills, outlines, tails, stroke };
+    const hoverAnimation = hoverFilter !== "none" && !reduced.matches
+      ? host.animate([{ filter: hoverFilter }, { filter: "none" }], {
+        duration: 420, easing: "cubic-bezier(.16, 1, .3, 1)"
+      }) : null;
+    return { host, fills, outlines, tails, stroke, hoverAnimation };
   };
   const logoFrame = (s, progress, loading, elapsed) => {
     if (!s.logo) return;
@@ -93,28 +89,23 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
       path.style.filter = blur > .01 ? `blur(${blur * .7}px)` : "none";
     });
     const ratio = s.box.width * press / s.target.width;
-    root.style.setProperty("--glyph-stroke", `${Math.max(.65, s.logo.stroke * ratio)}px`);
+    root.style.setProperty("--glyph-stroke", `${Math.max(.75, s.logo.stroke * ratio)}px`);
     root.style.setProperty("--glyph-glow-blur", `${Math.max(1.5, 9 * ratio)}px`);
-    s.logo.tails.forEach(({ path, base, gradient, length, points, travelLength, scale: baseScale }) => {
+    const phase = glyphLoadingPhase(elapsed);
+    s.logo.tails.forEach(({ path, base, segments, length, scale: baseScale }) => {
       path.style.opacity = String(loading);
       if (!loading) return;
       const scale = baseScale * press;
-      const phase = glyphLoadingPhase(elapsed, travelLength, press, s.loadingRadius);
-      const pointAt = (fraction) => {
-        const sample = (fraction % 1) * points.length, index = Math.floor(sample), blend = sample - index;
-        const a = points[index], b = points[(index + 1) % points.length];
-        return { x: a.x + (b.x - a.x) * blend, y: a.y + (b.y - a.y) * blend };
-      };
-      const start = pointAt(phase), end = pointAt(phase + .48);
-      gradient.setAttribute("x1", start.x); gradient.setAttribute("y1", start.y);
-      gradient.setAttribute("x2", end.x); gradient.setAttribute("y2", end.y);
-      path.style.strokeDashoffset = String(-phase * length);
-      path.style.strokeWidth = String((base.closest(".glyph-piece__glow") ? 3.7 : 1) * Math.max(.65, s.logo.stroke * ratio) / scale);
+      segments.forEach((segment, index) => {
+        segment.style.strokeDashoffset = String(-(phase + index * .48 / segments.length) * length);
+      });
+      path.style.strokeWidth = String((base.closest(".glyph-piece__glow") ? 3.7 : 1) * Math.max(.75, s.logo.stroke * ratio) / scale);
     });
   };
   const restoreLogo = (s) => {
     if (!s.logo) return;
-    s.logo.tails.forEach(({ path, defs }) => { path.remove(); defs.remove(); });
+    s.logo.hoverAnimation?.cancel();
+    s.logo.tails.forEach(({ path }) => path.remove());
     for (const path of [...s.logo.fills, ...s.logo.outlines]) {
       for (const name of ["opacity", "filter", "fill", "fill-opacity"]) path.style.removeProperty(name);
     }
@@ -130,6 +121,8 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     session = null; s.abort.abort(); cancelAnimationFrame(frame); frame = 0;
     restoreLogo(s);
     if (opened) complete(s.keyboard);
+    clearGlyphCopy(copy);
+    s.copyLayer?.dispose();
     material?.finishTexture();
     body.classList.remove("glyph-portal-active", "glyph-portal-spreading");
     s.navigation.forEach(({ element }) => element.style.removeProperty("--glyph-nav-fade"));
@@ -171,6 +164,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
       s.loading = 0;
       logoFrame(s, 1, 0, performance.now() - s.started);
       s.phase = "spread"; s.phaseStart = performance.now();
+      s.copyBox = copy.getBoundingClientRect();
       body.classList.add("glyph-portal-spreading");
     } catch (error) { if (session === s) { console.warn(error); finish(); } }
   };
@@ -203,20 +197,25 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
       const y = start.top + start.height / 2 + dy * flight.position;
       s.logo.host.style.left = `${x - width / 2}px`; s.logo.host.style.top = `${y - height / 2}px`;
       s.logo.host.style.width = `${width}px`; s.logo.host.style.height = `${height}px`;
-      root.style.setProperty("--glyph-stroke", `${Math.max(.65, s.logo.stroke * width / end.width)}px`);
+      root.style.setProperty("--glyph-stroke", `${Math.max(.75, s.logo.stroke * width / end.width)}px`);
       root.style.setProperty("--glyph-glow-blur", `${Math.max(1.5, 9 * width / end.width)}px`);
       root.style.setProperty("--glyph-float-strength", String(flight.scale));
       root.style.setProperty("--glyph-emission", String(1 + Math.sin(Math.PI * Math.min(1, p / .55)) * .85));
       root.style.setProperty("--glyph-ink-rgb", `255, ${248 - 15 * flight.scale}, ${239 - 31 * flight.scale}`);
       root.style.setProperty("--glyph-glow-rgb", `255, ${229 - 21 * flight.scale}, ${197 - 27 * flight.scale}`);
       s.lightOrigin = { x, y, radius: s.origin.radius + (end.width * .18 - s.origin.radius) * flight.scale };
+      try {
+        s.copyLayer.render({ origin: s.lightOrigin, stage: 1, motion: sampleTextureMotion(1, p),
+          elapsed: (now - s.started) / 1000,
+          copyLift: (innerHeight - s.copyBox.top) * (1 - flight.position) });
+      } catch (error) { console.warn("Glyph copy unavailable", error); finish(); return; }
       draw(s, 1, p, now);
       if (p === 1) { finish(true); return; }
     } else if (s.phase === "layout") {
       draw(s, 0, 1, now);
     } else if (s.phase === "cancel") {
       const p = Math.min(1, (now - s.phaseStart) / 180);
-      logoFrame(s, s.cancelProgress * (1 - p), 0, now - s.started);
+      logoFrame(s, sampleTextureMotion(0, s.cancelProgress * (1 - p)).position, 0, now - s.started);
       draw(s, 0, s.cancelProgress, now, 1 - p);
       if (p === 1) { finish(); return; }
     }
@@ -230,15 +229,14 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
   const start = (auto = false, keyboard = false) => {
     if (!enabled()) return;
     lock(true);
+    copy.style.opacity = "0";
     window.scrollTo({ top: 0, behavior: "instant" });
     const rect = trigger.getBoundingClientRect(), size = Math.min(rect.width, rect.height);
-    const textureButton = document.querySelector("[data-texture-control]")?.getBoundingClientRect();
     const box = { left: rect.left + (rect.width - size) / 2, top: rect.top + (rect.height - size) / 2,
       width: size, height: size };
     const s = { started: performance.now(), abort: new AbortController(), phase: "hold", box,
       origin: { x: box.left + box.width / 2, y: box.top + box.height / 2, radius: box.width / 2 },
       ready: false, visualReady: false, released: false, auto, keyboard,
-      loadingRadius: textureButton ? Math.min(textureButton.width, textureButton.height) / 2 : 16,
       navigation: [...document.querySelectorAll(".site-nav .brand, .site-nav .menu.desktop, .site-nav .nav-right")].map((element) => {
         const rect = element.getBoundingClientRect();
         return { element, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
@@ -247,6 +245,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     s.layout = prepare(keyboard).then((target) => {
       if (session !== s) return;
       s.target = target; s.logo = createLogo(box);
+      s.copyLayer = createTextureLightLayer(root, null, copy, { copyOnly: true });
       logoFrame(s, Math.min(1, (performance.now() - s.started) / GLYPH_HOLD_MS), 0, 0);
       body.classList.add("glyph-portal-active");
     });

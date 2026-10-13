@@ -33,6 +33,16 @@ export function sampleTextureCharge(elapsed) {
   };
 }
 
+const TEXTURE_BLOOM_WAVE = `
+vec3 textureBloomWave(vec2 point, vec2 origin, vec2 viewport, float phase) {
+  float reach = length(max(origin, viewport - origin));
+  float breadth = min(viewport.x, viewport.y) * .30 + reach * .035;
+  float radius = (reach + breadth * 3.) * phase;
+  float width = breadth * mix(.8, 1.4, phase);
+  return vec3((length(point - origin) - radius) / width, width, radius);
+}
+`;
+
 export const TEXTURE_WAVE = `
 uniform vec2 textureOrigin;
 uniform vec2 textureViewport;
@@ -50,6 +60,7 @@ uniform float textureCharge;
 uniform float textureLoading;
 uniform float textureElapsed;
 uniform float textureGlyphMode;
+${TEXTURE_BLOOM_WAVE}
 vec2 texturePoint() {
   return vec2(gl_FragCoord.x / texturePixels.x, 1. - gl_FragCoord.y / texturePixels.y) * textureViewport;
 }
@@ -89,17 +100,13 @@ vec4 textureGatherLight(vec2 point, float phase) {
 }
 vec3 textureWave(vec2 point) {
   float phase = textureMotion.x;
+  if (textureBloom > .5) return textureBloomWave(point, textureOrigin, textureViewport, phase);
   float reach = textureWaveSize.x > 0. ? textureWaveSize.x : textureReach();
   float breadth = textureWaveSize.y > 0. ? textureWaveSize.y : min(textureViewport.x, textureViewport.y) * .30 + reach * .035;
-  float radius = textureBloom > .5
-    ? mix(-reach * .45, reach + breadth * 1.3, phase)
-    : mix(textureFocus, reach + breadth * 1.1, phase);
+  float radius = mix(textureFocus, reach + breadth * 1.1, phase);
   float width = breadth * mix(.8, 1.2, phase);
   float q = (length(point - textureOrigin) - radius) / width;
   return vec3(q, width, radius);
-}
-float textureBloomEnergy() {
-  return 4. * textureMotion.x * (1. - textureMotion.x);
 }
 float textureVisibility(vec2 point) {
   if (textureGlyphMode < .5 || textureStage < .5) return 1.;
@@ -161,7 +168,6 @@ uniform float textureElapsed;
 uniform float textureStage;
 uniform float textureStrength;
 uniform float textureRadial;
-uniform float textureBurst;
 varying mediump float particleAlpha;
 varying mediump vec2 particleAxis;
 varying mediump float particleStretch;
@@ -189,20 +195,6 @@ void main() {
   particleAxis = tangent / max(1., length(tangent));
   particleAlpha = smoothstep(0., .18, life) * (1. - smoothstep(.82, 1., life))
     * mix(.24, .62, particleFocus) * fade * textureStrength;
-  if (textureBurst > .5) {
-    float delay = .05 + fract(seed * .413) * .28;
-    float age = max(0., textureElapsed - delay);
-    float duration = mix(.55, 1.15, fract(seed * .217));
-    float burst = 1. - exp(-age * 3.2);
-    vec2 direction = vec2(cos(angle), sin(angle));
-    point = textureOrigin + direction * reach * burst * mix(.18, .58, fract(seed * .317));
-    point.y += age * age * 24.;
-    particleAxis = normalize(direction + vec2(0., age * .1));
-    particleFocus = 1.;
-    particleStretch = mix(4., 1.5, min(1., age / duration));
-    particleAlpha = smoothstep(0., .05, age) * (1. - smoothstep(duration * .2, duration, age))
-      * mix(.3, .8, fract(seed * .619)) * textureStrength;
-  }
   gl_Position = vec4(point / textureViewport * vec2(2., -2.) + vec2(-1., 1.), 0., 1.);
   gl_PointSize = (8. + fract(seed * .37) * 5. + travel * 7.) * texturePixels.x / textureViewport.x;
 }
@@ -231,16 +223,6 @@ export const TEXTURE_SPREAD_LIGHT = `
 vec4 textureSpreadLight(vec2 point) {
   float phase = textureMotion.x;
   vec3 wave = textureWave(point);
-  if (textureBloom > .5) {
-    float q = wave.x;
-    float crest = exp(-q * q * 1.25);
-    float face = exp(-pow(q + .45, 2.) * .48);
-    float halo = exp(-q * q * .16);
-    float fringe = exp(-pow(q - .65, 2.) * 2.5);
-    float alpha = (crest * .56 + face * .22 + halo * .085 + fringe * .035) * textureBloomEnergy();
-    vec3 warm = mix(vec3(1., .69, .43), vec3(1., .99, .97), clamp(crest + face * .6, 0., 1.));
-    return vec4(warm * alpha, alpha) * textureStrength;
-  }
   float dispersal = smoothstep(.3, 1., phase);
   if (textureLightLimit > 0.) {
     float finish = max(textureFocus + 1., textureLightLimit * .85);
@@ -261,6 +243,7 @@ vec4 textureSpreadLight(vec2 point) {
   float energy = (1. - phase * .35) * (1. - dispersal) / sqrt(spread);
   float alpha = min(.96, (crest * .83 + face * .32 + halo * .075 + fringe * .16 + cap * .88) * energy);
   vec3 warm = mix(vec3(1., .69, .43), vec3(1., .99, .97), clamp(crest + face + cap, 0., 1.));
+  if (textureBloom > .5) return vec4(warm * alpha, alpha) * smoothstep(0., .10, phase) * textureStrength;
   return mix(textureGatherLight(point, 1.), vec4(warm * alpha, alpha), textureHandoff()) * textureStrength;
 }
 `;
@@ -282,6 +265,7 @@ precision highp float;
 ${TEXTURE_WAVE}
 uniform sampler2D surface;
 uniform vec4 surfaceBox;
+uniform float surfaceIncoming;
 vec4 readSurface(vec2 point) {
   vec2 uv = (point - surfaceBox.xy) / surfaceBox.zw;
   vec4 color = texture2D(surface, uv);
@@ -295,6 +279,7 @@ void main() {
   float chromatic = textureChromatic(point);
   vec2 delta = ray / max(1., length(ray)) * (textureDefocus(point) * (1. - chromatic * .5) + chromatic * 2.);
   gl_FragColor = textureComposite(readSurface(displaced), readSurface(displaced - delta),
-    readSurface(displaced + delta), chromatic) * textureVisibility(point);
+    readSurface(displaced + delta), chromatic)
+    * mix(textureVisibility(point), 1. - textureVisibility(point), surfaceIncoming);
 }
 `;

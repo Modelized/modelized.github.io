@@ -1,5 +1,5 @@
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261012d";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261013p";
 import { captureTextureSurface } from "./texture-surfaces.js?v=20261008k";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
@@ -430,7 +430,6 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform1f(uniform(shader, "textureLoading"), textureFrame.loading || 0);
       gl.uniform1f(uniform(shader, "textureGlyphMode"), textureFrame.glyph ? 1 : 0);
       gl.uniform1f(uniform(shader, "textureRadial"), textureFrame.glyph ? 1 : 0);
-      gl.uniform1f(uniform(shader, "textureBurst"), 0);
     };
     // The field only translates; its shape never changes. Bake one full period
     // once, then move sampling coordinates rather than redraw reflection buffers.

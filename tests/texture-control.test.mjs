@@ -305,6 +305,12 @@ for (const interrupt of ['hidden', 'renderer']) {
   assert.deepEqual(t.saved, []);
   assert.equal(t.draws.length, 0);
 }
+{
+  const t = await setup({ scale: .85 });
+  assert.equal(t.button.attrs['aria-disabled'], 'false');
+  t.press(); await t.advance(1000); t.release(); await t.advance(1200);
+  assert.deepEqual(t.saved, ['flat']);
+}
 for (const phase of ['charge', 'spread']) {
   const t = await setup({ scale: 1 });
   t.press(); await t.advance(phase === 'charge' ? 300 : 1000);

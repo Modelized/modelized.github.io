@@ -1,10 +1,9 @@
-import { heroMaterialReady } from "./shell.js?v=20261012d";
-import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261012d";
-import { sampleGlyphSynthesis, GLYPH_SYNTHESIS_MS } from "./modules/glyph-light-field.js?v=20261012d";
-import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261012d";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261013p";
+import { sampleGlyphSynthesis, sampleGlyphSynthesisScale, sampleGlyphAssemblyScale, GLYPH_SYNTHESIS_MS, GLYPH_ASSEMBLY_MS } from "./modules/glyph-light-field.js?v=20261013p";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261013p";
+import { GLYPH_COPY_MS, clearGlyphCopy } from "./modules/glyph-copy-motion.js?v=20261013p";
 
-(function () {
-  "use strict";
+export function initGlyphStory({ heroMaterialReady }) {
 
   const root = document.querySelector("#glyph-story");
   const trigger = document.querySelector(".hero-project-logo-frame");
@@ -82,8 +81,6 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
   const supportsScrollEnd = "onscrollend" in rail;
   const activeAnimations = new Set();
   const visited = new Set();
-  const dashLengths = new WeakMap();
-  const pathLengths = new WeakMap();
 
   const nextFrame = () =>
     new Promise((resolve) => {
@@ -127,41 +124,8 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
 
   const transitionEase = cubicBezier(0.22, 1, 0.36, 1);
 
-  const configureOutlinePaths = () => {
-    // Read all SVG geometry before changing any dash styles.
-    const measurements = outlinePaths.map((path) => {
-      let dashLength = 1000;
-      try {
-        let measuredLength = pathLengths.get(path);
-        if (measuredLength === undefined) {
-          measuredLength = path.getTotalLength();
-          if (Number.isFinite(measuredLength) && measuredLength > 0) {
-            pathLengths.set(path, measuredLength);
-          }
-        }
-        const svg = path.ownerSVGElement;
-        const svgRect = svg?.getBoundingClientRect();
-        const viewBox = svg?.viewBox?.baseVal;
-        const renderedScale =
-          svgRect &&
-          viewBox &&
-          viewBox.width > 0 &&
-          viewBox.height > 0 &&
-          svgRect.width > 0 &&
-          svgRect.height > 0
-            ? Math.min(svgRect.width / viewBox.width, svgRect.height / viewBox.height)
-            : 1;
-        if (Number.isFinite(measuredLength) && measuredLength > 0) {
-          dashLength = Math.ceil(measuredLength * renderedScale);
-        }
-      } catch {
-        // The shared fallback still uses the same dash model for every path.
-      }
-
-      return [path, dashLength];
-    });
-    measurements.forEach(([path, dashLength]) => {
-      dashLengths.set(path, dashLength);
+  const resetOutlinePaths = () => {
+    outlinePaths.forEach((path) => {
       path.removeAttribute("pathLength");
       path.removeAttribute("stroke-dasharray");
       path.removeAttribute("stroke-dashoffset");
@@ -169,8 +133,6 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
       path.style.removeProperty("stroke-dashoffset");
     });
   };
-
-  const dashLengthFor = (path) => dashLengths.get(path) || 1000;
 
   const cancelTransitionTimeline = () => {
     if (!transitionTimeline) return;
@@ -218,11 +180,6 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     });
   };
 
-  const setPathDash = (path, progress) => {
-    path.style.strokeDasharray = `${dashLengthFor(path)} ${dashLengthFor(path)}`;
-    path.style.strokeDashoffset = String(dashLengthFor(path) * (1 - clamp(progress, 0, 1)));
-  };
-
   const applyClosingVisual = (progress, fromFilled, easedProgress = transitionEase(progress)) => {
     const visualProgress = easedProgress;
     const outlineProgress = 1 - visualProgress;
@@ -235,10 +192,8 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
       path.style.fillOpacity = "1";
     });
     artPaths.forEach((path) => {
-      setPathDash(path, outlineProgress);
       path.style.stroke = `rgba(255, ${mix(233, 229, visualProgress)}, ${mix(208, 197, visualProgress)}, ${0.96 * outlineProgress})`;
     });
-    glowPaths.forEach((path) => setPathDash(path, outlineProgress));
     glowLayers.forEach((layer) => {
       layer.style.opacity = String((fromFilled ? 0.8 : 0.5) * outlineProgress);
     });
@@ -249,8 +204,10 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     const motion = sampleGlyphSynthesis(progress);
     const box = synthesisBox || mark.getBoundingClientRect();
     const center = rectCenter(box);
+    const glyphScale = reducedMotion.matches ? 1 : sampleGlyphSynthesisScale(progress);
+    if (synthesisBox) mark.style.transform = `scale(${glyphScale})`;
     synthesisLight?.render({ origin: { ...center, radius: Math.min(box.width, box.height) * .1 },
-      stage: 1, motion, progress, elapsed: progress * GLYPH_SYNTHESIS_MS / 1000, burst: true });
+      stage: 1, motion, progress, glyphScale, elapsed: progress * GLYPH_SYNTHESIS_MS / 1000 });
     fillPaths.forEach((path) => {
       path.style.fill = "#ffe9d0";
       path.style.fillOpacity = progress === 1 ? "1" : "0";
@@ -273,7 +230,9 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
   };
 
   const clearSynthesisLight = () => {
+    if (synthesisBox) mark.style.removeProperty("transform");
     synthesisLight?.dispose(); synthesisLight = null; synthesisBox = null;
+    clearGlyphCopy(epilogue);
     root.classList.remove("is-synthesis-light");
   };
 
@@ -419,11 +378,23 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     animation?.cancel();
   };
 
+  let visualInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+  const syncVisualBounds = () => {
+    const viewport = root.getBoundingClientRect();
+    const box = visual.getBoundingClientRect();
+    visualInsets = { top: box.top - viewport.top, right: viewport.right - box.right,
+      bottom: viewport.bottom - box.bottom, left: box.left - viewport.left };
+    for (const [side, value] of Object.entries(visualInsets)) {
+      visual.style.setProperty(`--glyph-viewport-${side}`, `${Math.max(0, value)}px`);
+    }
+  };
+
   const targetScrollLeft = (index) => {
     const piece = pieces[index];
     if (!piece) return 0;
     const maximum = Math.max(0, rail.scrollWidth - rail.clientWidth);
-    const centered = piece.offsetLeft - (rail.clientWidth - piece.offsetWidth) / 2;
+    const center = visualInsets.left + (rail.clientWidth - visualInsets.left - visualInsets.right) / 2;
+    const centered = mark.offsetLeft + piece.offsetLeft + piece.offsetWidth / 2 - center;
     return clamp(centered, 0, maximum);
   };
 
@@ -610,8 +581,9 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     ];
   };
 
-  const transitionForms = async ({ mutate, duration, targetRotation }) => {
+  const transitionForms = async ({ mutate, duration, targetRotation, prepare, assemblyScale = null }) => {
     if (transitioning) return false;
+    root.querySelectorAll(".glyph-copy-settled").forEach((element) => element.classList.remove("glyph-copy-settled"));
 
     transitioning = true;
     cancelActiveAnimations();
@@ -625,21 +597,33 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     void root.offsetWidth;
     const after = captureFormRects();
     const rotationDelta = startRotation - targetRotation;
+    root.style.setProperty("--glyph-copy-delay", `${reducedMotion.matches ? 0 : Math.max(0, duration - GLYPH_COPY_MS)}ms`);
+    prepare?.();
+    const scaleAnimation = !assemblyScale || reducedMotion.matches ? null : (() => {
+      const keyframes = Array.from({ length: 61 }, (_, index) => ({
+        offset: index / 60, transform: `scale(${assemblyScale(index / 60)})`
+      }));
+      mark.style.transform = `scale(${assemblyScale(1)})`;
+      return animateElement(mark, keyframes,
+        { duration, easing: "linear", fill: "both" });
+    })();
 
     if (!reducedMotion.matches) {
-      await Promise.all(
-        motions.map((motion, index) =>
+      await Promise.all([
+        scaleAnimation,
+        ...motions.map((motion, index) =>
           animateElement(motion, translationKeyframes(before[index], after[index], rotationDelta), {
             duration,
             easing: settleEase,
             fill: "both"
           })
         )
-      );
+      ]);
     }
 
     currentRotation = targetRotation;
     root.classList.remove("is-transitioning");
+    root.style.removeProperty("--glyph-copy-delay");
     transitioning = false;
     if (pendingReflow) performResponsiveReflow();
     return true;
@@ -707,6 +691,7 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
         setState("focus");
         void rail.offsetWidth;
         alignRailToIndex(selectedIndex);
+        setActiveIndex(selectedIndex, { visit: true });
       }
     });
     if (!changed) return;
@@ -760,8 +745,10 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     setState("entering"); root.classList.add("is-open", "is-portal-entering");
     mark.style.opacity = "0";
     await nextFrame();
+    await document.fonts.ready;
     if (root.hidden) throw new Error("Glyph entry cancelled");
-    configureOutlinePaths();
+    syncVisualBounds();
+    resetOutlinePaths();
     return mark.getBoundingClientRect();
   };
   const completeStory = (keyboard) => {
@@ -796,7 +783,7 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     root.classList.add("is-closing", "is-transitioning", "is-frame-driven");
     setState("closing");
     void root.offsetWidth;
-    configureOutlinePaths();
+    resetOutlinePaths();
     const baseRect = mark.getBoundingClientRect();
     const startMetrics = markTransformMetricsForRect(currentRect, baseRect);
     const targetMetrics = markTransformMetricsForRect(targetRect, baseRect);
@@ -869,36 +856,32 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     clearSynthesisLight();
     root.classList.add("is-frame-driven");
     applyAssemblyVisual(0);
-    const changed = await transitionForms({
-      duration: 980,
-      targetRotation: 0,
-      mutate: () => {
-        setState("synthesis");
-        rail.scrollLeft = 0;
-        resetPieceStyles();
-      }
-    });
-    if (!changed) {
-      clearSynthesisLight();
-      return;
-    }
-
     try {
-      root.classList.add("is-synthesis-light");
-      synthesisLight = createTextureLightLayer(root, mark);
-      synthesisBox = mark.getBoundingClientRect();
+      const changed = await transitionForms({
+        duration: GLYPH_ASSEMBLY_MS,
+        assemblyScale: sampleGlyphAssemblyScale,
+        targetRotation: 0,
+        mutate: () => {
+          setState("synthesis");
+          rail.scrollLeft = 0;
+          resetPieceStyles();
+        },
+        prepare: () => {
+          root.classList.add("is-synthesis-light");
+          epilogue.style.opacity = "0";
+          synthesisLight = createTextureLightLayer(root, mark, epilogue);
+          synthesisBox = mark.getBoundingClientRect();
+        }
+      });
+      if (!changed || root.hidden || state !== "synthesis") { clearSynthesisLight(); return; }
+      transitioning = true;
+      const completed = await runFrameTimeline(reducedMotion.matches ? 180 : GLYPH_SYNTHESIS_MS, applyAssemblyVisual);
+      transitioning = false;
+      if (!completed) { clearSynthesisLight(); return; }
     } catch (error) {
       console.warn("Glyph synthesis unavailable", error);
       cancelStory(); setScrollLocked(false); return;
     }
-    transitioning = true;
-    const completed = await runFrameTimeline(reducedMotion.matches ? 180 : GLYPH_SYNTHESIS_MS, applyAssemblyVisual);
-    transitioning = false;
-    if (!completed) {
-      clearSynthesisLight();
-      return;
-    }
-
     root.classList.add("is-filled");
     applyAssemblyVisual(1);
     setState("epilogue");
@@ -1044,11 +1027,11 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
     cancelAnimationFrame(reflowFrame);
     reflowFrame = requestAnimationFrame(() => {
       reflowFrame = requestAnimationFrame(() => {
+        syncVisualBounds();
         if (state === "focus") {
           rail.scrollLeft = targetScrollLeft(activeIndex);
           updateRailVisuals();
         }
-        drawGlyphGrid();
         updateEdgeControls();
         root.classList.remove("is-reflowing");
       });
@@ -1105,4 +1088,4 @@ import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=2026
   window.visualViewport?.addEventListener("resize", handleResize, { passive: true });
   setState("closed");
   resetExploration();
-})();
+}

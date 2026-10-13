@@ -1,14 +1,13 @@
 import { injectPartial, initNav, syncMobileNavState, initAnchorScroll, initSectionSpy } from "./modules/navigation.js?v=20261008k";
 import { renderProjects, renderDisciplines, initYear } from "./modules/content.js?v=20261002a";
-import { initAboutDisclosure, initAboutCreator } from "./modules/about.js?v=20261012d";
+import { initAboutDisclosure, initAboutCreator } from "./modules/about.js?v=20261013p";
 import { initReveal, initHeroIntro } from "./modules/reveal.js?v=20261008k";
-import { initGridFittedTypography, initRockSaltSafeAreas } from "./modules/typography.js?v=20261012d";
-import { initHeroMaterial } from "./modules/hero-material.js?v=20261012d";
-import { initTextureControl } from "./modules/texture-control.js?v=20261012d";
+import { initGridFittedTypography, initRockSaltSafeAreas } from "./modules/typography.js?v=20261013p";
+import { initHeroMaterial } from "./modules/hero-material.js?v=20261013p";
+import { initTextureControl } from "./modules/texture-control.js?v=20261013p";
+import { initGlyphStory } from "./glyph-story.js?v=20261013p";
 import { initDisciplineStack, initProjectStack } from "./modules/card-stacks.js?v=20261008m";
 import { waitForSiteReadiness, siteBootGate } from "./modules/readiness.js?v=20261002a";
-let resolveMaterial;
-export const heroMaterialReady = new Promise((resolve) => { resolveMaterial = resolve; });
 async function boot() {
   let outcome = "ready";
 
@@ -29,8 +28,8 @@ async function boot() {
     initReveal();
     const typographyReady = initGridFittedTypography();
     const materialReady = initHeroMaterial({ typographyReady });
-    materialReady.then(resolveMaterial, () => resolveMaterial(null));
     initTextureControl({ materialReady });
+    initGlyphStory({ heroMaterialReady: materialReady });
     initRockSaltSafeAreas();
     initAboutCreator();
     initDisciplineStack();
@@ -41,7 +40,6 @@ async function boot() {
       siteBootGate.skipped.then(() => "skipped")
     ]);
   } catch (error) {
-    resolveMaterial(null);
     console.error("Site boot failed", error);
     outcome = "failed";
   }

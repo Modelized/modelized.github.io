@@ -1,3 +1,8 @@
+:root {
+  --texture-hover-light: drop-shadow(0 0 5px rgba(255, 248, 239, .62))
+    drop-shadow(0 0 16px rgba(255, 229, 197, .28));
+}
+
 .nav-texture-control {
   --texture-charge: 0;
   padding: 0;
@@ -25,8 +30,11 @@
   outline: 2px solid #fff0df;
   outline-offset: 4px;
 }
-.nav-texture-control[data-icon="texture"]:hover {
-  background: var(--nav-surface);
+.texture-control__texture {
+  transition: filter 420ms cubic-bezier(.16, 1, .3, 1);
+}
+.nav-texture-control[data-icon="texture"][aria-disabled="false"]:not([data-phase]):is(:hover, :focus-visible) .texture-control__texture {
+  filter: var(--texture-hover-light);
 }
 .texture-control__icon {
   display: grid;

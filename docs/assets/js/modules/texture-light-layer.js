@@ -1,7 +1,8 @@
-import { TEXTURE_LIGHT, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261012d";
-import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261012d";
+import { TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261013p";
+import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261013p";
+import { captureGlyphCopy } from "./glyph-copy-motion.js?v=20261013p";
 
-export function createTextureLightLayer(parent, mark) {
+export function createTextureLightLayer(parent, mark, copyElement = null, { copyOnly = false } = {}) {
   const canvas = document.createElement("canvas");
   canvas.className = "glyph-texture-light";
   canvas.setAttribute("aria-hidden", "true");
@@ -44,21 +45,24 @@ export function createTextureLightLayer(parent, mark) {
   };
   try {
     const field = mark ? captureGlyphField(mark) : null;
-    const light = program("attribute vec2 position; void main(){gl_Position=vec4(position,0.,1.);}", field ? GLYPH_FOCUS_LIGHT : TEXTURE_LIGHT);
-    const particles = program(TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT);
+    const vertex = "attribute vec2 position; void main(){gl_Position=vec4(position,0.,1.);}";
+    const light = copyOnly ? null : program(vertex, field ? GLYPH_FOCUS_LIGHT : TEXTURE_LIGHT);
+    const copy = copyElement ? captureGlyphCopy(copyElement) : null;
+    const copyProgram = copy ? program(vertex, TEXTURE_SURFACE) : null;
     const quad = buffer([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]);
-    const seeds = buffer(Array.from({ length: 32 }, (_, i) => [i, (i * .618) % 1]).flat());
     parent.append(canvas);
     const box = parent.getBoundingClientRect();
     const width = box.width, height = box.height;
-    const density = Math.min(devicePixelRatio || 1, 1.5, gl.getParameter(gl.MAX_VIEWPORT_DIMS)[0] / width, gl.getParameter(gl.MAX_VIEWPORT_DIMS)[1] / height);
+    const density = Math.min(devicePixelRatio || 1, copy ? Infinity : 1.5, gl.getParameter(gl.MAX_VIEWPORT_DIMS)[0] / width, gl.getParameter(gl.MAX_VIEWPORT_DIMS)[1] / height);
     canvas.width = Math.ceil(width * density);
     canvas.height = Math.ceil(height * density);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    let fieldTexture, copyTexture;
     if (field) {
       const texture = gl.createTexture();
+      fieldTexture = texture;
       textures.push(texture); gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -71,6 +75,19 @@ export function createTextureLightLayer(parent, mark) {
       gl.uniform4f(gl.getUniformLocation(light.program, "glyphBox"), field.rect.x - box.left, field.rect.y - box.top, field.rect.width, field.rect.height);
       gl.uniform1f(gl.getUniformLocation(light.program, "glyphDensity"), field.density);
     }
+    if (copy) {
+      copyTexture = gl.createTexture(); textures.push(copyTexture);
+      gl.bindTexture(gl.TEXTURE_2D, copyTexture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, copy.canvas);
+      if (gl.getError() !== gl.NO_ERROR) throw new Error("Glyph copy upload failed");
+      gl.useProgram(copyProgram.program);
+      gl.uniform1i(gl.getUniformLocation(copyProgram.program, "surface"), 0);
+      gl.uniform1f(gl.getUniformLocation(copyProgram.program, "surfaceIncoming"), 1);
+    }
     const draw = (shader, data, count, mode, state) => {
       gl.useProgram(shader.program);
       gl.bindBuffer(gl.ARRAY_BUFFER, data);
@@ -80,11 +97,12 @@ export function createTextureLightLayer(parent, mark) {
         textureOrigin: [state.origin.x - box.left, state.origin.y - box.top],
         textureViewport: [width, height], texturePixels: [canvas.width, canvas.height],
         textureMotion: [state.motion.position, state.motion.speed], textureRecoil: state.motion.recoil,
-        textureWaveSize: field?.waveSize || [0, 0],
+        glyphScale: state.glyphScale ?? 1,
+        textureWaveSize: [0, 0],
         textureBloom: field ? 1 : 0,
         textureFocus: state.origin.radius, textureStage: state.stage, textureStrength: state.strength ?? 1,
         textureLightLimit: 0, textureJitter: [0, 0], textureCharge: 0, textureLoading: 0,
-        textureElapsed: state.elapsed, textureGlyphMode: 0, textureRadial: 1, textureBurst: state.burst ? 1 : 0
+        textureElapsed: state.elapsed, textureGlyphMode: shader === copyProgram ? 1 : 0
       };
       for (const [name, value] of Object.entries(values)) {
         if (!shader.uniforms.has(name)) shader.uniforms.set(name, gl.getUniformLocation(shader.program, name));
@@ -98,8 +116,17 @@ export function createTextureLightLayer(parent, mark) {
       render(state) {
         if (gl.isContextLost()) throw new Error("Glyph lighting context lost");
         gl.clear(gl.COLOR_BUFFER_BIT);
-        draw(light, quad, 6, gl.TRIANGLES, state);
-        draw(particles, seeds, 32, gl.POINTS, state);
+        if (copy) {
+          gl.bindTexture(gl.TEXTURE_2D, copyTexture);
+          gl.useProgram(copyProgram.program);
+          gl.uniform4f(gl.getUniformLocation(copyProgram.program, "surfaceBox"),
+            copy.rect.left - box.left, copy.rect.top - box.top + (state.copyLift || 0), copy.rect.width, copy.rect.height);
+          draw(copyProgram, quad, 6, gl.TRIANGLES, state);
+        }
+        if (light) {
+          if (fieldTexture) gl.bindTexture(gl.TEXTURE_2D, fieldTexture);
+          draw(light, quad, 6, gl.TRIANGLES, state);
+        }
       },
       dispose
     };
