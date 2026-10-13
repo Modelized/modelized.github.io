@@ -79,16 +79,17 @@ async function initHeroIntro({ waitForFonts = true } = {}) {
     body.classList.add("hero-intro-running");
     window.dispatchEvent(new Event("hero:intro"));
 
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       body.classList.add("hero-handoff");
-      window.dispatchEvent(new Event("hero:handoff"));
-    }, 1480);
-
-    window.setTimeout(() => {
+      const arrivals = [new Promise((resolve) => window.setTimeout(resolve, 1620))];
+      window.dispatchEvent(new CustomEvent("hero:handoff", {
+        detail: { waitUntil: (arrival) => arrivals.push(arrival) }
+      }));
+      await Promise.all(arrivals);
       body.classList.add("hero-ready");
       body.classList.remove("hero-intro-running", "hero-handoff");
       window.dispatchEvent(new Event("hero:ready"));
-    }, 3100);
+    }, 1480);
   });
 }
 

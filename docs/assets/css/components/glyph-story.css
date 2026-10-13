@@ -65,6 +65,7 @@ body.glyph-story-lock {
 .hero-project-logo-frame {
   overflow: visible;
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
@@ -209,6 +210,10 @@ body.glyph-story-active .site-nav {
   overflow: visible;
   container-type: size;
   isolation: isolate;
+  clip-path: inset(calc(-1 * var(--glyph-viewport-top, 0px))
+    calc(-1 * var(--glyph-viewport-right, 0px))
+    calc(-1 * var(--glyph-viewport-bottom, 0px))
+    calc(-1 * var(--glyph-viewport-left, 0px)));
 }
 
 .glyph-story[data-state="entering"] .glyph-story__stage,
@@ -551,6 +556,7 @@ body.glyph-story-active .site-nav {
   overflow-y: hidden;
   transform: none;
   scroll-snap-type: x mandatory;
+  overflow-anchor: none;
   cursor: default;
   touch-action: pan-x;
 }
@@ -776,6 +782,30 @@ body.glyph-story-active .site-nav {
   font-size: clamp(2.25rem, 9.8vw, 4.65rem);
 }
 
+.glyph-story__hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5em;
+  opacity: 0;
+  transition: opacity 420ms cubic-bezier(.22, 1, .36, 1);
+}
+
+.glyph-story__hint svg {
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.glyph-story[data-state="overview"]:not(.is-portal-entering) .glyph-story__hint {
+  opacity: 1;
+}
+
 .glyph-story__details {
   display: grid;
   grid-template-rows: auto auto auto;
@@ -807,6 +837,7 @@ body.glyph-story-active .site-nav {
   font-size: clamp(1.9rem, 8.3vw, 3.75rem);
 }
 
+.glyph-story__hint,
 .glyph-story__panel > p:last-child,
 .glyph-story__epilogue > p:nth-of-type(2) {
   max-width: 62ch;
@@ -817,6 +848,8 @@ body.glyph-story-active .site-nav {
   line-height: 1.46;
   text-wrap: pretty;
 }
+
+.glyph-story__hint { color: rgba(243, 242, 238, .6); }
 
 .glyph-story__progress {
   display: flex;
@@ -1127,6 +1160,8 @@ body.glyph-story-active .site-nav {
     font-size: clamp(2.2rem, 3.8vw, 5rem);
   }
 
+  .glyph-story__hint { justify-content: flex-start; }
+
   .glyph-story__details {
     justify-items: start;
   }
@@ -1140,6 +1175,7 @@ body.glyph-story-active .site-nav {
     font-size: clamp(2rem, 3.35vw, 4.5rem);
   }
 
+  .glyph-story__hint,
   .glyph-story__panel > p:last-child,
   .glyph-story__epilogue > p:nth-of-type(2) {
     margin-inline: 0;
@@ -1197,6 +1233,7 @@ body.glyph-story-active .site-nav {
     font-size: clamp(1.25rem, 3vw, 2.1rem);
   }
 
+  .glyph-story__hint,
   .glyph-story__panel > p:last-child,
   .glyph-story__epilogue > p:nth-of-type(2) {
     margin-top: 0.42rem;
@@ -1255,6 +1292,7 @@ body.glyph-story-active .site-nav {
     font-size: clamp(1.15rem, 4.2vw, 1.7rem);
   }
 
+  .glyph-story__hint,
   .glyph-story__panel > p:last-child,
   .glyph-story__epilogue > p:nth-of-type(2) {
     max-width: 76ch;

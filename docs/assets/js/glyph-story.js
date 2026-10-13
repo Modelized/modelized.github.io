@@ -1,7 +1,8 @@
-import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261013q";
-import { sampleGlyphSynthesis, sampleGlyphSynthesisScale, sampleGlyphAssemblyScale, GLYPH_SYNTHESIS_MS, GLYPH_ASSEMBLY_MS } from "./modules/glyph-light-field.js?v=20261013q";
-import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261013q";
-import { GLYPH_COPY_MS, clearGlyphCopy } from "./modules/glyph-copy-motion.js?v=20261013q";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261013r";
+import { sampleGlyphSynthesis, sampleGlyphSynthesisScale, sampleGlyphAssemblyScale, GLYPH_SYNTHESIS_MS, GLYPH_ASSEMBLY_MS } from "./modules/glyph-light-field.js?v=20261013r";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261013r";
+import { GLYPH_COPY_MS, clearGlyphCopy } from "./modules/glyph-copy-motion.js?v=20261013r";
+import { glyphTriggerRect } from "./modules/glyph-motion.js?v=20261013r";
 
 export function initGlyphStory({ heroMaterialReady }) {
 
@@ -16,6 +17,7 @@ export function initGlyphStory({ heroMaterialReady }) {
   const previousButton = root.querySelector("[data-glyph-previous]");
   const nextButton = root.querySelector("[data-glyph-next]");
   const details = root.querySelector(".glyph-story__details");
+  const copyRegion = root.querySelector(".glyph-story__copy");
   const finishButton = root.querySelector("[data-glyph-finish]");
   const closeButton = root.querySelector("[data-glyph-close]");
   const epilogue = root.querySelector(".glyph-story__epilogue");
@@ -43,6 +45,7 @@ export function initGlyphStory({ heroMaterialReady }) {
     !previousButton ||
     !nextButton ||
     !details ||
+    !copyRegion ||
     !finishButton ||
     !closeButton ||
     !epilogue ||
@@ -312,20 +315,6 @@ export function initGlyphStory({ heroMaterialReady }) {
     updateEdgeControls();
   };
 
-  const getTriggerRect = () => {
-    const frameRect = trigger.getBoundingClientRect();
-    const size = Math.max(1, Math.min(frameRect.width, frameRect.height));
-    const center = rectCenter(frameRect);
-    return {
-      left: center.x - size / 2,
-      top: center.y - size / 2,
-      width: size,
-      height: size,
-      right: center.x + size / 2,
-      bottom: center.y + size / 2
-    };
-  };
-
   const markTransformMetricsForRect = (targetRect, baseRect) => {
     const targetCenter = rectCenter(targetRect);
     const baseCenter = rectCenter(baseRect);
@@ -370,8 +359,11 @@ export function initGlyphStory({ heroMaterialReady }) {
   const syncVisualBounds = () => {
     const viewport = root.getBoundingClientRect();
     const box = visual.getBoundingClientRect();
-    visualInsets = { top: box.top - viewport.top, right: viewport.right - box.right,
-      bottom: viewport.bottom - box.bottom, left: box.left - viewport.left };
+    const copyBox = copyRegion.getBoundingClientRect();
+    const right = stackedLayout.matches ? viewport.right : (box.right + copyBox.left) / 2;
+    const bottom = stackedLayout.matches ? (box.bottom + copyBox.top) / 2 : viewport.bottom;
+    visualInsets = { top: box.top - viewport.top, right: right - box.right,
+      bottom: bottom - box.bottom, left: box.left - viewport.left };
     for (const [side, value] of Object.entries(visualInsets)) {
       visual.style.setProperty(`--glyph-viewport-${side}`, `${Math.max(0, value)}px`);
     }
@@ -583,6 +575,7 @@ export function initGlyphStory({ heroMaterialReady }) {
     root.classList.add("is-transitioning");
     mutate();
     void root.offsetWidth;
+    syncVisualBounds();
     const after = captureFormRects();
     const rotationDelta = startRotation - targetRotation;
     root.style.setProperty("--glyph-copy-delay", `${reducedMotion.matches ? 0 : Math.max(0, duration - GLYPH_COPY_MS)}ms`);
@@ -678,6 +671,7 @@ export function initGlyphStory({ heroMaterialReady }) {
       mutate: () => {
         setState("focus");
         void rail.offsetWidth;
+        syncVisualBounds();
         alignRailToIndex(selectedIndex);
         setActiveIndex(selectedIndex, { visit: true });
       }
@@ -766,7 +760,7 @@ export function initGlyphStory({ heroMaterialReady }) {
     window.dispatchEvent(new Event("glyph-story:prepare-close"));
 
     const currentRect = mark.getBoundingClientRect();
-    const targetRect = getTriggerRect();
+    const targetRect = glyphTriggerRect(trigger);
     root.classList.add("is-closing", "is-transitioning", "is-frame-driven");
     setState("closing");
     void root.offsetWidth;

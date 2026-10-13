@@ -25,7 +25,9 @@ export function captureGlyphCopy(element) {
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
   while (walker.nextNode()) {
-    const node = walker.currentNode, style = getComputedStyle(node.parentElement);
+    const node = walker.currentNode;
+    if (node.parentElement.closest("[data-glyph-hint]")) continue;
+    const style = getComputedStyle(node.parentElement);
     ctx.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
     ctx.fontKerning = style.fontKerning;
     ctx.fontStretch = style.fontStretch;

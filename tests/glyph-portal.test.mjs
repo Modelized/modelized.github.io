@@ -141,7 +141,7 @@ const scaleStep = 1e-6;
 assert.ok(Math.abs((synthesisScale(scaleStep) - synthesisScale(0)) / (scaleStep * 1600)
   - (assemblyScale(1) - assemblyScale(1 - scaleStep)) / (scaleStep * 980)) < 1e-7);
 assert.ok(Math.abs((synthesisScale(.15 + scaleStep) - synthesisScale(.15 - scaleStep)) / (2 * scaleStep)) < .001);
-assert.match(source, /import \{ glyphFlight \} from "\.\/glyph-motion\.js\?v=/);
+assert.match(source, /import \{ glyphFlight, glyphTriggerRect \} from "\.\/glyph-motion\.js\?v=/);
 assert.match(fieldSource, /import \{ glyphFlight \} from "\.\/glyph-motion\.js\?v=/);
 for (let i = 0; i <= 100; i++) {
   const t = i / 100;

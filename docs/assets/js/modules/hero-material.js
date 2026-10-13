@@ -1,5 +1,5 @@
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
-import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261013q";
+import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261013r";
 import { captureTextureSurface } from "./texture-surfaces.js?v=20261008k";
 
 // One smooth, repeating reflection tile per context; coverage and relief stay native.
@@ -576,7 +576,8 @@ function createMaterialLayer(root, restore, unavailable) {
           const stage = root.closest(".hero-stage");
           const minimumHeight = stage ? parseFloat(getComputedStyle(stage).minHeight) || 0 : 0;
           const availableHeight = viewportHeight - (stage?.getBoundingClientRect().top || 0);
-          textureLightLimit = !value.glyph && availableHeight >= minimumHeight ? Math.max(1, viewportHeight - value.origin.y) : 0;
+          textureLightLimit = !value.glyph && availableHeight >= minimumHeight
+            ? Math.hypot(Math.max(value.origin.x, window.innerWidth - value.origin.x), viewportHeight - value.origin.y) : 0;
           // Absolute positioning preserves Safari's page background during the lock.
           canvas.classList.add("texture-transition-canvas");
           canvas.style.height = `${window.innerHeight}px`;

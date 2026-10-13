@@ -1,6 +1,6 @@
-import { TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261013q";
-import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261013q";
-import { captureGlyphCopy } from "./glyph-copy-motion.js?v=20261013q";
+import { TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261013r";
+import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261013r";
+import { captureGlyphCopy } from "./glyph-copy-motion.js?v=20261013r";
 
 export function createTextureLightLayer(parent, mark, copyElement = null, { copyOnly = false } = {}) {
   const canvas = document.createElement("canvas");

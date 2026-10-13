@@ -1,6 +1,6 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
 import { createSettledScheduler } from "./navigation.js?v=20261008k";
-import { updateHeroMaterial, prepareHeroMaterial } from "./hero-material.js?v=20261013q";
+import { updateHeroMaterial, prepareHeroMaterial } from "./hero-material.js?v=20261013r";
 // Keep the pulse implementation available independently of arrival/refit motion.
 const HERO_TOUCH_PULSE_ENABLED = true;
 const METAL_ARRIVAL_DURATION = 900;
@@ -618,6 +618,7 @@ function initGridFittedTypography() {
     window.clearTimeout(controller.timerId);
     cancelAnimationFrame(controller.rafId);
     activeWeightAnimations.delete(word);
+    controller.resolve();
   };
 
   const finishWeightAnimation = (word) => {
@@ -653,10 +654,13 @@ function initGridFittedTypography() {
       finishWeightAnimation(word);
       return;
     }
+    let resolve;
+    const completed = new Promise((done) => { resolve = done; });
     const controller = {
       cancelled: false,
       timerId: 0,
-      rafId: 0
+      rafId: 0,
+      resolve
     };
     activeWeightAnimations.set(word, controller);
 
@@ -692,10 +696,11 @@ function initGridFittedTypography() {
 
       controller.rafId = requestAnimationFrame(tick);
     }, delay);
+    return completed;
   };
 
   const playArrival = (selector, duration, delayForWord, reveal) => {
-    document.querySelectorAll(selector).forEach((word) => {
+    return Promise.all(Array.from(document.querySelectorAll(selector), (word) =>
       animateFittedWeight(word, {
         duration,
         delay: delayForWord(word),
@@ -703,8 +708,8 @@ function initGridFittedTypography() {
         weightAtProgress: (progress, configuration) =>
           180 + (configuration.finalWeight - 180) * arrivalEase(progress),
         opacityAtProgress: reveal ? (progress) => Math.min(1, progress / 0.125) : null
-      });
-    });
+      })
+    ));
   };
 
   const playTouchPulse = (word) => {
@@ -902,7 +907,7 @@ function initGridFittedTypography() {
       true
     );
   });
-  window.addEventListener("hero:handoff", () => {
+  window.addEventListener("hero:handoff", (event) => {
     document.querySelectorAll(".hero-intro-cell .hero-fit-word").forEach((word) => {
       word.style.opacity = "1";
     });
@@ -910,7 +915,7 @@ function initGridFittedTypography() {
     clearMetalClockAnimations();
     fitImmediately();
     playSharedMetalArrival();
-    playArrival(
+    const arrival = playArrival(
       ".hero-brand-lockup .hero-fit-word",
       640,
       (word) => {
@@ -927,6 +932,7 @@ function initGridFittedTypography() {
       },
       true
     );
+    event.detail?.waitUntil(arrival);
   });
   window.addEventListener("hero:ready", () => {
     clearArrivalAnimations();

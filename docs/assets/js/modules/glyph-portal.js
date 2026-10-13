@@ -1,8 +1,8 @@
-import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261013q";
+import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261013r";
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
-import { clearGlyphCopy } from "./glyph-copy-motion.js?v=20261013q";
-import { createTextureLightLayer } from "./texture-light-layer.js?v=20261013q";
-import { glyphFlight } from "./glyph-motion.js?v=20261013q";
+import { clearGlyphCopy } from "./glyph-copy-motion.js?v=20261013r";
+import { createTextureLightLayer } from "./texture-light-layer.js?v=20261013r";
+import { glyphFlight, glyphTriggerRect } from "./glyph-motion.js?v=20261013r";
 
 export const GLYPH_HOLD_MS = 900;
 export const GLYPH_OPEN_MS = 1180;
@@ -16,6 +16,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const body = document.body;
   const copy = root.querySelector(".glyph-story__header");
+  const sourceLogo = trigger.querySelector(".hero-project-logo");
   const zoomed = () => (visualViewport?.scale || 1) > 1.01;
   const available = () => !!material?.available && body.classList.contains("hero-ready") && !zoomed();
   const enabled = () => available() && !session && root.hidden &&
@@ -73,8 +74,9 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     return { host, fills, outlines, tails, stroke, hoverAnimation };
   };
   const logoFrame = (s, progress, loading, elapsed) => {
-    if (!s.logo) return;
     const press = sampleTexturePress(0, progress);
+    sourceLogo.style.scale = String(press);
+    if (!s.logo) return;
     s.logo.host.style.width = `${s.box.width * press}px`;
     s.logo.host.style.height = `${s.box.height * press}px`;
     s.logo.host.style.left = `${s.box.left + s.box.width * (1 - press) / 2}px`;
@@ -119,6 +121,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     const s = session;
     if (!s) return;
     session = null; s.abort.abort(); cancelAnimationFrame(frame); frame = 0;
+    sourceLogo.style.removeProperty("scale");
     restoreLogo(s);
     if (opened) complete(s.keyboard);
     clearGlyphCopy(copy);
@@ -231,9 +234,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     lock(true);
     copy.style.opacity = "0";
     window.scrollTo({ top: 0, behavior: "instant" });
-    const rect = trigger.getBoundingClientRect(), size = Math.min(rect.width, rect.height);
-    const box = { left: rect.left + (rect.width - size) / 2, top: rect.top + (rect.height - size) / 2,
-      width: size, height: size };
+    const box = glyphTriggerRect(trigger);
     const s = { started: performance.now(), abort: new AbortController(), phase: "hold", box,
       origin: { x: box.left + box.width / 2, y: box.top + box.height / 2, radius: box.width / 2 },
       ready: false, visualReady: false, released: false, auto, keyboard,
@@ -246,7 +247,11 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
       if (session !== s) return;
       s.target = target; s.logo = createLogo(box);
       s.copyLayer = createTextureLightLayer(root, null, copy, { copyOnly: true });
-      logoFrame(s, Math.min(1, (performance.now() - s.started) / GLYPH_HOLD_MS), 0, 0);
+      const now = performance.now();
+      const progress = s.phase === "cancel"
+        ? s.cancelProgress * (1 - Math.min(1, (now - s.phaseStart) / 180))
+        : Math.min(1, (now - s.started) / GLYPH_HOLD_MS);
+      logoFrame(s, sampleTextureMotion(0, progress).position, s.loading || 0, now - s.started);
       body.classList.add("glyph-portal-active");
     });
     announce("Hold the logo, then release to explore"); update();

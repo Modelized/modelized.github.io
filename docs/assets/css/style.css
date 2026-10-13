@@ -597,10 +597,6 @@ a {
   display: none;
 }
 
-.nav-texture-control:active {
-  background: var(--nav-press-bg);
-}
-
 /* Desktop / landscape: frosted menu pill + thumb highlight */
 @media (width > 900px), (max-width: 900px) and (orientation: landscape) {
   .row {
