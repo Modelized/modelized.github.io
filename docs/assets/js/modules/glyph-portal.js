@@ -28,6 +28,8 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     trigger.setAttribute("aria-label", available() ? "Hold, then release to explore the Modelized glyph" : "Glyph story unavailable");
   };
   const announce = (text) => { const status = document.querySelector("[data-texture-status]"); if (status) status.textContent = text; };
+  // Portal logo and loading outlines
+
   const createLogo = (box) => {
     const ns = "http://www.w3.org/2000/svg";
     const host = root.querySelector("[data-glyph-rail]");
@@ -93,6 +95,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     const ratio = s.box.width * press / s.target.width;
     root.style.setProperty("--glyph-stroke", `${Math.max(.75, s.logo.stroke * ratio)}px`);
     root.style.setProperty("--glyph-glow-blur", `${Math.max(1.5, 9 * ratio)}px`);
+    // Each path uses the same normalized phase regardless of its length or rendered size.
     const phase = glyphLoadingPhase(elapsed);
     s.logo.tails.forEach(({ path, base, segments, length, scale: baseScale }) => {
       path.style.opacity = String(loading);
@@ -116,6 +119,8 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     root.classList.remove("is-portal-flying");
     for (const name of ["--glyph-stroke", "--glyph-glow-blur", "--glyph-emission", "--glyph-ink-rgb", "--glyph-glow-rgb"]) root.style.removeProperty(name);
   };
+  // Transition playback and cleanup
+
   const restoreBackground = () => body.style.removeProperty("--glyph-home-fade");
   const finish = (opened = false) => {
     const s = session;
@@ -229,6 +234,8 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
       try { tick(now); } catch (error) { console.warn("Glyph transition failed", error); finish(); }
     });
   };
+  // Input and interruption
+
   const start = (auto = false, keyboard = false) => {
     if (!enabled()) return;
     lock(true);

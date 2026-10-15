@@ -1,6 +1,9 @@
 import { prefersReducedMotion } from "./context.js?v=20261002a";
 import { syncRockSaltSafeAreas } from "./typography.js?v=20261015a";
 import { createSettledScheduler } from "./navigation.js?v=20261008k";
+
+// Expandable biography
+
 function initAboutDisclosure() {
   const details = document.getElementById("about-details");
   const toggle = document.querySelector(".about-copy__toggle");
@@ -255,6 +258,8 @@ function initAboutDisclosure() {
     }
   });
 }
+
+// Creator word sequence
 
 function initAboutCreator() {
   const title = document.querySelector(".about-creator-title");

@@ -1,10 +1,9 @@
-/* Material shading follows the existing live text and shared animation clocks. */
 .hero {
   --metal-period: 486px;
 }
 
 .hero .hero-fit-word.hero-metal {
-  /* The original un-beveled gradients remain available without WebGL. */
+  /* Flat gradients remain available without WebGL. */
   filter: none;
 }
 
@@ -27,9 +26,8 @@
 }
 
 .hero-brand-lockup > .hero-material-canvas {
-  /* Match the live text's visible overflow: a pulse may cross the centered
-     content gutter, and is clipped only at the viewport edge. Keep this surface
-     stable during pulses rather than resize its drawing buffer every frame. */
+  /* A pulse can cross the content gutter but is clipped at the viewport edge.
+     Keep the surface width stable to avoid resizing its buffer during a pulse. */
   left: calc(50% - 50vw);
   right: auto;
   width: 100vw;

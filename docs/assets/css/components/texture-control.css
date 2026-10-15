@@ -71,7 +71,7 @@
   opacity: 0;
   pointer-events: none;
 }
-/* The loading arc appears only while preparation is delayed. */
+/* CSS supplies charging and loading feedback while the renderer is being prepared. */
 [data-preparing][data-phase="charge"] .texture-control__charge,
 [data-preparing][data-phase="armed"] .texture-control__charge {
   opacity: var(--texture-charge);
@@ -94,7 +94,7 @@
 }
 @keyframes texture-loading { to { transform: rotate(360deg); } }
 
-/* Match Glyph Story's lock; do not pin body with position:fixed. */
+/* Keep the page in document flow while scrolling is locked. */
 html.texture-scroll-lock,
 body.texture-scroll-lock {
   overflow: hidden;

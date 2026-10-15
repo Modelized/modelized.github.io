@@ -27,6 +27,8 @@ export function initTextureControl({ materialReady }) {
   let lockedLayout = null;
   const inertBeforeLock = new Map();
 
+  // Availability and button state
+
   const scrollTop = () => Math.max(0, window.scrollY || 0, document.scrollingElement?.scrollTop || 0);
   const zoomed = () => (window.visualViewport?.scale || 1) > 1.01;
   const blocked = () => !body.classList.contains("hero-ready") ||
@@ -73,6 +75,9 @@ export function initTextureControl({ materialReady }) {
       }, reducedMotion.matches ? 0 : TEXTURE_ICON_MS);
     }, reducedMotion.matches ? 0 : TEXTURE_ICON_MS);
   };
+
+  // Page lock and session cleanup
+
   const setLocked = (locked) => {
     if (locked && !lockedLayout) {
       const stage = document.querySelector(".hero-stage");
@@ -104,7 +109,7 @@ export function initTextureControl({ materialReady }) {
   };
   const releaseLock = () => {
     const revision = ++unlockRevision;
-    // As in Glyph Story, retire temporary drawing before unlocking Safari.
+    // Let Safari retire temporary drawing before releasing the scroll lock.
     requestAnimationFrame(() => requestAnimationFrame(() => {
       if (revision !== unlockRevision || session) return;
       setLocked(false);
@@ -133,6 +138,9 @@ export function initTextureControl({ materialReady }) {
       syncScroll();
     } else releaseLock();
   };
+
+  // Transition playback
+
   const draw = (current, stage, progress, strength = 1) => {
     const motion = sampleTextureMotion(stage, progress);
     button.style.setProperty("--texture-press-scale", String(sampleTexturePress(stage, motion.position, strength)));
@@ -207,7 +215,7 @@ export function initTextureControl({ materialReady }) {
   const start = (autoRelease = false) => {
     if (!canTexture()) return;
     ++unlockRevision;
-    // Already at the top; another scrollTo can disturb Safari's settling chrome.
+    // The page is already at the top, so another scrollTo could disturb Safari's browser controls.
     setLocked(true);
     const rect = button.getBoundingClientRect();
     const current = {
@@ -256,6 +264,9 @@ export function initTextureControl({ materialReady }) {
     button.dataset.phase = session.phase;
     if (!session.ready) announce("Preparing texture");
   };
+
+  // Input and interruption
+
   button.addEventListener("contextmenu", (event) => event.preventDefault());
   // Also guard delegated document handlers and any focus retained before lock.
   for (const type of ["click", "pointerdown", "keydown"]) {
@@ -314,7 +325,7 @@ export function initTextureControl({ materialReady }) {
     if (action === "top") {
       window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "instant" : "smooth" });
     } else if (event.detail === 0) {
-      // Assistive activation has no hold/release stream; run the same sequence.
+      // Assistive activation runs the sequence without separate hold and release events.
       start(true);
     }
   });
@@ -330,7 +341,7 @@ export function initTextureControl({ materialReady }) {
   };
   window.visualViewport?.addEventListener("resize", () => {
     // Pinch changes the visual viewport without necessarily resizing the page.
-    // Cancel before further drawing/scroll locking, and gate every input too.
+    // Cancel before further drawing or scroll locking and update input availability.
     if (zoomed()) interrupt();
     updateButton();
   }, { passive: true });
@@ -340,7 +351,7 @@ export function initTextureControl({ materialReady }) {
   window.addEventListener("orientationchange", interrupt);
   let viewportWidth = innerWidth;
   window.addEventListener("resize", () => {
-    // Browser chrome height changes are not an orientation/layout change.
+    // Browser controls can change viewport height without changing the page layout.
     if (innerWidth !== viewportWidth) { viewportWidth = innerWidth; interrupt(); }
     if (!session) syncScroll();
   });

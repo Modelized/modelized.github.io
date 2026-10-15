@@ -1,4 +1,7 @@
 import { base, assetVersion, SETTLE_PASS_DELAYS, portraitBrandShifts, mobileMenuMotion, body, prefersReducedMotion } from "./context.js?v=20261002a";
+
+// Shared partials
+
 function getPartialUrl(file) {
   const version = file === "nav.html" ? "20261008k" : assetVersion;
   if (!base || base === ".") {
@@ -25,6 +28,8 @@ async function injectPartial(selector, file) {
     console.error("Partial load failed", error);
   }
 }
+
+// Viewport and menu geometry
 
 function getScrollTop() {
   const scrollEl = document.scrollingElement || document.documentElement || document.body;
@@ -220,6 +225,8 @@ function syncPortraitMobileMenuLayout(nav) {
   }
 }
 
+// Mobile menu lifecycle
+
 function clearTransientMobileMenuState(nav) {
   if (isNavMenuOpen(nav)) return;
   cancelMobileMenuWork();
@@ -244,7 +251,7 @@ function cancelMobileMenuWork() {
 }
 
 function finishMobileMenuClose(nav, revision) {
-  // Observe the existing CSS transitions; do not replace or replay their motion.
+  // Wait for the CSS transitions without replacing or replaying them.
   const elements = [
     nav.querySelector(".brand"),
     nav.querySelector(".sheet"),
@@ -347,6 +354,8 @@ function initMobileMenuDelays() {
     item.style.setProperty("--menu-delay", `${delay}s`);
   });
 }
+
+// Navigation backdrop and selection
 
 function initNavBackdrop() {
   if (document.body.dataset.backdropInit === "1") return;
@@ -576,6 +585,8 @@ function initMenuThumb() {
   }
 }
 
+// Anchor navigation
+
 function scrollToTarget(hash) {
   if (!hash || hash === "#") {
     return null;
@@ -672,6 +683,8 @@ function initNav() {
   initNavBackdrop();
   syncMobileNavState();
 }
+
+// Active section tracking
 
 function initSectionSpy() {
   const links = Array.from(document.querySelectorAll("[data-nav-link]"));

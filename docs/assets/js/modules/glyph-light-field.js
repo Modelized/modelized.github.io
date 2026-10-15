@@ -1,6 +1,8 @@
 import { TEXTURE_WAVE, TEXTURE_SPREAD_LIGHT } from "./texture-wave.js?v=20261013r";
 import { glyphFlight } from "./glyph-motion.js?v=20261013r";
 
+// Completion motion
+
 export const GLYPH_SYNTHESIS_MS = 1600;
 export const GLYPH_ASSEMBLY_MS = 980;
 export const GLYPH_CONTRACTION_MS = GLYPH_ASSEMBLY_MS + GLYPH_SYNTHESIS_MS * .15;
@@ -29,6 +31,8 @@ export function sampleGlyphSynthesisScale(progress) {
   return sampleGlyphFinishScale(GLYPH_ASSEMBLY_MS + Math.max(0, Math.min(1, progress)) * GLYPH_SYNTHESIS_MS);
 }
 
+// Glyph distance field
+
 export function signedGlyphDistance(alpha, width, height) {
   const inside = new Float32Array(alpha.length), outside = new Float32Array(alpha.length);
   for (let i = 0; i < alpha.length; i++) {
@@ -52,6 +56,7 @@ export function signedGlyphDistance(alpha, width, height) {
       if (x && y + 1 < height) field[i] = Math.min(field[i], field[i + width - 1] + Math.SQRT2);
     }
   }
+  // Pack signed distance into red and green while retaining coverage in blue.
   const pixels = new Uint8Array(alpha.length * 4);
   for (let i = 0; i < alpha.length; i++) {
     const distance = outside[i] - inside[i];
@@ -84,6 +89,8 @@ export function captureGlyphField(mark) {
     width: canvas.width, height: canvas.height,
     pixels: signedGlyphDistance(alpha, canvas.width, canvas.height) };
 }
+
+// Fill and light composition
 
 export const GLYPH_FOCUS_LIGHT = `
 precision highp float;

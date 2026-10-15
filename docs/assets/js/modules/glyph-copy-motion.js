@@ -22,6 +22,7 @@ export function captureGlyphCopy(element) {
     ctx.lineWidth = border; ctx.strokeStyle = style.borderTopColor;
     if (border) ctx.stroke();
   }
+  // Word ranges preserve the DOM's line breaks in the temporary canvas copy.
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
   while (walker.nextNode()) {

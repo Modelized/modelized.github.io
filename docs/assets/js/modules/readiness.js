@@ -1,4 +1,7 @@
 import { SITE_LOADER_REVEAL_DELAY, SITE_LOADER_SKIP_DELAY, prefersReducedMotion } from "./context.js?v=20261002a";
+
+// Loader lifecycle
+
 function createSiteBootGate() {
   const root = document.documentElement;
   const loader = document.querySelector("[data-site-loader]");
@@ -59,6 +62,8 @@ function createSiteBootGate() {
     }
   };
 }
+
+// Asset readiness
 
 function waitForWindowLoad() {
   if (document.readyState === "complete") {

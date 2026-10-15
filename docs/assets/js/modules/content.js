@@ -1,4 +1,7 @@
 import { simpleIcon } from "./context.js?v=20261002a";
+
+// Card content
+
 const projects = [
   {
     slug: "istage",
@@ -100,6 +103,8 @@ const disciplines = [
     text: "I study living systems through biology and computer science. My main interests include neural signaling, genetics, stem-cell differentiation, tissue regeneration, and how biological systems change under different conditions. I also use computational methods to organize information, test ideas, and explore biological questions that would be difficult to investigate through observation alone."
   }
 ];
+
+// Card rendering
 
 function renderProjects() {
   const stack = document.getElementById("project-stack");

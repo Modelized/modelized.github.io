@@ -1,4 +1,4 @@
-/* Modelized Glyph Story */
+/* Portal and home handoff */
 .glyph-story__rail.glyph-portal-logo {
   position: fixed;
   pointer-events: none;
@@ -143,6 +143,8 @@ body.glyph-story-active .site-nav {
   pointer-events: none;
 }
 
+/* Story layout */
+
 .glyph-story[hidden] {
   display: none !important;
 }
@@ -231,6 +233,8 @@ body.glyph-story-active .site-nav {
 }
 
 
+/* Close and back control */
+
 .glyph-story__control {
   position: absolute;
   top: calc(env(safe-area-inset-top, 0px) + clamp(1rem, 2.6vw, 2rem));
@@ -313,6 +317,8 @@ body.glyph-story-active .site-nav {
   opacity: 1;
   transform: none;
 }
+
+/* Glyph geometry and appearance */
 
 .glyph-story__rail {
   position: absolute;
@@ -543,6 +549,8 @@ body.glyph-story-active .site-nav {
   animation-play-state: paused;
 }
 
+/* Focused glyph navigation */
+
 .glyph-story[data-state="focus"] .glyph-story__rail {
   display: flex;
   inset: calc(-1 * var(--glyph-viewport-top)) calc(-1 * var(--glyph-viewport-right))
@@ -682,6 +690,8 @@ body.glyph-story-active .site-nav {
   }
 
 }
+
+/* Story text and progress */
 
 .glyph-story__copy {
   position: relative;
@@ -891,6 +901,8 @@ body.glyph-story-active .site-nav {
   width: var(--glyph-progress-active-segment);
 }
 
+/* Completion controls */
+
 .glyph-story__finish,
 .glyph-story__close {
   min-width: clamp(10.75rem, 36vw, 14rem);
@@ -969,6 +981,8 @@ body.glyph-story-active .site-nav {
       0 0 46px rgba(255, 122, 47, 0.18);
   }
 }
+
+/* Ambient glyph motion */
 
 @keyframes glyph-float-m {
   0%,
@@ -1117,6 +1131,8 @@ body.glyph-story-active .site-nav {
     transform: scale(1.05);
   }
 }
+
+/* Responsive layouts */
 
 @media (width > 900px) and (aspect-ratio > 9 / 16) {
   .glyph-story {

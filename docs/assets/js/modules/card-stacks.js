@@ -1,5 +1,8 @@
 import { prefersReducedMotion } from "./context.js?v=20261002a";
 import { disciplines, projects } from "./content.js?v=20261002a";
+
+// Card measurements
+
 function measureDisciplineCard(card) {
   const surface = card.querySelector(".discipline-stack-card__surface");
   const layout = surface?.querySelector(".discipline-stack-card__layout");
@@ -52,6 +55,8 @@ function measureProjectCard(card, { portrait }) {
 
   return Math.ceil(paddingTop + paddingBottom + Math.max(contentHeight, imageHeight));
 }
+
+// Shared deck controller
 
 function initStackDeck({
   stackId,
@@ -145,6 +150,8 @@ function initStackDeck({
       });
     });
   };
+
+  // Deck geometry
 
   const buildLayouts = (cardWidth) => {
     const steps = portraitQuery.matches
@@ -247,6 +254,8 @@ function initStackDeck({
     }
     state.layout = layout;
   };
+
+  // Motion capture and playback
 
   const captureLayouts = () =>
     new Map(
@@ -422,7 +431,7 @@ function initStackDeck({
         state.card.classList.remove("is-settling");
         writeLayout(state, fromLayouts?.get(state.card) || state.layout);
       });
-      // One batched style/layout flush per handoff, never during drag frames.
+      // Flush styles and layout once per handoff, not during drag frames.
       void stack.offsetWidth;
     }
     cardStates.forEach((state) => {
@@ -444,7 +453,7 @@ function initStackDeck({
     });
 
     if (shouldAnimate) {
-      // Observe browser-created transitions only; do not drive their playback in JS.
+      // Observe browser-created transitions without controlling their playback.
       cards.forEach((card) => {
         if (card === outgoingCard) return;
         const transition = card
@@ -502,7 +511,7 @@ function initStackDeck({
       easing: "cubic-bezier(0.18, 0.86, 0.22, 1)",
       fill: "both"
     });
-    // Preserve the outgoing card's existing final-frame handoff behavior.
+    // Retain the final frame for subsequent motion capture while the stack is visible.
     trackMotion(card, animation, true);
   };
 
@@ -538,6 +547,8 @@ function initStackDeck({
     metrics = measureMetrics();
     applyState();
   };
+
+  // Media and input lifecycle
 
   const bindMediaSync = () => {
     if (!mediaSelector) {
@@ -762,6 +773,8 @@ function initStackDeck({
   window.addEventListener("orientationchange", syncWithoutAnimation);
   window.addEventListener("pageshow", syncWithoutAnimation);
 }
+
+// Deck configurations
 
 function createStackHeightResolver(sizes) {
   return ({ portrait }) => {

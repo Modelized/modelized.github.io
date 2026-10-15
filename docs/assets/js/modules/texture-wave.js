@@ -1,3 +1,5 @@
+// Shared motion
+
 export function sampleTextureMotion(stage, progress) {
   const p = Math.max(0, Math.min(1, progress));
   if (stage < .5) return { position: p * p * (3 - 2 * p), speed: 4 * p * (1 - p), recoil: 1 };
@@ -32,6 +34,8 @@ export function sampleTextureCharge(elapsed) {
     y: gain * (.85 * Math.sin(elapsed * .061) + .35 * Math.sin(elapsed * .097))
   };
 }
+
+// Wave geometry and refraction
 
 const TEXTURE_BLOOM_WAVE = `
 vec3 textureBloomWave(vec2 point, vec2 origin, vec2 viewport, float phase) {
@@ -117,7 +121,7 @@ vec2 texturePull(vec2 point, float phase) {
   float influence = textureReach() * .68;
   float field = exp(-pow(r / influence, 2.) * 1.8);
   float t = .20 * phase * field;
-  // Inverse quadratic Bezier contraction; the two axes turn at different rates.
+  // Inverse quadratic Bezier contraction lets the two axes turn at different rates.
   vec2 contraction = vec2(1. - 1.5 * t + .5 * t * t, 1. - .8 * t - .2 * t * t);
   return ray * (1. / contraction - 1.);
 }
@@ -156,6 +160,8 @@ float textureDefocus(vec2 point) {
   return (release + 4.2 * exp(-pow(q + .15, 2.) * 1.35) * textureSwell()) * textureStrength;
 }
 `;
+
+// Particle shaders
 
 export const TEXTURE_PARTICLE_VERTEX = `
 attribute vec2 position;
@@ -217,6 +223,8 @@ void main() {
   gl_FragColor = vec4(color * alpha, alpha);
 }
 `;
+
+// Light and surface composition
 
 export const TEXTURE_SPREAD_LIGHT = `
 vec4 textureSpreadLight(vec2 point) {

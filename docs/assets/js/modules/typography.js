@@ -1,7 +1,7 @@
 import { body, prefersReducedMotion } from "./context.js?v=20261002a";
 import { createSettledScheduler } from "./navigation.js?v=20261008k";
 import { updateHeroMaterial, prepareHeroMaterial } from "./hero-material.js?v=20261013r";
-// Keep the pulse implementation available independently of arrival/refit motion.
+// Touch pulses can be disabled independently of arrival and refit motion.
 const HERO_TOUCH_PULSE_ENABLED = true;
 const METAL_ARRIVAL_DURATION = 900;
 const METAL_ARRIVAL_RATE = 3.8;
@@ -66,6 +66,8 @@ function initGridFittedTypography() {
     ["hero-metal-story-stream", new Set()]
   ]);
   const fitSignatures = new WeakMap();
+
+  // Glyph measurement and fitting
 
   const measureGlyph = (word, weight, width, trackingEm) => {
     if (!measuringContext) {
@@ -510,6 +512,8 @@ function initGridFittedTypography() {
   let responsiveRefitPending = false;
   let responsiveRefitStartedAt = 0;
 
+  // Shared metal clocks
+
   const syncMetalClockGroups = () => {
     if (!metalRoot || typeof metalRoot.getAnimations !== "function") return;
 
@@ -573,7 +577,7 @@ function initGridFittedTypography() {
     Array.from(activeMetalClockAnimations.keys()).forEach(cancelMetalClockAnimation);
   };
 
-  // Intro and main arrivals share one rate envelope; only their start cues differ.
+  // Intro and main arrivals share one rate envelope but start from different events.
   const playMetalClockArrival = (animationName, delay = 0) => {
     cancelMetalClockAnimation(animationName);
     if (document.hidden || prefersReducedMotion) return;
@@ -616,6 +620,8 @@ function initGridFittedTypography() {
     playMetalClockArrival("hero-metal-story-stream", 650);
   };
 
+  // Weight and touch motion
+
   const cancelWeightAnimation = (word) => {
     const controller = activeWeightAnimations.get(word);
     if (!controller) return;
@@ -631,7 +637,7 @@ function initGridFittedTypography() {
     cancelWeightAnimation(word);
     const configuration = fitConfigurations.get(word);
     if (!configuration) return;
-    // Fitting may legitimately reuse its geometry cache. Animation completion
+    // Fitting may reuse its geometry cache. Animation completion
     // must therefore commit the final axes itself, including the material state.
     applyFittedState(word, configuration.finalState);
     word.style.opacity = "1";
@@ -765,6 +771,8 @@ function initGridFittedTypography() {
   });
   window.addEventListener("pagehide", suspendTypography);
   window.addEventListener("pageshow", resumeTypography);
+
+  // Responsive refitting
 
   const beginResponsiveRefit = () => {
     if (prefersReducedMotion || !body.classList.contains("hero-ready")) return;
@@ -993,6 +1001,8 @@ function initGridFittedTypography() {
   }
   return typographyReady;
 }
+
+// Handwritten text bounds
 
 const rockSaltCanvas = document.createElement("canvas");
 const rockSaltContext = rockSaltCanvas.getContext("2d");

@@ -85,6 +85,8 @@ export function initGlyphStory({ heroMaterialReady }) {
   const activeAnimations = new Set();
   const visited = new Set();
 
+  // Timelines and visual state
+
   const nextFrame = () =>
     new Promise((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(resolve));
@@ -201,6 +203,7 @@ export function initGlyphStory({ heroMaterialReady }) {
     if (synthesisBox) mark.style.transform = `scale(${glyphScale})`;
     synthesisLight?.render({ origin: { ...center, radius: Math.min(box.width, box.height) * .1 },
       stage: 1, motion, progress, glyphScale, elapsed: progress * GLYPH_SYNTHESIS_MS / 1000 });
+    // The shader owns the fill until the final frame hands it back to the SVG.
     fillPaths.forEach((path) => {
       path.style.fill = "#ffe9d0";
       path.style.fillOpacity = progress === 1 ? "1" : "0";
@@ -314,6 +317,8 @@ export function initGlyphStory({ heroMaterialReady }) {
     rail.tabIndex = nextState === "focus" ? 0 : -1;
     updateEdgeControls();
   };
+
+  // Rail geometry and selection
 
   const markTransformMetricsForRect = (targetRect, baseRect) => {
     const targetCenter = rectCenter(targetRect);
@@ -550,6 +555,8 @@ export function initGlyphStory({ heroMaterialReady }) {
     railAnimationFrame = requestAnimationFrame(step);
   };
 
+  // Layout transitions
+
   const captureFormRects = () => forms.map((form) => form.getBoundingClientRect());
 
   const translationKeyframes = (startRect, endRect, rotationDelta) => {
@@ -605,6 +612,7 @@ export function initGlyphStory({ heroMaterialReady }) {
             fill: "both"
           })
         ));
+      // Assembly can continue moving while the next phase completes the contraction.
       await Promise.all([scaleAnimation, motionDuration > duration && scaleAnimation ? null : movement]);
     }
 
@@ -712,6 +720,8 @@ export function initGlyphStory({ heroMaterialReady }) {
 
     if (changed && keyboardSession) control.focus({ preventScroll: true });
   };
+
+  // Story lifecycle
 
   const backgroundInert = new Map();
   const restoreBackground = () => {
@@ -832,6 +842,8 @@ export function initGlyphStory({ heroMaterialReady }) {
     keyboardSession = false;
   };
 
+  // Completion sequence
+
   const finishExploration = async () => {
     if (state !== "focus" || transitioning || visited.size !== pieces.length) return;
 
@@ -877,6 +889,8 @@ export function initGlyphStory({ heroMaterialReady }) {
     clearSynthesisLight();
     if (keyboardSession) closeButton.focus({ preventScroll: true });
   };
+
+  // Input and focus
 
   const handleRailScroll = () => {
     if (state !== "focus") return;
@@ -997,6 +1011,8 @@ export function initGlyphStory({ heroMaterialReady }) {
       first.focus({ preventScroll: true });
     }
   };
+
+  // Responsive layout
 
   const performResponsiveReflow = () => {
     if (state === "closed") {

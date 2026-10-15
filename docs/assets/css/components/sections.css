@@ -11,6 +11,8 @@
   z-index: 1;
 }
 
+/* Shared buttons */
+
 .button {
   appearance: none;
   -webkit-appearance: none;
@@ -42,6 +44,8 @@
   background: var(--text);
   border-color: var(--text);
 }
+
+/* Expandable biography */
 
 .about-copy {
   margin: 0;
@@ -106,6 +110,8 @@
 .about-copy__toggle[aria-expanded="true"] svg {
   transform: rotate(180deg);
 }
+
+/* Contact cards */
 
 .connect-grid {
   margin-top: 1.35rem;
@@ -284,6 +290,8 @@
   line-height: 1.45;
 }
 
+/* Creator word sequence */
+
 .about-creator-title {
   --about-creator-width: 8.6ch;
   --about-creator-height: 1.08em;
@@ -383,6 +391,8 @@
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* Card stacks */
 
 .disciplines .section-head,
 .projects .section-head {
@@ -558,8 +568,7 @@
   width: var(--discipline-card-width);
   max-width: 100%;
   height: var(--discipline-card-height);
-  /* Explicit card dimensions isolate internal layout without clipping shadows
-     or changing the shared transform path. Do not use paint/size containment. */
+  /* Isolate internal layout while preserving overflowing shadows and the shared transform path. */
   contain: layout style;
   overflow: visible;
   transform-origin: center center;
@@ -774,6 +783,8 @@
     padding: 2.1rem 2.5rem 2.35rem;
   }
 }
+
+/* Project cards */
 
 .project-stack-shell {
   --discipline-card-height: clamp(24.2rem, 34vw, 29.5rem);
@@ -1042,6 +1053,8 @@
   stroke-linejoin: round;
 }
 
+/* Section reveals */
+
 .reveal {
   --reveal-delay: 0ms;
   --reveal-distance: 20px;
@@ -1069,7 +1082,7 @@
       var(--reveal-delay) backwards;
 }
 
-/* Keep opacity and movement timings distinct, with explicit start/end values. */
+/* Separate keyframes let opacity settle before movement ends. */
 @keyframes reveal-opacity {
   from {
     opacity: 0;
@@ -1087,6 +1100,8 @@
     transform: var(--reveal-to);
   }
 }
+
+/* Responsive layouts */
 
 @media (max-width: 980px) {
   :root {
@@ -1123,7 +1138,7 @@
   }
 }
 
-/* Mobile portrait nav */
+/* Touch portrait navigation */
 @media (max-width: 980px) and (orientation: portrait) and (hover: none) and (pointer: coarse) {
   :root {
     --page-top-offset: calc(

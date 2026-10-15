@@ -1,6 +1,9 @@
 import { createScrollReveal } from "../scroll-reveal.js?v=20261002a";
 import { getScrollTop } from "./navigation.js?v=20261008k";
 import { prefersReducedMotion, body } from "./context.js?v=20261002a";
+
+// Section reveals
+
 function applyRevealStagger() {
   const sections = Array.from(document.querySelectorAll(".section"));
 
@@ -34,8 +37,8 @@ function initReveal() {
   revealElements.forEach((element) => {
     const stack = element.querySelector(".discipline-stack-viewport");
     controller.observe(element, {
-      // Loading prepares the deck; the shared observer still owns its first
-      // viewport entry. Neither loading alone nor later visits restart reveal.
+      // Wait for the deck to load before its first viewport reveal.
+      // Loading alone and later visits must not restart the animation.
       prepare: () => {
         if (!stack || stack.dataset.stackReady === "true") return;
         return new Promise((resolve) => stack.addEventListener("stack:ready", resolve, { once: true }));
@@ -55,6 +58,8 @@ function initReveal() {
   settleHeroReveal();
   window.addEventListener("pageshow", settleHeroReveal);
 }
+
+// Hero intro
 
 async function initHeroIntro({ waitForFonts = true } = {}) {
   const shouldSkipIntro =
@@ -82,6 +87,7 @@ async function initHeroIntro({ waitForFonts = true } = {}) {
     window.setTimeout(async () => {
       body.classList.add("hero-handoff");
       const arrivals = [new Promise((resolve) => window.setTimeout(resolve, 1620))];
+      // Keep the handoff active until registered typography arrivals settle.
       window.dispatchEvent(new CustomEvent("hero:handoff", {
         detail: { waitUntil: (arrival) => arrivals.push(arrival) }
       }));

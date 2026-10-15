@@ -1,4 +1,4 @@
-/* Portfolio 2026 rebrand: grid-fitted home */
+/* Metal animation properties and palette */
 @property --hero-metal-model-position {
   syntax: "<length>";
   inherits: false;
@@ -51,6 +51,8 @@
   );
   --hero-cell-gap: clamp(0.52rem, 1vw, 0.9rem);
 }
+
+/* Hero layout */
 
 .js body.page-home:not(.hero-handoff):not(.hero-ready) {
   overflow: hidden;
@@ -325,6 +327,8 @@
   --word-wght: 820;
 }
 
+/* Shared metal textures */
+
 .hero-metal,
 .section-metal {
   color: transparent;
@@ -398,6 +402,8 @@
   -webkit-text-stroke: var(--script-outline-width) transparent;
   overflow: visible;
 }
+
+/* Intro and main reveal */
 
 .hero-intro .hero-metal {
   background-position: var(--hero-metal-intro-position) 50%;

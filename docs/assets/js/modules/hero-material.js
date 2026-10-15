@@ -2,16 +2,17 @@ import { getTexturePreference } from "./texture-state.js?v=20261008k";
 import { TEXTURE_WAVE, TEXTURE_LIGHT, TEXTURE_SURFACE, TEXTURE_PARTICLE_VERTEX, TEXTURE_PARTICLE_FRAGMENT } from "./texture-wave.js?v=20261013r";
 import { captureTextureSurface } from "./texture-surfaces.js?v=20261008k";
 
-// One smooth, repeating reflection tile per context; coverage and relief stay native.
+// Reflection configuration and fitted geometry
+
 const REFLECTION_TILE_SIZE = 1024;
 const REFLECTION_PERIOD = 486;
-// Phone-scale reflection density; independent of glyph resolution.
+// Reflection density uses the phone layout as a reference, independently of glyph resolution.
 const REFLECTION_REPEATS = 1.2;
 const fittedStates = new WeakMap();
 const fittedBounds = new WeakMap();
 const reflectionPeriods = new WeakMap();
 const pendingPreparations = new WeakSet();
-// Page zoom preserves physical viewport width; display changes update render density.
+// Page zoom preserves physical viewport width, unlike a change of display.
 function viewportSample() {
   return { dpr: window.devicePixelRatio || 1, width: window.innerWidth,
     outerWidth: window.outerWidth,
@@ -38,7 +39,7 @@ export function updateHeroMaterial(word, state, bounds) {
   fittedStates.set(word, state);
   if (bounds) {
     fittedBounds.set(word, bounds);
-    // Use the settled, untransformed width, not a changing reveal/touch frame.
+    // Use the settled width so arrival and touch motion do not change reflection density.
     reflectionPeriods.set(word, Math.max(REFLECTION_PERIOD, bounds.reflectionWidth / REFLECTION_REPEATS));
   }
 }
@@ -46,6 +47,8 @@ export function updateHeroMaterial(word, state, bounds) {
 export function prepareHeroMaterial(word) {
   pendingPreparations.add(word);
 }
+
+// Material shaders
 
 const VERTEX = `
 attribute vec2 position;
@@ -99,7 +102,7 @@ void main() {
   d = length((p - vec2(.64,.95)) / vec2(.34,1.25));
   alpha = ramp(d, vec4(0.,.24,.53,.78), vec4(.86,.68,.32,.08), 1.);
   source = mix(source,24./255.,alpha);
-  // Preserve smooth tonal precision in RGBA8; both channels interpolate linearly.
+  // Split precision across two linearly interpolated channels to reduce RGBA8 banding.
   float encodedValue = source * 255.;
   gl_FragColor = vec4(floor(encodedValue) / 255., fract(encodedValue), 0., 1.);
 }
@@ -173,7 +176,6 @@ void main() {
   float front = textureStage < .5 ? 0. : 1. - smoothstep(-.45, .45, textureWave(point).x);
   float liquid = mix(1. - textureToLiquid, textureToLiquid, front);
   if (textureGlyphMode > .5) liquid = textureToLiquid;
-  // Three-tap defocus is limited to the transition shader.
   vec2 ray = point - textureOrigin;
   float chromatic = textureChromatic(point);
   vec2 defocus = ray / max(1., length(ray)) * (textureDefocus(point) * (1. - chromatic * .5) + chromatic * 2.);
@@ -185,6 +187,8 @@ void main() {
 #endif
 }
 `;
+
+// Shader compilation and blur kernels
 
 function createProgram(gl, fragment, vertex = VERTEX) {
   const program = gl.createProgram();
@@ -212,11 +216,9 @@ function createProgram(gl, fragment, vertex = VERTEX) {
   }
 }
 
-// Pair adjacent Gaussian taps with linear texture sampling. This keeps the
-// original 4.5 CSS-pixel relief without calculating Gaussian weights per pixel.
+// Pair adjacent Gaussian taps to reduce texture reads and precompute their weights.
 function gaussianKernel(sigma) {
-  // Large responsive scaleX values are valid (especially in landscape). Keep
-  // the same CSS-space radius with wider sampling, rather than abandoning GL.
+  // Wider sample spacing preserves the CSS blur radius at large responsive scales.
   const spacing = Math.max(1, sigma / 32);
   sigma /= spacing;
   const radius = Math.min(96, Math.ceil(sigma * 3));
@@ -236,6 +238,8 @@ function gaussianKernel(sigma) {
   return { taps, count, center: 1 / total };
 }
 
+// Layer resources and context recovery
+
 function createMaterialLayer(root, restore, unavailable) {
   const canvas = document.createElement("canvas");
   canvas.className = "hero-material-canvas";
@@ -244,7 +248,7 @@ function createMaterialLayer(root, restore, unavailable) {
     alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false
   });
   if (!gl) throw new Error("WebGL is unavailable");
-  // Preserve the original transfer-table palette on wide-gamut displays.
+  // Match the material palette to the display color space.
   if ("drawingBufferColorSpace" in gl) {
     gl.drawingBufferColorSpace = matchMedia("(color-gamut: p3)").matches ? "display-p3" : "srgb";
   }
@@ -355,6 +359,9 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       return result;
     };
+
+    // Texture transition resources
+
     const prepareTexturePrograms = () => {
       if (textureMaterial && textureLight && textureFlatPalette && textureSurfaceProgram && textureParticles && particleBuffer) return;
       // Keep individually completed resources reusable after a failed attempt.
@@ -383,7 +390,7 @@ function createMaterialLayer(root, restore, unavailable) {
         gl.bufferData(gl.ARRAY_BUFFER, seeds, gl.STATIC_DRAW);
         gl.bindBuffer(gl.ARRAY_BUFFER, quad);
       }
-      // Preserve the flat CSS palette and its color space.
+      // Sample the CSS gradients in the same color space as the WebGL layer.
       const paletteCanvas = document.createElement("canvas");
       paletteCanvas.width = 512;
       paletteCanvas.height = 2;
@@ -427,7 +434,7 @@ function createMaterialLayer(root, restore, unavailable) {
       gl.uniform1f(uniform(shader, "textureGlyphMode"), textureFrame.glyph ? 1 : 0);
       gl.uniform1f(uniform(shader, "textureRadial"), textureFrame.glyph ? 1 : 0);
     };
-    // Bake one period; power-of-two storage supports seamless WebGL 1 REPEAT.
+    // Power-of-two storage allows the reflection tile to repeat in WebGL 1.
     const tileSize = Math.min(REFLECTION_TILE_SIZE, maxTexture);
     reflectionTile = texture();
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
@@ -445,11 +452,14 @@ function createMaterialLayer(root, restore, unavailable) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.deleteFramebuffer(reflectionTarget);
     reflectionTarget = null;
+
+    // Glyph masks and relief
+
     const rebuild = (entry, state, width, height, densityX, densityY, key) => {
       const { mask, context, family } = entry;
       const w = Math.min(maxTexture, Math.max(1, Math.ceil(width * densityX)));
       const h = Math.min(maxTexture, Math.max(1, Math.ceil(height * densityY)));
-      // Reserve the fitted envelope plus 5.5% touch expansion, within GPU limits.
+      // Reserve room for touch expansion to avoid reallocating textures during a pulse.
       const bounds = fittedBounds.get(entry.word);
       const rootScaleX = densityX / Math.max(.00001, Math.abs(state.scaleX));
       let reserveW = Math.max(w, Math.ceil((bounds?.width || 0) * rootScaleX * 1.0625));
@@ -463,8 +473,7 @@ function createMaterialLayer(root, restore, unavailable) {
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, w, h);
       const fontSize = Number(state.fontSize.toFixed(3));
-      // Draw bottom-up so the typed-pixel upload needs no browser-side flip or
-      // Canvas-to-WebGL conversion. Glyph coverage is still native resolution.
+      // Draw bottom-up so raw pixel uploads need no vertical flip or canvas conversion.
       context.setTransform(w / width, 0, 0, -h / height, 0, h);
       // A connected canvas inherits the word's CSS variation axes. Unlike the
       // FontFace variation descriptor, this also works in WebKit.
@@ -480,13 +489,11 @@ function createMaterialLayer(root, restore, unavailable) {
       if (!Number.isFinite(baseline) || !Number.isFinite(measuredWidth) || measuredWidth <= 0) {
         throw new Error("Canvas returned invalid glyph metrics: " + text);
       }
-      // Browser metric differences should not switch the whole layer to plain.
-      // Keep the existing positioning; only fit discrepancies beyond its tolerance.
+      // Correct significant canvas metric differences without replacing the material layer.
       if (Math.abs(measuredWidth - width) > Math.max(2, width * .015)) context.scale(width / measuredWidth, 1);
       context.fillStyle = "white";
       context.fillText(text, 0, baseline);
 
-      // Grow storage only when necessary; axis animation updates existing textures.
       if (reserveW > entry.capacityW || reserveH > entry.capacityH) {
         entry.capacityW = Math.max(entry.capacityW, reserveW);
         entry.capacityH = Math.max(entry.capacityH, reserveH);
@@ -537,6 +544,9 @@ function createMaterialLayer(root, restore, unavailable) {
       }
       entry.reliefDirty = false;
     };
+
+    // Layer playback and surface handoff
+
     root.classList.add("hero-material-layer");
     root.append(canvas);
     return {
@@ -599,8 +609,7 @@ function createMaterialLayer(root, restore, unavailable) {
       showPlain,
       add(word) {
         const mask = document.createElement("canvas");
-        // This surface is read after every shape change; keep its backing store
-        // CPU-readable instead of forcing GPU readback during texture upload.
+        // Frequent pixel reads favor CPU-backed storage for glyph mask uploads.
         const context = mask.getContext("2d", { willReadFrequently: true });
         if (!context || !("letterSpacing" in context)) {
           throw new Error("Exact canvas typography is not supported");
@@ -628,12 +637,10 @@ function createMaterialLayer(root, restore, unavailable) {
           const rootBox = root.getBoundingClientRect();
           if (!rootBox.width || !rootBox.height ||
               (!preparingEntry && (rootBox.bottom < 0 || rootBox.top > innerHeight))) return;
-          // Canvas is inside the same animated container: parent opacity, transforms,
-          // scrolling and Glyph Story visibility remain controlled by the existing CSS.
+          // Capture all glyph bounds before changing buffer sizes or drawing.
           const box = canvas.getBoundingClientRect();
           const geometry = entries.map((entry) => ({ entry, rect: entry.word.getBoundingClientRect() }));
-          // Hardware dimensions are actual constraints, not a reason to abandon
-          // the material at an arbitrary pixel count. Fit only when necessary.
+          // Limit density to the device's supported buffer and texture dimensions.
           let density = Math.min(renderingDensity(),
             Math.min(maxViewport[0], maxRenderbuffer) / box.width,
             Math.min(maxViewport[1], maxRenderbuffer) / box.height);
@@ -650,7 +657,6 @@ function createMaterialLayer(root, restore, unavailable) {
             }
             lastFrame = "";
           }
-          // Read geometry before allocating or drawing; one coherent snapshot per frame.
           let hiddenPreparation = null;
           const frames = geometry.map(({ entry, rect }) => {
             if (preparingEntry && entry !== preparingEntry) return null;
@@ -661,8 +667,7 @@ function createMaterialLayer(root, restore, unavailable) {
             if (!preparingEntry) {
               if (style.visibility === "hidden") return null;
               if (!opacity) {
-                // Use the existing render loop and storage. Spread hidden first
-                // frames over separate ticks instead of batching them at reveal.
+                // Prepare at most one hidden word per frame to avoid a reveal-time spike.
                 if (hiddenPreparation || !pendingPreparations.has(entry.word)) return null;
                 hiddenPreparation = entry;
               }
@@ -722,8 +727,7 @@ function createMaterialLayer(root, restore, unavailable) {
               1 - (rect.bottom - box.top + padding) / box.height * 2,
               (rect.width + padding * 2) / box.width * 2, (rect.height + padding * 2) / box.height * 2);
             gl.uniform2f(uniform(shader, "textureScale"), entry.w / entry.capacityW, entry.h / entry.capacityH);
-            // Keep phase in the original clock's units: a wider pattern travels
-            // farther per cycle without slowing down or jumping at clock wrap.
+            // Normalize phase to the CSS clock so wider patterns retain the same cycle.
             gl.uniform2f(uniform(shader, "reflectionMapping"), width / reflectionPeriod,
               ((offset % REFLECTION_PERIOD) + REFLECTION_PERIOD) % REFLECTION_PERIOD / REFLECTION_PERIOD);
             gl.uniform1f(uniform(shader, "orange"), entry.orange ? 1 : 0);
@@ -769,8 +773,7 @@ function createMaterialLayer(root, restore, unavailable) {
             }
           }
           if (preparingEntry) {
-            // Exercise the real upload/relief/composite path without exposing a
-            // final-weight frame before the original arrival animation starts.
+            // Warm the full rendering path without exposing a final-weight glyph before arrival.
             gl.clear(gl.COLOR_BUFFER_BIT);
             gl.flush();
             lastFrame = "";
@@ -790,6 +793,8 @@ function createMaterialLayer(root, restore, unavailable) {
     throw error;
   }
 }
+
+// Site integration and preparation
 
 export async function initHeroMaterial({ typographyReady } = {}) {
   const roots = Array.from(document.querySelectorAll(".hero .hero-intro-grid, .hero .hero-brand-lockup"));
@@ -824,8 +829,7 @@ export async function initHeroMaterial({ typographyReady } = {}) {
     await Promise.all([document.fonts.ready, typographyReady]);
     roots.forEach(mount);
     const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
-    // Prepare every word before releasing the boot gate. Yield between words
-    // so the loader remains responsive; a skipped loader never gets re-hidden.
+    // Prepare one word per frame while the loader is pending and stop if it is skipped.
     for (const layer of layers) {
       if (!layer?.active || getTexturePreference() === "flat") continue;
       for (const entry of layer.entries) {

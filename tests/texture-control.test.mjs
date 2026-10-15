@@ -1,4 +1,4 @@
-// Dependency-free controller and motion checks; no GPU rendering.
+// These controller and motion checks do not render through a GPU.
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
@@ -164,7 +164,7 @@ for (const preference of ['flat', 'liquid']) {
   let blocked = false;
   t.document.emit('click', { target: t.otherControl, preventDefault() { blocked = true; }, stopImmediatePropagation() {} });
   assert.equal(blocked, true);
-  assert.deepEqual(t.saved, []); // A completed hold must NOT activate by itself.
+  assert.deepEqual(t.saved, []); // A completed hold must wait for release.
   assert.equal(t.button.dataset.phase, 'armed');
   t.release(); await t.advance(1200);
   assert.deepEqual(t.saved, [preference === 'flat' ? 'liquid' : 'flat']);
