@@ -3,6 +3,7 @@ import { glyphFlight } from "./glyph-motion.js?v=20261013r";
 
 export const GLYPH_SYNTHESIS_MS = 1600;
 export const GLYPH_ASSEMBLY_MS = 980;
+export const GLYPH_CONTRACTION_MS = GLYPH_ASSEMBLY_MS + GLYPH_SYNTHESIS_MS * .15;
 export function sampleGlyphSynthesis(progress) {
   const p = Math.max(0, Math.min(1, progress));
   const position = p ** 3 * (20 + p * (-45 + p * (36 - 10 * p)));
@@ -12,7 +13,7 @@ export function sampleGlyphSynthesis(progress) {
 
 function sampleGlyphFinishScale(elapsed) {
   const duration = GLYPH_ASSEMBLY_MS + GLYPH_SYNTHESIS_MS;
-  const turn = GLYPH_ASSEMBLY_MS + GLYPH_SYNTHESIS_MS * .15;
+  const turn = GLYPH_CONTRACTION_MS;
   const minimum = .60;
   const time = Math.max(0, Math.min(duration, elapsed));
   if (time <= turn) return minimum + (1 - minimum) * (1 + Math.cos(Math.PI * time / turn)) / 2;

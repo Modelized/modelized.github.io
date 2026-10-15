@@ -1,5 +1,5 @@
 import { TEXTURE_LIGHT, TEXTURE_SURFACE } from "./texture-wave.js?v=20261013r";
-import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261013r";
+import { captureGlyphField, GLYPH_FOCUS_LIGHT } from "./glyph-light-field.js?v=20261015b";
 import { captureGlyphCopy } from "./glyph-copy-motion.js?v=20261013r";
 
 export function createTextureLightLayer(parent, mark, copyElement = null, { copyOnly = false } = {}) {

@@ -597,6 +597,12 @@ body.glyph-story-active .site-nav {
   height: 100%;
 }
 
+.glyph-story.is-transitioning .glyph-piece {
+  overflow: visible;
+  opacity: 1;
+  transition: none;
+}
+
 .glyph-story[data-state="focus"] .glyph-piece__form {
   inset: auto;
   left: 50%;

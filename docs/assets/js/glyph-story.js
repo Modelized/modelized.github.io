@@ -1,6 +1,6 @@
-import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261013r";
-import { sampleGlyphSynthesis, sampleGlyphSynthesisScale, sampleGlyphAssemblyScale, GLYPH_SYNTHESIS_MS, GLYPH_ASSEMBLY_MS } from "./modules/glyph-light-field.js?v=20261013r";
-import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261013r";
+import { initGlyphPortal } from "./modules/glyph-portal.js?v=20261015b";
+import { sampleGlyphSynthesis, sampleGlyphSynthesisScale, sampleGlyphAssemblyScale, GLYPH_SYNTHESIS_MS, GLYPH_ASSEMBLY_MS, GLYPH_CONTRACTION_MS } from "./modules/glyph-light-field.js?v=20261015b";
+import { createTextureLightLayer } from "./modules/texture-light-layer.js?v=20261015b";
 import { GLYPH_COPY_MS, clearGlyphCopy } from "./modules/glyph-copy-motion.js?v=20261013r";
 import { glyphTriggerRect } from "./modules/glyph-motion.js?v=20261013r";
 
@@ -569,7 +569,7 @@ export function initGlyphStory({ heroMaterialReady }) {
     ];
   };
 
-  const transitionForms = async ({ mutate, duration, targetRotation, prepare, assemblyScale = null }) => {
+  const transitionForms = async ({ mutate, duration, targetRotation, prepare, assemblyScale = null, motionDuration = duration }) => {
     if (transitioning) return false;
     root.querySelectorAll(".glyph-copy-settled").forEach((element) => element.classList.remove("glyph-copy-settled"));
 
@@ -598,16 +598,14 @@ export function initGlyphStory({ heroMaterialReady }) {
     })();
 
     if (!reducedMotion.matches) {
-      await Promise.all([
-        scaleAnimation,
-        ...motions.map((motion, index) =>
+      const movement = Promise.all(motions.map((motion, index) =>
           animateElement(motion, translationKeyframes(before[index], after[index], rotationDelta), {
-            duration,
+            duration: motionDuration,
             easing: settleEase,
             fill: "both"
           })
-        )
-      ]);
+        ));
+      await Promise.all([scaleAnimation, motionDuration > duration && scaleAnimation ? null : movement]);
     }
 
     currentRotation = targetRotation;
@@ -848,6 +846,7 @@ export function initGlyphStory({ heroMaterialReady }) {
       const changed = await transitionForms({
         duration: GLYPH_ASSEMBLY_MS,
         assemblyScale: sampleGlyphAssemblyScale,
+        motionDuration: GLYPH_CONTRACTION_MS,
         targetRotation: 0,
         mutate: () => {
           setState("synthesis");

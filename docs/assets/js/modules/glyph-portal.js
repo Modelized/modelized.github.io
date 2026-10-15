@@ -1,7 +1,7 @@
 import { sampleTextureMotion, sampleTextureCharge, sampleTexturePress } from "./texture-wave.js?v=20261013r";
 import { getTexturePreference } from "./texture-state.js?v=20261008k";
 import { clearGlyphCopy } from "./glyph-copy-motion.js?v=20261013r";
-import { createTextureLightLayer } from "./texture-light-layer.js?v=20261013r";
+import { createTextureLightLayer } from "./texture-light-layer.js?v=20261015b";
 import { glyphFlight, glyphTriggerRect } from "./glyph-motion.js?v=20261013r";
 
 export const GLYPH_HOLD_MS = 900;
@@ -74,7 +74,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     return { host, fills, outlines, tails, stroke, hoverAnimation };
   };
   const logoFrame = (s, progress, loading, elapsed) => {
-    const press = sampleTexturePress(0, progress);
+    const press = sampleTexturePress(0, progress, 1.4);
     sourceLogo.style.scale = String(press);
     if (!s.logo) return;
     s.logo.host.style.width = `${s.box.width * press}px`;
@@ -191,7 +191,7 @@ export function initGlyphPortal({ trigger, root, materialReady, lock, prepare, c
     } else if (s.phase === "spread") {
       const p = Math.min(1, (now - s.phaseStart) / (reduced.matches ? 180 : GLYPH_OPEN_MS));
       const flight = glyphFlight(p), start = s.box, end = s.target;
-      const press = sampleTexturePress(1, sampleTextureMotion(1, p).position);
+      const press = sampleTexturePress(1, sampleTextureMotion(1, p).position, 1.4);
       const dx = end.left + end.width / 2 - start.left - start.width / 2;
       const dy = end.top + end.height / 2 - start.top - start.height / 2;
       const width = (start.width + (end.width - start.width) * flight.scale) * press;

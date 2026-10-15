@@ -60,6 +60,7 @@ const css = await read('assets/css/components/glyph-story.css');
 const textureCSS = await read('assets/css/components/texture-control.css');
 const baseCSS = await read('assets/css/style.css');
 assert.match(css, /scroll-snap-type: x mandatory/);
+assert.match(css, /\.glyph-story\.is-transitioning \.glyph-piece\s*\{\s*overflow: visible;\s*opacity: 1;\s*transition: none;/);
 assert.match(css, /\.glyph-story\[data-state="focus"\] \.glyph-story__mark\s*\{\s*display: contents;/);
 assert.match(css, /-webkit-tap-highlight-color: transparent/);
 assert.match(textureCSS, /-webkit-tap-highlight-color: transparent/);
