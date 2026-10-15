@@ -51,6 +51,7 @@ function initGridFittedTypography() {
   document.body.append(measuringSvg);
 
   let rafId = 0;
+  let textureFitPending = false;
   let fontsAreReady = false;
   const fitConfigurations = new WeakMap();
   const glyphMeasurements = new Map();
@@ -372,6 +373,11 @@ function initGridFittedTypography() {
 
   const fit = (allowDuringGlyphStory = false) => {
     rafId = 0;
+
+    if (body.classList.contains("texture-scroll-lock")) {
+      textureFitPending = true;
+      return;
+    }
 
     if (body.classList.contains("glyph-story-active") && !allowDuringGlyphStory) {
       return;
@@ -775,6 +781,11 @@ function initGridFittedTypography() {
     invalidate = false,
     animateResponsiveChange = false
   ) => {
+    if (body.classList.contains("texture-scroll-lock")) {
+      textureFitPending = true;
+      invalidateOnSettledFit ||= invalidate;
+      return;
+    }
     if (animateResponsiveChange) beginResponsiveRefit();
     invalidateOnSettledFit ||= invalidate;
     window.clearTimeout(settledFitTimer);
@@ -785,6 +796,10 @@ function initGridFittedTypography() {
       () => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
+            if (body.classList.contains("texture-scroll-lock")) {
+              textureFitPending = true;
+              return;
+            }
             const shouldInvalidate = invalidateOnSettledFit;
             invalidateOnSettledFit = false;
             if (shouldInvalidate) invalidateFits();
@@ -865,6 +880,11 @@ function initGridFittedTypography() {
   document.fonts?.addEventListener("loadingdone", () => glyphMeasurements.clear());
   document.fonts?.addEventListener("loadingerror", () => glyphMeasurements.clear());
   window.addEventListener("resize", handleViewportResize);
+  window.addEventListener("texture:unlocked", () => {
+    if (!textureFitPending) return;
+    textureFitPending = false;
+    scheduleSettledFit(0);
+  });
   window.addEventListener("orientationchange", () => {
     scheduleSettledFit(260, true, true);
   });

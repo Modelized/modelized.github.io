@@ -373,20 +373,28 @@ export function initGlyphStory({ heroMaterialReady }) {
     const piece = pieces[index];
     if (!piece) return 0;
     const maximum = Math.max(0, rail.scrollWidth - rail.clientWidth);
-    const center = visualInsets.left + (rail.clientWidth - visualInsets.left - visualInsets.right) / 2;
-    const centered = mark.offsetLeft + piece.offsetLeft + piece.offsetWidth / 2 - center;
+    const metrics = measureRail();
+    const box = metrics.boxes[index];
+    const centered = rail.scrollLeft + box.left + box.width / 2 - metrics.center;
     return clamp(centered, 0, maximum);
   };
 
-  const railStep = () => {
-    if (pieces.length > 1) {
-      const difference = targetScrollLeft(1) - targetScrollLeft(0);
-      if (Math.abs(difference) > 1) return difference;
-    }
-    return Math.max(1, rail.clientWidth);
+  const measureRail = () => {
+    const box = rail.getBoundingClientRect();
+    return {
+      center: box.left + visualInsets.left +
+        (rail.clientWidth - visualInsets.left - visualInsets.right) / 2,
+      boxes: pieces.map((piece) => piece.getBoundingClientRect())
+    };
   };
 
-  const railProgress = () => clamp(rail.scrollLeft / Math.max(1, railStep()), 0, pieces.length - 1);
+  const railProgress = () => {
+    const { center, boxes } = measureRail();
+    const first = boxes[0];
+    if (!first) return 0;
+    const step = boxes.length > 1 ? boxes[1].left - first.left : first.width;
+    return clamp((center - first.left - first.width / 2) / Math.max(1, step), 0, pieces.length - 1);
+  };
 
   const syncProgress = () => {
     const activeKey = keys[activeIndex];
@@ -1008,10 +1016,7 @@ export function initGlyphStory({ heroMaterialReady }) {
     reflowFrame = requestAnimationFrame(() => {
       reflowFrame = requestAnimationFrame(() => {
         syncVisualBounds();
-        if (state === "focus") {
-          rail.scrollLeft = targetScrollLeft(activeIndex);
-          updateRailVisuals();
-        }
+        if (state === "focus") updateRailVisuals();
         updateEdgeControls();
         root.classList.remove("is-reflowing");
       });

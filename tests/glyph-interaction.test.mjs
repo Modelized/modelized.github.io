@@ -38,11 +38,29 @@ for (const stacked of [true, false]) {
 
 assert.doesNotMatch(story, /is-wheeling|railWheelTimer/);
 assert.doesNotMatch(story.match(/const handleRailWheel = [\s\S]*?\n  \};/)[0], /scrollLeft\s*=|preventDefault|setTimeout/);
+assert.doesNotMatch(story.match(/const performResponsiveReflow = [\s\S]*?\n  \};/)[0], /scrollLeft\s*=/);
+
+for (const width of [320, 720]) {
+  for (const progress of [0, .3, 1, 1.8, 2]) {
+    const scope = vm.createContext({
+      clamp: (value, min, max) => Math.max(min, Math.min(max, value)),
+      rail: { clientWidth: width + 80, getBoundingClientRect: () => ({ left: 0 }) },
+      visualInsets: { left: 30, right: 50 },
+      pieces: [0, 1, 2].map((index) => ({
+        getBoundingClientRect: () => ({ left: 30 + (index - progress) * width, width })
+      }))
+    });
+    vm.runInContext(story.match(/const measureRail = [\s\S]*?\n  \};/)[0] + '\n' +
+      story.match(/const railProgress = [\s\S]*?\n  \};/)[0] + '\nthis.progress = railProgress();', scope);
+    assert.ok(Math.abs(scope.progress - progress) < 1e-10);
+  }
+}
 
 const css = await read('assets/css/components/glyph-story.css');
 const textureCSS = await read('assets/css/components/texture-control.css');
 const baseCSS = await read('assets/css/style.css');
 assert.match(css, /scroll-snap-type: x mandatory/);
+assert.match(css, /\.glyph-story\[data-state="focus"\] \.glyph-story__mark\s*\{\s*display: contents;/);
 assert.match(css, /-webkit-tap-highlight-color: transparent/);
 assert.match(textureCSS, /-webkit-tap-highlight-color: transparent/);
 assert.doesNotMatch(baseCSS, /\.nav-texture-control:active\s*\{/);

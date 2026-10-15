@@ -184,7 +184,7 @@ assert.match(css, /radial-gradient\(ellipse at var\(--glyph-edge-origin\)/);
 assert.doesNotMatch(css, /background: linear-gradient\((90|270)deg/);
 assert.match(story, /syncVisualBounds\(\)/);
 assert.doesNotMatch(story, /drawGlyphGrid/);
-assert.match(story, /mark.offsetLeft \+ piece.offsetLeft/);
+assert.match(story, /rail.scrollLeft \+ box.left \+ box.width \/ 2 - metrics.center/);
 assert.match(css, /\.glyph-piece__fill \{\s*fill: rgb\(var\(--glyph-ink-rgb\)\);\s*fill-opacity: 0;/);
 assert.match(css, /\.glyph-piece__outline \{\s*fill: none;\s*stroke-dasharray: none;/);
 assert.doesNotMatch(story, /setPathDash|dashLengthFor|renderedScale|style\.strokeDash(array|offset)\s*=/);

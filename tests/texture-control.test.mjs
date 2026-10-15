@@ -82,6 +82,7 @@ class Element {
     const event = { preventDefault() {}, ...values };
     for (const fn of this.events.get(name) || []) fn(event);
   }
+  dispatchEvent(event) { this.emit(event.type, event); }
   setAttribute(name, value) { this.attrs[name] = value; }
   setPointerCapture() {}
   contains(node) { return node === this; }
@@ -92,11 +93,15 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
   let time = 0, id = 0, resolvePreparation, rejectPreparation, resolveVisuals;
   const jobs = new Map(), saved = [], draws = [];
   const body = new Element(), html = new Element(), button = new Element(), icon = new Element();
+  const stage = new Element();
+  stage.style.width = ''; stage.style.height = '';
+  stage.getBoundingClientRect = () => ({ width: 844, height: 520 });
   body.classList.add('hero-ready');
   button.querySelector = () => icon;
   const document = new Element();
   Object.assign(document, { body, documentElement: html, hidden: false, scrollingElement: { scrollTop: 0 } });
-  document.querySelector = (selector) => selector === '[data-texture-control]' ? button : new Element();
+  document.querySelector = (selector) => selector === '[data-texture-control]' ? button :
+    selector === '.hero-stage' ? stage : new Element();
   const otherControl = new Element();
   otherControl.inert = false;
   document.querySelectorAll = () => [otherControl];
@@ -117,7 +122,7 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
     finishTexture: () => material.finishes++
   };
   const context = vm.createContext({
-    document, window, innerWidth: 440, AbortController, sampleTextureMotion, sampleTextureCharge, sampleTexturePress, console: { warn() {}, debug() {} },
+    document, window, innerWidth: 440, Event, AbortController, sampleTextureMotion, sampleTextureCharge, sampleTexturePress, console: { warn() {}, debug() {} },
     performance: { now: () => time },
     requestAnimationFrame: (fn) => schedule(fn, 16), cancelAnimationFrame: (key) => jobs.delete(key),
     setTimeout: (fn, delay) => schedule(fn, delay), clearTimeout: (key) => jobs.delete(key),
@@ -145,7 +150,7 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
     button.emit('click', { detail: 1 });
   };
   await advance(200);
-  return { body, html, button, otherControl, window, document, material, saved, draws, advance, press, release,
+  return { body, html, button, stage, otherControl, window, document, material, saved, draws, advance, press, release,
     visuals: () => resolveVisuals(),
     resolve: () => resolvePreparation(), reject: () => rejectPreparation(new Error('test failure')) };
 }
@@ -153,6 +158,8 @@ async function setup({ preference = 'liquid', available = true, delayed = false,
 for (const preference of ['flat', 'liquid']) {
   const t = await setup({ preference });
   t.press(); await t.advance(1800);
+  assert.equal(t.stage.style.width, '844px');
+  assert.equal(t.stage.style.height, '520px');
   assert.equal(t.otherControl.inert, true);
   let blocked = false;
   t.document.emit('click', { target: t.otherControl, preventDefault() { blocked = true; }, stopImmediatePropagation() {} });
@@ -167,6 +174,8 @@ for (const preference of ['flat', 'liquid']) {
     assert.deepEqual(frame.motion, sampleTextureMotion(frame.stage, frame.progress));
   }
   assert.equal(t.body.classList.contains('texture-scroll-lock'), false);
+  assert.equal(t.stage.style.width, '');
+  assert.equal(t.stage.style.height, '');
   assert.equal(t.otherControl.inert, false);
 }
 {

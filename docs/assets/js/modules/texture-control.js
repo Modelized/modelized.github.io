@@ -24,6 +24,7 @@ export function initTextureControl({ materialReady }) {
   let heldPointer = null;
   let heldKey = null;
   let unlockRevision = 0;
+  let lockedLayout = null;
   const inertBeforeLock = new Map();
 
   const scrollTop = () => Math.max(0, window.scrollY || 0, document.scrollingElement?.scrollTop || 0);
@@ -73,6 +74,15 @@ export function initTextureControl({ materialReady }) {
     }, reducedMotion.matches ? 0 : TEXTURE_ICON_MS);
   };
   const setLocked = (locked) => {
+    if (locked && !lockedLayout) {
+      const stage = document.querySelector(".hero-stage");
+      if (stage) {
+        const box = stage.getBoundingClientRect();
+        lockedLayout = { stage, width: stage.style.width, height: stage.style.height };
+        stage.style.width = `${box.width}px`;
+        stage.style.height = `${box.height}px`;
+      }
+    }
     html.classList.toggle("texture-scroll-lock", locked);
     body.classList.toggle("texture-scroll-lock", locked);
     if (locked) {
@@ -83,6 +93,13 @@ export function initTextureControl({ materialReady }) {
     } else {
       for (const [element, inert] of inertBeforeLock) element.inert = inert;
       inertBeforeLock.clear();
+      if (lockedLayout) {
+        const { stage, width, height } = lockedLayout;
+        stage.style.width = width;
+        stage.style.height = height;
+        lockedLayout = null;
+      }
+      window.dispatchEvent(new Event("texture:unlocked"));
     }
   };
   const releaseLock = () => {

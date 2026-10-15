@@ -544,6 +544,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story[data-state="focus"] .glyph-story__rail {
+  display: flex;
   inset: calc(-1 * var(--glyph-viewport-top)) calc(-1 * var(--glyph-viewport-right))
     calc(-1 * var(--glyph-viewport-bottom)) calc(-1 * var(--glyph-viewport-left));
   width: auto;
@@ -573,14 +574,7 @@ body.glyph-story-active .site-nav {
 }
 
 .glyph-story[data-state="focus"] .glyph-story__mark {
-  display: flex;
-  align-items: stretch;
-  gap: 0;
-  width: max-content;
-  min-width: 100%;
-  height: 100%;
-  box-sizing: content-box;
-  padding: 0;
+  display: contents;
 }
 
 .glyph-story[data-state="focus"] .glyph-piece {
@@ -591,6 +585,9 @@ body.glyph-story-active .site-nav {
   width: 100cqw;
   height: 100%;
   scroll-snap-align: center;
+  overflow: clip;
+  overflow-clip-margin: max(var(--glyph-viewport-top), var(--glyph-viewport-right),
+    var(--glyph-viewport-bottom), var(--glyph-viewport-left));
 }
 
 .glyph-story[data-state="focus"] .glyph-piece__motion,
