@@ -1,4 +1,7 @@
-import { SITE_LOADER_REVEAL_DELAY, SITE_LOADER_SKIP_DELAY, prefersReducedMotion } from "./context.js?v=20261002a";
+import { prefersReducedMotion } from "./context.js?v=20261015c";
+
+const SITE_LOADER_REVEAL_DELAY = 220;
+const SITE_LOADER_SKIP_DELAY = 4200;
 
 // Loader lifecycle
 

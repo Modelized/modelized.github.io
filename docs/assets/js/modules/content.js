@@ -1,4 +1,4 @@
-import { simpleIcon } from "./context.js?v=20261002a";
+const simpleIcon = (name) => `https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/${name}.svg`;
 
 // Card content
 

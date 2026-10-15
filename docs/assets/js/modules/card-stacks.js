@@ -1,5 +1,5 @@
-import { prefersReducedMotion } from "./context.js?v=20261002a";
-import { disciplines, projects } from "./content.js?v=20261002a";
+import { prefersReducedMotion } from "./context.js?v=20261015c";
+import { disciplines, projects } from "./content.js?v=20261015c";
 
 // Card measurements
 

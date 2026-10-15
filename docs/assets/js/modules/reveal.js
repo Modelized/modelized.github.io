@@ -1,6 +1,6 @@
 import { createScrollReveal } from "../scroll-reveal.js?v=20261002a";
-import { getScrollTop } from "./navigation.js?v=20261008k";
-import { prefersReducedMotion, body } from "./context.js?v=20261002a";
+import { getScrollTop } from "./navigation.js?v=20261015c";
+import { prefersReducedMotion, body } from "./context.js?v=20261015c";
 
 // Section reveals
 

@@ -1,13 +1,15 @@
-import { injectPartial, initNav, syncMobileNavState, initAnchorScroll, initSectionSpy } from "./modules/navigation.js?v=20261008k";
-import { renderProjects, renderDisciplines, initYear } from "./modules/content.js?v=20261002a";
-import { initAboutDisclosure, initAboutCreator } from "./modules/about.js?v=20261015a";
-import { initReveal, initHeroIntro } from "./modules/reveal.js?v=20261013r";
-import { initGridFittedTypography, initRockSaltSafeAreas } from "./modules/typography.js?v=20261015a";
+import { injectPartial } from "./modules/site-partials.js?v=20261015c";
+import { initNav, syncMobileNavState, initAnchorScroll, initSectionSpy } from "./modules/navigation.js?v=20261015c";
+import { renderProjects, renderDisciplines, initYear } from "./modules/content.js?v=20261015c";
+import { initAboutDisclosure, initAboutCreator } from "./modules/about.js?v=20261015c";
+import { initReveal, initHeroIntro } from "./modules/reveal.js?v=20261015c";
+import { initGridFittedTypography } from "./modules/typography.js?v=20261015c";
+import { initRockSaltSafeAreas } from "./modules/typography-script-bounds.js?v=20261015c";
 import { initHeroMaterial } from "./modules/hero-material.js?v=20261013r";
 import { initTextureControl } from "./modules/texture-control.js?v=20261015a";
 import { initGlyphStory } from "./glyph-story.js?v=20261015b";
-import { initDisciplineStack, initProjectStack } from "./modules/card-stacks.js?v=20261013r";
-import { waitForSiteReadiness, siteBootGate } from "./modules/readiness.js?v=20261002a";
+import { initDisciplineStack, initProjectStack } from "./modules/card-stacks.js?v=20261015c";
+import { waitForSiteReadiness, siteBootGate } from "./modules/readiness.js?v=20261015c";
 async function boot() {
   let outcome = "ready";
 

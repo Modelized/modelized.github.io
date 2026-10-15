@@ -1,6 +1,6 @@
-import { prefersReducedMotion } from "./context.js?v=20261002a";
-import { syncRockSaltSafeAreas } from "./typography.js?v=20261015a";
-import { createSettledScheduler } from "./navigation.js?v=20261008k";
+import { prefersReducedMotion } from "./context.js?v=20261015c";
+import { syncRockSaltSafeAreas } from "./typography-script-bounds.js?v=20261015c";
+import { createSettledScheduler } from "./layout-scheduler.js?v=20261015c";
 
 // Expandable biography
 

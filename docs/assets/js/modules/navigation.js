@@ -1,60 +1,14 @@
-import { base, assetVersion, SETTLE_PASS_DELAYS, portraitBrandShifts, mobileMenuMotion, body, prefersReducedMotion } from "./context.js?v=20261002a";
+import { body, prefersReducedMotion } from "./context.js?v=20261015c";
+import { createSettledScheduler } from "./layout-scheduler.js?v=20261015c";
 
-// Shared partials
-
-function getPartialUrl(file) {
-  const version = file === "nav.html" ? "20261008k" : assetVersion;
-  if (!base || base === ".") {
-    return `assets/partials/${file}?v=${version}`;
-  }
-
-  const normalized = base.endsWith("/") ? base.slice(0, -1) : base;
-  return `${normalized}/assets/partials/${file}?v=${version}`;
-}
-
-async function injectPartial(selector, file) {
-  const slot = document.querySelector(selector);
-  if (!slot) {
-    return;
-  }
-
-  try {
-    const response = await fetch(getPartialUrl(file));
-    if (!response.ok) {
-      throw new Error(`${file} fetch failed: ${response.status}`);
-    }
-    slot.innerHTML = await response.text();
-  } catch (error) {
-    console.error("Partial load failed", error);
-  }
-}
+const mobileMenuMotion = { revision: 0, frame: 0, closing: false };
+const portraitBrandShifts = new WeakMap();
 
 // Viewport and menu geometry
 
 function getScrollTop() {
   const scrollEl = document.scrollingElement || document.documentElement || document.body;
   return Math.max(window.scrollY || 0, window.pageYOffset || 0, scrollEl?.scrollTop || 0);
-}
-
-function createSettledScheduler(callback) {
-  const timers = [];
-
-  const clear = () => {
-    while (timers.length) {
-      window.clearTimeout(timers.pop());
-    }
-  };
-
-  const schedule = (baseDelay = 0, beforeSchedule) => {
-    clear();
-    beforeSchedule?.();
-
-    SETTLE_PASS_DELAYS.forEach((offset) => {
-      timers.push(window.setTimeout(callback, baseDelay + offset));
-    });
-  };
-
-  return { clear, schedule };
 }
 
 function getNavOffset() {
@@ -861,4 +815,4 @@ function initSectionSpy() {
   window.addEventListener("resize", releaseScrollLock);
 }
 
-export { getScrollTop, createSettledScheduler, injectPartial, initNav, syncMobileNavState, initAnchorScroll, initSectionSpy };
+export { getScrollTop, initNav, syncMobileNavState, initAnchorScroll, initSectionSpy };
