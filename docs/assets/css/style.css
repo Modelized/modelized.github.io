@@ -91,11 +91,13 @@ html.site-boot-pending body {
   overflow: hidden;
 }
 
-html.site-boot-pending .nav-menu-blur,
-html.site-boot-pending .site-nav,
-html.site-boot-pending .page-wrap,
-html.site-boot-pending #footer-slot {
+html.site-boot-pending:not(.site-loader-releasing) .nav-menu-blur,
+html.site-boot-pending:not(.site-loader-releasing) .site-nav,
+html.site-boot-pending:not(.site-loader-releasing) .page-wrap,
+html.site-boot-pending:not(.site-loader-releasing) #footer-slot {
   opacity: 0 !important;
+}
+html.site-boot-pending :is(.nav-menu-blur, .site-nav, .page-wrap, #footer-slot) {
   pointer-events: none !important;
 }
 
@@ -110,23 +112,21 @@ html.site-boot-pending #footer-slot {
   padding: max(env(safe-area-inset-top, 0px), 1.5rem) max(env(safe-area-inset-right, 0px), 1.5rem)
     max(env(safe-area-inset-bottom, 0px), 1.5rem) max(env(safe-area-inset-left, 0px), 1.5rem);
   color: var(--text);
-  background: transparent;
+  background: #000;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transition:
-    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
-    visibility 0s linear 420ms;
 }
 
-html.site-loader-visible .site-loader {
+html.site-boot-pending .site-loader {
   opacity: 1;
   visibility: visible;
-  transition-delay: 0s, 0s;
+  pointer-events: auto;
 }
 
 html.site-loader-releasing .site-loader {
   opacity: 0;
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .site-loader__content {
@@ -136,6 +136,16 @@ html.site-loader-releasing .site-loader {
   align-items: center;
   justify-content: center;
   gap: clamp(0.82rem, 2.4vw, 1.1rem);
+  opacity: 0;
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.site-loader-visible .site-loader__content {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-loader__content { transition: none; }
 }
 
 .site-loader__logo {
@@ -225,9 +235,7 @@ a {
 }
 
 .site-nav {
-  transition:
-    opacity 920ms cubic-bezier(0.22, 1, 0.36, 1),
-    transform 1080ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 1080ms cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   inset: auto;
   z-index: 900;

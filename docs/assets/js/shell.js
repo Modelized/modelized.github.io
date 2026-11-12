@@ -2,7 +2,7 @@ import { injectPartial } from "./modules/site-partials.js?v=20261015c";
 import { initNav, syncMobileNavState, initAnchorScroll, initSectionSpy } from "./modules/navigation.js?v=20261015c";
 import { renderProjects, renderDisciplines, initYear } from "./modules/content.js?v=20261015c";
 import { initAboutDisclosure, initAboutCreator } from "./modules/about.js?v=20261015c";
-import { initReveal, initHeroIntro } from "./modules/reveal.js?v=20261015c";
+import { initReveal, initHeroIntro } from "./modules/reveal.js?v=20261113d";
 import { initGridFittedTypography } from "./modules/typography.js?v=20261015c";
 import { initRockSaltSafeAreas } from "./modules/typography-script-bounds.js?v=20261015c";
 import { initHeroMaterial } from "./modules/hero-material.js?v=20261013r";
@@ -46,8 +46,10 @@ async function boot() {
     outcome = "failed";
   }
 
-  await siteBootGate.release();
-  initHeroIntro({ waitForFonts: outcome === "ready" });
+  await initHeroIntro({
+    waitForFonts: outcome === "ready",
+    beforeStart: () => siteBootGate.release()
+  });
 }
 
 if (document.readyState === "loading") {

@@ -61,15 +61,17 @@ function initReveal() {
 
 // Hero intro
 
-async function initHeroIntro({ waitForFonts = true } = {}) {
+async function initHeroIntro({ waitForFonts = true, beforeStart = () => {} } = {}) {
   const shouldSkipIntro =
     prefersReducedMotion ||
     getScrollTop() > 8 ||
     (window.location.hash && window.location.hash !== "#hero");
 
   if (shouldSkipIntro) {
-    body.classList.add("hero-handoff", "hero-ready");
+    // Prepare the restored page before the loader starts uncovering it.
+    body.classList.add("hero-ready");
     window.dispatchEvent(new Event("hero:ready"));
+    await beforeStart();
     return;
   }
 
@@ -80,6 +82,7 @@ async function initHeroIntro({ waitForFonts = true } = {}) {
     ]);
   }
 
+  await beforeStart();
   requestAnimationFrame(() => {
     body.classList.add("hero-intro-running");
     window.dispatchEvent(new Event("hero:intro"));
